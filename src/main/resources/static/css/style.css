@@ -1,0 +1,9 @@
+/* Gom file cấu hình chung và reset giao diện */
+@import url("base.css");
+
+/* Gom file giao diện riêng cho trang Đăng nhập / Đăng ký */
+@import url("auth.css");
+
+/* Sau này nếu bạn code thêm các trang khác (ví dụ: trang Dashboard, trang Profile...), 
+   bạn chỉ cần tạo file mới (vd: dashboard.css) và thêm vào đây một dòng: */
+/* @import url('dashboard.css'); */

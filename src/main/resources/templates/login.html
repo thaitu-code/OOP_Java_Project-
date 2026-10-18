@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Đăng nhập FitnessAI</title>
+</head>
+<body>
+<h2>Đăng nhập</h2>
+
+<!-- Hiện thông báo lỗi nếu URL có param ?error=true -->
+<div th:if="${param.error}" style="color: red;">
+    Sai tên đăng nhập hoặc mật khẩu!
+</div>
+<div th:if="${param.logout}" style="color: green;">
+    Bạn đã đăng xuất thành công.
+</div>
+
+<form th:action="@{/perform_login}" method="post">
+    <div>
+        <label>Tên đăng nhập:</label>
+        <input type="text" name="username" required />
+    </div>
+    <div>
+        <label>Mật khẩu:</label>
+        <input type="password" name="password" required />
+    </div>
+    <button type="submit">Đăng nhập</button>
+</form>
+
+<p>Chưa có tài khoản? <a th:href="@{/register}">Đăng ký ngay</a></p>
+</body>
+</html>
