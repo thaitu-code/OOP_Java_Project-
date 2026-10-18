@@ -11,6 +11,7 @@
     />
     <!-- Liên kết file CSS riêng biệt -->
     <link rel="stylesheet" href="/src/main/resources/css/style.css" />
+    <script src="/src/main/resources/js/main.js" defer></script>
   </head>
   <body>
     <div class="container">
@@ -102,25 +103,5 @@
     </div>
 
     <!-- Script chuyển đổi tab -->
-    <script>
-      function switchTab(tab) {
-        const loginTabBtn = document.getElementById("loginTabBtn");
-        const signupTabBtn = document.getElementById("signupTabBtn");
-        const loginForm = document.getElementById("loginForm");
-        const signupForm = document.getElementById("signupForm");
-
-        if (tab === "login") {
-          loginTabBtn.classList.add("active");
-          signupTabBtn.classList.remove("active");
-          loginForm.classList.add("active");
-          signupForm.classList.remove("active");
-        } else {
-          signupTabBtn.classList.add("active");
-          loginTabBtn.classList.remove("active");
-          signupForm.classList.add("active");
-          loginForm.classList.remove("active");
-        }
-      }
-    </script>
   </body>
 </html>
