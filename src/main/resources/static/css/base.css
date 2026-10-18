@@ -1,0 +1,28 @@
+/* --- 1. KHAI BÁO BIẾN MÀU SẮC & CẤU HÌNH CHUNG --- */
+:root {
+  --primary-color: #00796b;
+  --primary-dark: #004d40;
+  --primary-light: #e0f2f1;
+  --accent-color: #b2dfdb;
+  --bg-color: #0e8a84;
+  --text-main: #333333;
+  --text-muted: #888888;
+  --white: #ffffff;
+  --shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+}
+
+/* --- 2. RESET MẶC ĐỊNH & GIAO DIỆN CƠ BẢN --- */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Poppins", sans-serif;
+}
+
+body {
+  background-color: var(--bg-color);
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
