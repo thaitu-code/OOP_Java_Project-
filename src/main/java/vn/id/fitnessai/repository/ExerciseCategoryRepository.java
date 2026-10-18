@@ -5,4 +5,6 @@ import vn.id.fitnessai.entity.ExerciseCategory;
 
 public interface ExerciseCategoryRepository
         extends JpaRepository<ExerciseCategory,Integer> {
+
+    boolean existsByCategoryName(String categoryName);
 }
