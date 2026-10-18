@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Quản trị hệ thống - FitnessAI</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .admin-box { border: 2px solid red; padding: 20px; border-radius: 10px; background-color: #fff0f0; }
+    </style>
+</head>
+<body>
+
+<div class="admin-box">
+    <h2>Trang Quản Trị Hệ Thống (Admin Dashboard)</h2>
+    <p>Tuyệt vời! Nếu bạn nhìn thấy dòng chữ này, hệ thống đã xác nhận tài khoản của bạn có quyền <strong>ROLE_ADMIN</strong>.</p>
+
+    <ul>
+        <li><a th:href="@{/home}">Quay lại trang chủ (Home)</a></li>
+    </ul>
+
+    <!-- Nút đăng xuất -->
+    <form th:action="@{/perform_logout}" method="post" style="margin-top: 20px;">
+        <button type="submit">Đăng xuất</button>
+    </form>
+</div>
+
+</body>
+</html>
