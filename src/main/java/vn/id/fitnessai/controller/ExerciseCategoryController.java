@@ -12,12 +12,11 @@ import vn.id.fitnessai.service.ExerciseCategoryService;
 import java.util.*;
 
 @RestController
-@RequestMapping("/admin/exercise-categories")
 @RequiredArgsConstructor
 public class ExerciseCategoryController {
     private final ExerciseCategoryService exerciseCategoryService;
 
-    @PostMapping
+    @PostMapping("/admin/exercise-categories")  //Chỉ role admin mới được tạo nhóm bài tập mới
     public ResponseEntity<ExerciseCategoryResponse> createCategory(@Valid @RequestBody ExerciseCategoryRequest request){
         ExerciseCategoryResponse response = exerciseCategoryService.createCategory(request);
 
@@ -27,5 +26,12 @@ public class ExerciseCategoryController {
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String,String>> handleIllegalArgument(IllegalArgumentException exception){
         return ResponseEntity.badRequest().body(Map.of("message",exception.getMessage()));
+    }
+
+    @GetMapping("/exercise-categories")  //Cả User và Admin đều xem được danh sách bài tập
+    public ResponseEntity<List<ExerciseCategoryResponse>> getAllCategories(){
+        List<ExerciseCategoryResponse> responses = exerciseCategoryService.getAllCategories();
+
+        return ResponseEntity.ok(responses);
     }
 }
