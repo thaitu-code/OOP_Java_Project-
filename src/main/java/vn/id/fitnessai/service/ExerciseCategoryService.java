@@ -9,6 +9,8 @@ import vn.id.fitnessai.dto.ExerciseCategoryResponse;
 import vn.id.fitnessai.entity.ExerciseCategory;
 import vn.id.fitnessai.repository.ExerciseCategoryRepository;
 
+import java.util.*;
+
 @Service
 @RequiredArgsConstructor
 public class ExerciseCategoryService {
@@ -40,5 +42,20 @@ public class ExerciseCategoryService {
         ExerciseCategory savedCategory = exerciseCategoryRepository.save(category);
 
         return new ExerciseCategoryResponse(savedCategory.getCategoryId(), savedCategory.getCategoryName());
+    }
+
+    @Transactional
+    public List<ExerciseCategoryResponse> getAllCategories(){
+        List<ExerciseCategory> categories = exerciseCategoryRepository.findAll();
+
+        List<ExerciseCategoryResponse> responses = new ArrayList<>();
+
+        for(ExerciseCategory category : categories){
+            ExerciseCategoryResponse response = new ExerciseCategoryResponse(category.getCategoryId(), category.getCategoryName());
+
+            responses.add(response);
+        }
+
+        return responses;
     }
 }
