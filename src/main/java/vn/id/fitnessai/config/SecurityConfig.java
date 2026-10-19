@@ -41,10 +41,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Tạm thời disable CSRF để test cho dễ, sau này làm production nên bật lên
                 .authorizeHttpRequests(auth -> auth
                         // Ai cũng vào được trang đăng ký và file tĩnh
-                        .requestMatchers("/register", "/css/**", "/js/**", "/images/**", "/error").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/register",
+                                "/login",
+                                "/forgot-password",
+                                "/reset-password",
+                                "/verify"
+                        ).permitAll()
                         // Chỉ những tài khoản có ROLE_ADMIN mới vào được các link bắt đầu bằng /admin/
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Mọi trang khác bắt buộc phải đăng nhập

@@ -26,7 +26,7 @@ public class RoleInitializer implements CommandLineRunner {
             admin.setUsername("admin");
             admin.setEmail("admin@fitnessai.vn");
             admin.setPassword(passwordEncoder.encode("123456")); // Pass mặc định
-
+            admin.setEnabled(true);
             // Lấy role ADMIN từ DB và gán cho tài khoản này
             Role adminRole = roleRepository.findByName("ROLE_ADMIN").get();
             admin.getRoles().add(adminRole);
