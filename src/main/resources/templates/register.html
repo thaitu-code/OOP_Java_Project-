@@ -6,29 +6,44 @@
 <body>
 <h2>Đăng ký tài khoản</h2>
 
-<!-- Hiện thông báo lỗi từ Controller (ví dụ: Email đã tồn tại) -->
-<div th:if="${error}" style="color: red;">
+<!-- Hiện thông báo lỗi chung từ Controller (ví dụ: Email/Username đã tồn tại) -->
+<div th:if="${error}" style="color: red; margin-bottom: 15px;">
     <span th:text="${error}">Lỗi đăng ký!</span>
 </div>
 
 <!-- Form sử dụng th:object để map trực tiếp với đối tượng RegisterRequest từ Controller -->
 <form th:action="@{/register}" th:object="${registerRequest}" method="post">
-    <div>
+
+    <div style="margin-bottom: 10px;">
         <label>Tên đăng nhập:</label>
-        <input type="text" th:field="*{username}" required />
+        <input type="text" th:field="*{username}" />
+        <!-- Dòng này để hiện lỗi từ @NotBlank, @Size bên trong file DTO -->
+        <span th:if="${#fields.hasErrors('username')}" th:errors="*{username}" style="color: red; font-size: 0.9em; margin-left: 10px;"></span>
     </div>
-    <div>
+
+    <div style="margin-bottom: 10px;">
         <label>Email:</label>
-        <input type="email" th:field="*{email}" required />
+        <input type="email" th:field="*{email}" />
+        <span th:if="${#fields.hasErrors('email')}" th:errors="*{email}" style="color: red; font-size: 0.9em; margin-left: 10px;"></span>
     </div>
-    <div>
+
+    <div style="margin-bottom: 10px;">
         <label>Mật khẩu:</label>
-        <input type="password" th:field="*{password}" required />
+        <input type="password" th:field="*{password}" />
+        <span th:if="${#fields.hasErrors('password')}" th:errors="*{password}" style="color: red; font-size: 0.9em; margin-left: 10px;"></span>
+    </div>
+
+    <!-- TRƯỜNG XÁC NHẬN MẬT KHẨU MỚI THÊM -->
+    <div style="margin-bottom: 15px;">
+        <label>Xác nhận mật khẩu:</label>
+        <input type="password" th:field="*{confirmPassword}" />
+        <!-- Dòng này để hiện lỗi "Mật khẩu xác nhận không khớp!" từ Controller -->
+        <span th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}" style="color: red; font-size: 0.9em; margin-left: 10px;"></span>
     </div>
 
     <button type="submit">Đăng ký</button>
 </form>
 
-<p>Đã có tài khoản? <a th:href="@{/login}">Đăng nhập ngay</a></p>
+<p style="margin-top: 20px;">Đã có tài khoản? <a th:href="@{/login}">Đăng nhập ngay</a></p>
 </body>
 </html>

@@ -45,4 +45,10 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
+    @Column(name = "is_enabled", nullable = false)
+    private boolean isEnabled = false; // Mặc định false, khi nào xác thực email xong thì chuyển thành true
+
+    @Column(name = "is_locked", nullable = false)
+    private boolean isLocked = false;  // Mặc định false (không bị khóa)
+
 }
