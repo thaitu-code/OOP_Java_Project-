@@ -41,7 +41,7 @@ public class ExerciseCategoryService {
         ExerciseCategory category = new ExerciseCategory(categoryName);
         ExerciseCategory savedCategory = exerciseCategoryRepository.save(category);
 
-        return new ExerciseCategoryResponse(savedCategory.getCategoryId(), savedCategory.getCategoryName());
+        return new ExerciseCategoryResponse(savedCategory.getCategoryId(), savedCategory.getCategoryName(), savedCategory.isActive());
     }
 
     @Transactional
@@ -51,7 +51,7 @@ public class ExerciseCategoryService {
         List<ExerciseCategoryResponse> responses = new ArrayList<>();
 
         for(ExerciseCategory category : categories){
-            ExerciseCategoryResponse response = new ExerciseCategoryResponse(category.getCategoryId(), category.getCategoryName());
+            ExerciseCategoryResponse response = new ExerciseCategoryResponse(category.getCategoryId(), category.getCategoryName(), category.isActive());
 
             responses.add(response);
         }
@@ -74,7 +74,7 @@ public class ExerciseCategoryService {
         //Chuyển từ optional sang ExerciseCategory để tạo Responese
         ExerciseCategory foundCategory = category.get();
 
-        ExerciseCategoryResponse response = new ExerciseCategoryResponse(foundCategory.getCategoryId(), foundCategory.getCategoryName());
+        ExerciseCategoryResponse response = new ExerciseCategoryResponse(foundCategory.getCategoryId(), foundCategory.getCategoryName(), foundCategory.isActive());
 
         return Optional.of(response);
     }
@@ -122,6 +122,26 @@ public class ExerciseCategoryService {
         foundCategory.setCategoryName(categoryName);
         ExerciseCategory savedCategory = exerciseCategoryRepository.save(foundCategory);
 
-        return Optional.of(new ExerciseCategoryResponse(savedCategory.getCategoryId(), savedCategory.getCategoryName()));
+        return Optional.of(new ExerciseCategoryResponse(savedCategory.getCategoryId(), savedCategory.getCategoryName(), savedCategory.isActive()));
+    }
+
+    @Transactional
+    public Optional<ExerciseCategoryResponse> updateCategoryStatus(Integer categoryId, boolean active){
+        if (categoryId == null || categoryId <=0){
+            throw new IllegalArgumentException("ID nhóm bài tập phải là số nguyên dương");
+        }
+
+        Optional<ExerciseCategory> category = exerciseCategoryRepository.findById(categoryId);
+
+        if (category.isEmpty()){
+            return Optional.empty();
+        }
+
+        ExerciseCategory foundCategory = category.get();
+        foundCategory.setActive(active);
+
+        ExerciseCategory savedCategory = exerciseCategoryRepository.save(foundCategory);
+
+        return Optional.of(new ExerciseCategoryResponse(savedCategory.getCategoryId(), savedCategory.getCategoryName(), savedCategory.isActive()));
     }
 }

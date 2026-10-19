@@ -46,12 +46,34 @@ public class ExerciseCategoryController {
         return ResponseEntity.ok(response.get());
     }
 
-    @PutMapping("/admin/exercise-categories/{categoryId}")
+    @PatchMapping("/admin/exercise-categories/{categoryId}")
     public ResponseEntity<ExerciseCategoryResponse> updateCategory(
             @PathVariable("categoryId") Integer categoryId,
             @Valid @RequestBody ExerciseCategoryRequest request){
 
         Optional<ExerciseCategoryResponse> response = exerciseCategoryService.updateCategory(categoryId, request);
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
+
+    @DeleteMapping("/admin/exercise-categories/{categoryId}")
+    public ResponseEntity<ExerciseCategoryResponse> deactivateCategory(@PathVariable("categoryId") Integer categoryId){
+        Optional<ExerciseCategoryResponse> response = exerciseCategoryService.updateCategoryStatus(categoryId,false);
+
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
+
+    @PatchMapping("/admin/exercise-categories/{categoryId}/activate")
+    public ResponseEntity<ExerciseCategoryResponse> activateCategory(@PathVariable("categoryId") Integer categoryId){
+        Optional<ExerciseCategoryResponse> response = exerciseCategoryService.updateCategoryStatus(categoryId, true);
+
         if (response.isEmpty()){
             return ResponseEntity.notFound().build();
         }

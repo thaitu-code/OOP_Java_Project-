@@ -8,4 +8,5 @@ import lombok.Getter;
 public class ExerciseCategoryResponse {
     private Integer categoryId;
     private String categoryName;
+    private boolean active;
 }
