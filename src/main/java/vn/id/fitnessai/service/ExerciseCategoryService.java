@@ -58,4 +58,70 @@ public class ExerciseCategoryService {
 
         return responses;
     }
+
+    @Transactional
+    public Optional<ExerciseCategoryResponse> getCategoryById(Integer categoryId){
+        if (categoryId == null || categoryId <= 0){
+            throw new IllegalArgumentException("ID nhóm bài tập phải là số nguyên dương");
+        }
+        //Optional trả về empty nếu gặp null
+        Optional<ExerciseCategory> category = exerciseCategoryRepository.findById(categoryId);
+
+        if (category.isEmpty()){
+            return Optional.empty();
+        }
+
+        //Chuyển từ optional sang ExerciseCategory để tạo Responese
+        ExerciseCategory foundCategory = category.get();
+
+        ExerciseCategoryResponse response = new ExerciseCategoryResponse(foundCategory.getCategoryId(), foundCategory.getCategoryName());
+
+        return Optional.of(response);
+    }
+
+    @Transactional
+    public Optional<ExerciseCategoryResponse> updateCategory(Integer categoryId, ExerciseCategoryRequest request){
+
+        //Check TÊN và ID hợp lệ
+        if (categoryId == null || categoryId <= 0){
+            throw new IllegalArgumentException("ID nhóm bài tập phải là số nguyên dương");
+        }
+
+        if (request == null){
+            throw new IllegalArgumentException("Dữ liệu cập nhật nhóm không được để trống");
+        }
+
+        String rawName = request.getCategoryName();
+
+        if (rawName == null || rawName.isBlank()){
+            throw new IllegalArgumentException("Tên nhóm không được để trống");
+        }
+
+        if (rawName.length() > 100){
+            throw new IllegalArgumentException("Tên nhóm không được vượt quá 100 kí tự");
+        }
+
+        String categoryName = rawName.strip();
+
+        //Tìm nhóm hiện có
+
+        Optional<ExerciseCategory> category = exerciseCategoryRepository.findById(categoryId);  //Lấy danh mục theo ID
+
+        //Ko tìm đc thì trả về rỗng
+        if (category.isEmpty()){
+            return Optional.empty();
+        }
+
+        //Check tên mới có trùng với nhóm khác không
+        if (exerciseCategoryRepository.existsByCategoryNameAndCategoryIdNot(categoryName, categoryId)){
+            throw new IllegalArgumentException("Tên nhóm đã tồn tại");
+        }
+
+        //Lưu category với tên mới vào Repository
+        ExerciseCategory foundCategory = category.get();
+        foundCategory.setCategoryName(categoryName);
+        ExerciseCategory savedCategory = exerciseCategoryRepository.save(foundCategory);
+
+        return Optional.of(new ExerciseCategoryResponse(savedCategory.getCategoryId(), savedCategory.getCategoryName()));
+    }
 }

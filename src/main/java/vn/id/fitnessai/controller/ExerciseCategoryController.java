@@ -34,4 +34,28 @@ public class ExerciseCategoryController {
 
         return ResponseEntity.ok(responses);
     }
+
+    @GetMapping("/exercise-categories/{categoryId}")
+    public ResponseEntity<ExerciseCategoryResponse> getCategoryById(@PathVariable("categoryId") Integer categoryId){
+        Optional<ExerciseCategoryResponse> response = exerciseCategoryService.getCategoryById(categoryId);
+
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
+
+    @PutMapping("/admin/exercise-categories/{categoryId}")
+    public ResponseEntity<ExerciseCategoryResponse> updateCategory(
+            @PathVariable("categoryId") Integer categoryId,
+            @Valid @RequestBody ExerciseCategoryRequest request){
+
+        Optional<ExerciseCategoryResponse> response = exerciseCategoryService.updateCategory(categoryId, request);
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
 }
