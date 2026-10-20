@@ -1,28 +1,70 @@
-/* --- 1. KHAI BÁO BIẾN MÀU SẮC & CẤU HÌNH CHUNG --- */
+/* ============================================================
+   BASE.CSS - Biến màu, reset và nền trang (tông xanh nước biển nhạt)
+   ============================================================ */
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
+
 :root {
-  --primary-color: #00796b;
-  --primary-dark: #004d40;
-  --primary-light: #e0f2f1;
-  --accent-color: #b2dfdb;
-  --bg-color: #0e8a84;
-  --text-main: #333333;
-  --text-muted: #888888;
+  --primary: #3b9be0;
+  --primary-dark: #2678b8;
+  --primary-light: #eaf5fd;
+  --accent: #8fcdf5;
+  --grad: linear-gradient(135deg, #5fb8f0 0%, #3b9be0 55%, #2f8bd1 100%);
+  --bg: #eef5fa;
+  --text: #2b3a4a;
+  --muted: #8a97a6;
+  --field: #f3f7fa;
   --white: #ffffff;
-  --shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  --danger: #e5566b;
+  --success: #2eaa7a;
+  --shadow: 0 20px 45px rgba(47, 149, 220, 0.18);
 }
 
-/* --- 2. RESET MẶC ĐỊNH & GIAO DIỆN CƠ BẢN --- */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Poppins", sans-serif;
+  font-family: "Poppins", "Segoe UI", Arial, sans-serif;
 }
 
 body {
-  background-color: var(--bg-color);
-  height: 100vh;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 24px 0;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Hai mảng màu trang trí ở nền, giống mẫu */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  pointer-events: none;
+}
+body::before {
+  top: -120px;
+  right: -90px;
+  width: 360px;
+  height: 360px;
+  background: var(--accent);
+  opacity: 0.55;
+  border-radius: 40% 60% 55% 45%;
+  transform: rotate(25deg);
+}
+body::after {
+  bottom: -110px;
+  left: -80px;
+  width: 280px;
+  height: 280px;
+  background: #cfe9fb;
+  border-radius: 50%;
+}
+
+a {
+  color: inherit;
 }

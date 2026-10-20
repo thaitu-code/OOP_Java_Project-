@@ -1,50 +1,91 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Đăng nhập FitnessAI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - FitnessAI</title>
+    <!-- Mở trực tiếp file: dùng đường dẫn ../static/...  |  Chạy qua Spring Boot: Thymeleaf tự đổi sang @{/css/style.css} -->
+    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
 </head>
 <body>
-<h2>Đăng nhập</h2>
+<main class="container has-intro" id="authContainer">
 
-<div th:if="${param.locked}" style="color: red; margin-bottom: 10px;">
-    Tài khoản của bạn đã bị khóa!
-</div>
-<div th:if="${param.error}" style="color: red; margin-bottom: 10px;">
-    Sai tên đăng nhập, mật khẩu hoặc tài khoản chưa được xác thực!
-</div>
-<div th:if="${param.logout}" style="color: green; margin-bottom: 10px;">
-    Bạn đã đăng xuất thành công.
-</div>
+    <!-- ===== PHẦN TRÁI: Form đăng nhập  <->  Giới thiệu ===== -->
+    <section class="form-side">
+        <a class="brand" href="login.html" th:href="@{/login}"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg><span>FitnessAI</span></a>
 
-<div th:if="${param.registerSuccess}" style="color: green; margin-bottom: 10px;">
-    Đăng ký thành công! Vui lòng kiểm tra email để xác thực.
-</div>
-<div th:if="${param.verifySuccess}" style="color: green; margin-bottom: 10px;">
-    Xác thực email thành công! Bạn có thể đăng nhập.
-</div>
-<div th:if="${param.resetSuccess}" style="color: green; margin-bottom: 10px;">
-    Đổi mật khẩu thành công! Vui lòng đăng nhập lại.
-</div>
+        <!-- Khối 1: Đăng nhập -->
+        <div class="panel-block panel-login">
+            <h1 class="title">Đăng nhập FitnessAI</h1>
+            <p class="sub-text">dùng tài khoản của bạn để tiếp tục</p>
 
-<form th:action="@{/perform_login}" method="post">
-    <div style="margin-bottom: 10px;">
-        <label for="username">Tên đăng nhập:</label>
-        <input id="username" type="text" name="username" required />
-    </div>
-    <div style="margin-bottom: 10px;">
-        <label for="password">Mật khẩu:</label>
-        <input id="password" type="password" name="password" required />
-    </div>
-    <button type="submit" style="margin-bottom: 10px;">Đăng nhập</button>
-</form>
+            <!-- Thông báo (chỉ hiện khi URL có tham số tương ứng) -->
+            <div class="alert alert-error" style="display:none" th:if="${param.error}" th:style="'display:block'">Sai tên đăng nhập, mật khẩu hoặc tài khoản chưa được xác thực!</div>
+            <div class="alert alert-success" style="display:none" th:if="${param.logout}" th:style="'display:block'">Bạn đã đăng xuất thành công.</div>
+            <div class="alert alert-success" style="display:none" th:if="${param.registerSuccess}" th:style="'display:block'">Đăng ký thành công! Vui lòng kiểm tra email để xác thực.</div>
+            <div class="alert alert-success" style="display:none" th:if="${param.verifySuccess}" th:style="'display:block'">Xác thực email thành công! Bạn có thể đăng nhập.</div>
+            <div class="alert alert-success" style="display:none" th:if="${param.resetSuccess}" th:style="'display:block'">Đổi mật khẩu thành công! Vui lòng đăng nhập lại.</div>
 
-<p style="margin-top: 15px; margin-bottom: 5px;">
-    <a th:href="@{/forgot-password}">Quên mật khẩu?</a>
-</p>
-<p style="margin-top: 5px;">
-    Chưa có tài khoản? <a th:href="@{/register}">Đăng ký ngay</a>
-</p>
+            <form class="auth-form" action="#" th:action="@{/perform_login}" method="post">
+                <div class="form-group">
+                    <label class="field">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+                        <input type="text" id="username" name="username" placeholder="Tên đăng nhập" required autocomplete="username">
+
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="field">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
+                        <input type="password" id="password" name="password" placeholder="Mật khẩu" required autocomplete="current-password">
+                        <button type="button" class="eye" data-toggle-password aria-label="Hiện mật khẩu"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+                    </label>
+                </div>
+
+                <a class="link-underline" href="forgot_password.html" th:href="@{/forgot-password}">Quên mật khẩu?</a>
+                <button type="submit" class="btn btn-primary">ĐĂNG NHẬP</button>
+            </form>
+        </div>
+
+        <!-- Khối 2: Giới thiệu (hiện khi bấm "Xem giới thiệu") -->
+        <div class="panel-block panel-intro" aria-hidden="true">
+            <h1 class="title">Về FitnessAI</h1>
+            <p class="intro-text">Nền tảng hỗ trợ bạn quản lý việc tập luyện<br>một cách khoa học và bền bỉ.</p>
+            <ul class="feature-list">
+                <li><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg></span><div><strong>Thư viện bài tập</strong><small>Tra cứu bài tập theo từng nhóm cơ, có hướng dẫn rõ ràng.</small></div></li>
+                <li><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><div><strong>Lịch tập cá nhân</strong><small>Lên kế hoạch buổi tập và theo dõi trạng thái hoàn thành.</small></div></li>
+                <li><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span><div><strong>Theo dõi tiến độ</strong><small>Xem lại quá trình luyện tập để giữ vững động lực.</small></div></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== PHẦN PHẢI: Nền xanh ===== -->
+    <aside class="overlay-side">
+        <span class="shape s1"></span>
+        <span class="shape s2"></span>
+        <span class="shape s3"></span>
+        <span class="shape s4"></span>
+        <span class="shape s5"></span>
+
+        <!-- Hiện khi đang ở form đăng nhập -->
+        <div class="overlay-block overlay-hello">
+            <h2>Xin chào, bạn mới!</h2>
+            <p>Nhập thông tin cá nhân của bạn<br>và bắt đầu hành trình cùng chúng tôi</p>
+            <a class="btn btn-ghost" href="register.html" th:href="@{/register}">ĐĂNG KÝ</a>
+            <button type="button" class="text-btn" data-toggle-panel>Xem giới thiệu &rarr;</button>
+        </div>
+
+        <!-- Hiện khi đang ở phần giới thiệu -->
+        <div class="overlay-block overlay-back" aria-hidden="true">
+            <h2>Chào mừng trở lại!</h2>
+            <p>Đăng nhập để tiếp tục<br>hành trình rèn luyện của bạn</p>
+            <button type="button" class="btn btn-ghost" data-toggle-panel>ĐĂNG NHẬP</button>
+            <a class="text-btn" href="register.html" th:href="@{/register}">Chưa có tài khoản? Đăng ký</a>
+        </div>
+    </aside>
+</main>
+
+<script src="../static/js/main.js" th:src="@{/js/main.js}"></script>
+<script src="../static/js/auth.js" th:src="@{/js/auth.js}"></script>
 </body>
 </html>

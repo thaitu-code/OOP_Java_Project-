@@ -45,6 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Ai cũng vào được trang đăng ký và file tĩnh
                         .requestMatchers(
+                                "/css/**", "/js/**", "/images/**",
                                 "/api/auth/**",
                                 "/register",
                                 "/login",
