@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -44,6 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Ai cũng vào được trang đăng ký và file tĩnh
                         .requestMatchers(
+                                "/css/**", "/js/**", "/images/**",
                                 "/api/auth/**",
                                 "/register",
                                 "/login",
@@ -60,7 +62,13 @@ public class SecurityConfig {
                         .loginPage("/login") // Đường dẫn (URL) trỏ tới trang login HTML của bạn
                         .loginProcessingUrl("/perform_login") // URL này Spring tự bắt khi form submit (không cần bạn viết Controller)
                         .defaultSuccessUrl("/home", true) // Nếu đăng nhập thành công, chuyển hướng tới /home
-                        .failureUrl("/login?error=true") // Nếu sai mật khẩu, quay lại trang login kèm lỗi
+                        .failureHandler((request, response, exception) -> {
+                            if (exception instanceof LockedException) {
+                                response.sendRedirect(request.getContextPath() + "/login?locked=true");
+                            } else {
+                                response.sendRedirect(request.getContextPath() + "/login?error=true");
+                            }
+                        })
                         .permitAll()
                 )
                 .logout(logout -> logout

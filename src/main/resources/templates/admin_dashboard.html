@@ -1,28 +1,45 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quản trị hệ thống - FitnessAI</title>
-    <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        .admin-box { border: 2px solid red; padding: 20px; border-radius: 10px; background-color: #fff0f0; }
-    </style>
+    <!-- Mở trực tiếp file: dùng đường dẫn ../static/...  |  Chạy qua Spring Boot: Thymeleaf tự đổi sang @{/css/style.css} -->
+    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
 </head>
-<body>
+<body class="dash-body">
 
-<div class="admin-box">
-    <h2>Trang Quản Trị Hệ Thống (Admin Dashboard)</h2>
-    <p>Tuyệt vời! Nếu bạn nhìn thấy dòng chữ này, hệ thống đã xác nhận tài khoản của bạn có quyền <strong>ROLE_ADMIN</strong>.</p>
+<header class="topbar">
+    <a class="brand" href="home.html" th:href="@{/home}"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg><span>FitnessAI</span></a>
+    <div class="topbar-right">
+        <a class="nav-link" href="home.html" th:href="@{/home}">Trang chủ</a>
+        <form action="#" th:action="@{/perform_logout}" method="post">
+            <button type="submit" class="btn btn-primary btn-sm">ĐĂNG XUẤT</button>
+        </form>
+    </div>
+</header>
 
-    <ul>
-        <li><a th:href="@{/home}">Quay lại trang chủ (Home)</a></li>
-    </ul>
+<main class="dash-wrap">
+    <section class="welcome-card">
+        <h1>Trang quản trị hệ thống</h1>
+        <p>Khu vực dành riêng cho tài khoản quản trị viên.</p>
+        <span class="role-badge">ROLE_ADMIN</span>
+    </section>
 
-    <!-- Nút đăng xuất -->
-    <form th:action="@{/perform_logout}" method="post" style="margin-top: 20px;">
-        <button type="submit">Đăng xuất</button>
-    </form>
-</div>
+    <section class="admin-note">
+        Hệ thống đã xác nhận tài khoản của bạn có quyền <strong>ROLE_ADMIN</strong>.
+        Từ đây bạn có thể quản lý người dùng (khóa / mở khóa) và các chức năng quản trị khác.
+    </section>
+
+    <section class="card-grid">
+        <div class="card"><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg></span><h3>Quản lý người dùng</h3><p>Khóa hoặc mở khóa tài khoản người dùng.</p><span class="tag-soon">Sắp ra mắt</span></div>
+        <div class="card"><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg></span><h3>Quản lý bài tập</h3><p>Thêm, sửa, xóa bài tập và nhóm bài tập.</p><span class="tag-soon">Sắp ra mắt</span></div>
+    </section>
+
+    <p style="margin-top:22px;text-align:center">
+        <a class="link-underline" href="home.html" th:href="@{/home}">&larr; Quay lại trang chủ (Home)</a>
+    </p>
+</main>
 
 </body>
 </html>

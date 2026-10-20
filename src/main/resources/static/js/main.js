@@ -1,8 +1,13 @@
-// src/main/resources/static/js/main.js
+// static/js/main.js
+// Các hàm dùng chung cho mọi trang (được nhúng trực tiếp bằng thẻ <script>).
 
-// Tự động chèn file auth.js vào trang mà HTML không cần gọi trực tiếp
-const script = document.createElement("script");
-script.src = "/src/main/resources/static/js/auth.js";
-document.head.appendChild(script);
-
-console.log("Main.js đã tải và đang gọi auth.js!");
+// Nút con mắt: hiện / ẩn mật khẩu
+document.querySelectorAll("[data-toggle-password]").forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    var input = btn.closest(".field").querySelector("input");
+    var show = input.type === "password";
+    input.type = show ? "text" : "password";
+    btn.classList.toggle("is-visible", show);
+    btn.setAttribute("aria-label", show ? "Ẩn mật khẩu" : "Hiện mật khẩu");
+  });
+});

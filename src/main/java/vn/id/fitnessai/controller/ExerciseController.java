@@ -9,9 +9,7 @@ import vn.id.fitnessai.dto.ExerciseRequest;
 import vn.id.fitnessai.dto.ExerciseResponse;
 import vn.id.fitnessai.service.ExerciseService;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequiredArgsConstructor
