@@ -10,6 +10,8 @@ import java.math.BigDecimal;
 public class ExerciseResponse {
     private Integer exerciseId;
     private String exerciseName;
+
+    private boolean active;
     private String description;
 
     private BigDecimal metValue;

@@ -9,7 +9,9 @@ import vn.id.fitnessai.dto.ExerciseRequest;
 import vn.id.fitnessai.dto.ExerciseResponse;
 import vn.id.fitnessai.service.ExerciseService;
 
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequiredArgsConstructor
@@ -51,6 +53,29 @@ public class ExerciseController {
                                                            @Valid @RequestBody ExerciseRequest request){
         //Không cần xử lý ID vì sẽ đẩy xuống service xử lý
         Optional<ExerciseResponse> response = exerciseService.updateExercise(exerciseId, request);
+
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
+
+
+    @PatchMapping("/admin/exercises/{exerciseId}/deactivate")
+    public ResponseEntity<ExerciseResponse> deactivateExercise(@PathVariable("exerciseId") Integer exerciseId){
+        Optional<ExerciseResponse> response = exerciseService.updateExerciseStatus(exerciseId, false);
+
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
+
+    @PatchMapping("/admin/exercises/{exerciseId}/activate")
+    public ResponseEntity<ExerciseResponse> activateExercise(@PathVariable("exerciseId") Integer exerciseId){
+        Optional<ExerciseResponse> response = exerciseService.updateExerciseStatus(exerciseId, true);
 
         if (response.isEmpty()){
             return ResponseEntity.notFound().build();

@@ -63,6 +63,7 @@ public class ExerciseService {
         return new ExerciseResponse(
                 savedExercise.getExerciseId(),
                 savedExercise.getExerciseName(),
+                savedExercise.isActive(),
                 savedExercise.getDescription(),
                 savedExercise.getMetValue(),
                 savedExercise.getMinDurationMinutes(),
@@ -84,6 +85,7 @@ public class ExerciseService {
             ExerciseResponse response = new ExerciseResponse(
                     exercise.getExerciseId(),
                     exercise.getExerciseName(),
+                    exercise.isActive(),
                     exercise.getDescription(),
                     exercise.getMetValue(),
                     exercise.getMinDurationMinutes(),
@@ -117,6 +119,7 @@ public class ExerciseService {
         ExerciseResponse response = new ExerciseResponse(
                 exercise.getExerciseId(),
                 exercise.getExerciseName(),
+                exercise.isActive(),
                 exercise.getDescription(),
                 exercise.getMetValue(),
                 exercise.getMinDurationMinutes(),
@@ -187,6 +190,41 @@ public class ExerciseService {
         ExerciseResponse response = new ExerciseResponse(
                 savedExercise.getExerciseId(),
                 savedExercise.getExerciseName(),
+                savedExercise.isActive(),
+                savedExercise.getDescription(),
+                savedExercise.getMetValue(),
+                savedExercise.getMinDurationMinutes(),
+                savedExercise.getRecommendedSets(),
+                savedExercise.getRecommendedReps(),
+                savedExercise.getAiVideoUrl(),
+                savedExercise.getCategory().getCategoryId(),
+                savedExercise.getCategory().getCategoryName()
+        );
+
+        return Optional.of(response);
+    }
+
+    @Transactional
+    public Optional<ExerciseResponse> updateExerciseStatus(Integer exerciseId, boolean active){
+
+        if (exerciseId == null || exerciseId <= 0){
+            throw new IllegalArgumentException("ID bài tập phải là số nguyên dương");
+        }
+
+        Optional<Exercise> exerciseOptional = exerciseRepository.findById(exerciseId);
+        if (exerciseOptional.isEmpty()){
+            return Optional.empty();
+        }
+
+        Exercise exercise = exerciseOptional.get();
+        exercise.setActive(active);
+
+        Exercise savedExercise = exerciseRepository.save(exercise);
+
+        ExerciseResponse response = new ExerciseResponse(
+                savedExercise.getExerciseId(),
+                savedExercise.getExerciseName(),
+                savedExercise.isActive(),
                 savedExercise.getDescription(),
                 savedExercise.getMetValue(),
                 savedExercise.getMinDurationMinutes(),
