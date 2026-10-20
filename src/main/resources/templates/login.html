@@ -1,12 +1,16 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Đăng nhập FitnessAI</title>
 </head>
 <body>
 <h2>Đăng nhập</h2>
 
-<!-- Hiện thông báo lỗi nếu URL có param ?error=true -->
+<div th:if="${param.locked}" style="color: red; margin-bottom: 10px;">
+    Tài khoản của bạn đã bị khóa!
+</div>
 <div th:if="${param.error}" style="color: red; margin-bottom: 10px;">
     Sai tên đăng nhập, mật khẩu hoặc tài khoản chưa được xác thực!
 </div>
@@ -14,7 +18,6 @@
     Bạn đã đăng xuất thành công.
 </div>
 
-<!-- Các thông báo thành công cho luồng Đăng ký, Xác thực và Quên mật khẩu -->
 <div th:if="${param.registerSuccess}" style="color: green; margin-bottom: 10px;">
     Đăng ký thành công! Vui lòng kiểm tra email để xác thực.
 </div>
@@ -27,24 +30,21 @@
 
 <form th:action="@{/perform_login}" method="post">
     <div style="margin-bottom: 10px;">
-        <label>Tên đăng nhập:</label>
-        <input type="text" name="username" required />
+        <label for="username">Tên đăng nhập:</label>
+        <input id="username" type="text" name="username" required />
     </div>
     <div style="margin-bottom: 10px;">
-        <label>Mật khẩu:</label>
-        <input type="password" name="password" required />
+        <label for="password">Mật khẩu:</label>
+        <input id="password" type="password" name="password" required />
     </div>
     <button type="submit" style="margin-bottom: 10px;">Đăng nhập</button>
 </form>
 
-<!-- ĐÃ THÊM PHẦN QUÊN MẬT KHẨU Ở ĐÂY -->
 <p style="margin-top: 15px; margin-bottom: 5px;">
     <a th:href="@{/forgot-password}">Quên mật khẩu?</a>
 </p>
-
 <p style="margin-top: 5px;">
     Chưa có tài khoản? <a th:href="@{/register}">Đăng ký ngay</a>
 </p>
-
 </body>
 </html>
