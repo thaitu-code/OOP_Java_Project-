@@ -5,6 +5,7 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
 
@@ -44,6 +45,10 @@ public class Exercise {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
     private ExerciseCategory category;
+
+    @Column(name = "is_active", nullable = false)
+    @ColumnDefault("true")
+    private boolean active = true;
 
     public Exercise(String exerciseName, BigDecimal metValue, BigDecimal minDurationMinutes, ExerciseCategory category){
         this.exerciseName = exerciseName;

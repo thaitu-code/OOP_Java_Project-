@@ -63,6 +63,7 @@ public class ExerciseService {
         return new ExerciseResponse(
                 savedExercise.getExerciseId(),
                 savedExercise.getExerciseName(),
+                savedExercise.isActive(),
                 savedExercise.getDescription(),
                 savedExercise.getMetValue(),
                 savedExercise.getMinDurationMinutes(),
@@ -72,5 +73,168 @@ public class ExerciseService {
                 savedExercise.getCategory().getCategoryId(),
                 savedExercise.getCategory().getCategoryName()
         );
+    }
+
+    @Transactional
+    public List<ExerciseResponse> getAllExercises(){
+
+        List<Exercise> exercises = exerciseRepository.findAll();
+        List<ExerciseResponse> responses = new ArrayList<>();
+
+        for (Exercise exercise : exercises){
+            ExerciseResponse response = new ExerciseResponse(
+                    exercise.getExerciseId(),
+                    exercise.getExerciseName(),
+                    exercise.isActive(),
+                    exercise.getDescription(),
+                    exercise.getMetValue(),
+                    exercise.getMinDurationMinutes(),
+                    exercise.getRecommendedSets(),
+                    exercise.getRecommendedReps(),
+                    exercise.getAiVideoUrl(),
+                    exercise.getCategory().getCategoryId(),
+                    exercise.getCategory().getCategoryName()
+            );
+
+            responses.add(response);
+        }
+
+        return responses;
+    }
+
+    @Transactional
+    public Optional<ExerciseResponse> getExerciseById(Integer exerciseId){
+        if (exerciseId == null || exerciseId <= 0){
+            throw new IllegalArgumentException("ID bài tập phải là số nguyên dương");
+        }
+
+        Optional<Exercise> exerciseOptional = exerciseRepository.findById(exerciseId);
+
+        if (exerciseOptional.isEmpty()){
+            return Optional.empty();
+        }
+
+        Exercise exercise = exerciseOptional.get();
+
+        ExerciseResponse response = new ExerciseResponse(
+                exercise.getExerciseId(),
+                exercise.getExerciseName(),
+                exercise.isActive(),
+                exercise.getDescription(),
+                exercise.getMetValue(),
+                exercise.getMinDurationMinutes(),
+                exercise.getRecommendedSets(),
+                exercise.getRecommendedReps(),
+                exercise.getAiVideoUrl(),
+                exercise.getCategory().getCategoryId(),
+                exercise.getCategory().getCategoryName()
+        );
+
+        return Optional.of(response);
+    }
+
+    @Transactional
+    public Optional<ExerciseResponse> updateExercise(Integer exerciseId, ExerciseRequest  request){
+
+        if (exerciseId == null || exerciseId <= 0){
+            throw new IllegalArgumentException("ID bài tập phải là số nguyên dương");
+        }
+
+        if (request == null){
+            throw new IllegalArgumentException("Dữ liệu bài tập không được để trống");
+        }
+
+        //Check lỗi trong request
+        Set<ConstraintViolation<ExerciseRequest>> violations = validator.validate(request);
+        if (!violations.isEmpty()){
+            throw new IllegalArgumentException(violations.iterator().next().getMessage());
+        }
+        Optional<Exercise> exerciseOptional = exerciseRepository.findById(exerciseId);
+
+        if (exerciseOptional.isEmpty()){
+            return Optional.empty();
+        }
+
+        //Exercise đang lưu
+        Exercise exercise = exerciseOptional.get();
+
+        Optional<ExerciseCategory> categoryOptional = exerciseCategoryRepository.findById(request.getCategoryId());
+
+        if (categoryOptional.isEmpty()){
+            throw new IllegalArgumentException("Nhóm bài tập không tồn tại");
+        }
+
+        ExerciseCategory category = categoryOptional.get();
+
+        boolean categoryChanged = !Objects.equals(exercise.getCategory().getCategoryId(), category.getCategoryId());
+
+        //Nếu nhóm bài tập mới khác nhóm cũ nhưng không hoạt động
+        if (categoryChanged && !category.isActive()){
+            throw new IllegalArgumentException("Không thể chuyển sang nhóm đã ngừng hoạt động");
+        }
+
+        //Cập nhật giá trị
+        exercise.setExerciseName(request.getExerciseName().strip());
+        exercise.setDescription(request.getDescription());
+        exercise.setMetValue(request.getMetValue());
+        exercise.setMinDurationMinutes(request.getMinDurationMinutes());
+        exercise.setRecommendedSets(request.getRecommendedSets());
+        exercise.setRecommendedReps(request.getRecommendedReps());
+        exercise.setAiVideoUrl(request.getAiVideoUrl());
+        exercise.setCategory(category);
+
+        //Lưu xuống db
+        Exercise savedExercise = exerciseRepository.save(exercise);
+
+        //Chuyển sang DTO response
+        ExerciseResponse response = new ExerciseResponse(
+                savedExercise.getExerciseId(),
+                savedExercise.getExerciseName(),
+                savedExercise.isActive(),
+                savedExercise.getDescription(),
+                savedExercise.getMetValue(),
+                savedExercise.getMinDurationMinutes(),
+                savedExercise.getRecommendedSets(),
+                savedExercise.getRecommendedReps(),
+                savedExercise.getAiVideoUrl(),
+                savedExercise.getCategory().getCategoryId(),
+                savedExercise.getCategory().getCategoryName()
+        );
+
+        return Optional.of(response);
+    }
+
+    @Transactional
+    public Optional<ExerciseResponse> updateExerciseStatus(Integer exerciseId, boolean active){
+
+        if (exerciseId == null || exerciseId <= 0){
+            throw new IllegalArgumentException("ID bài tập phải là số nguyên dương");
+        }
+
+        Optional<Exercise> exerciseOptional = exerciseRepository.findById(exerciseId);
+        if (exerciseOptional.isEmpty()){
+            return Optional.empty();
+        }
+
+        Exercise exercise = exerciseOptional.get();
+        exercise.setActive(active);
+
+        Exercise savedExercise = exerciseRepository.save(exercise);
+
+        ExerciseResponse response = new ExerciseResponse(
+                savedExercise.getExerciseId(),
+                savedExercise.getExerciseName(),
+                savedExercise.isActive(),
+                savedExercise.getDescription(),
+                savedExercise.getMetValue(),
+                savedExercise.getMinDurationMinutes(),
+                savedExercise.getRecommendedSets(),
+                savedExercise.getRecommendedReps(),
+                savedExercise.getAiVideoUrl(),
+                savedExercise.getCategory().getCategoryId(),
+                savedExercise.getCategory().getCategoryName()
+        );
+
+        return Optional.of(response);
     }
 }
