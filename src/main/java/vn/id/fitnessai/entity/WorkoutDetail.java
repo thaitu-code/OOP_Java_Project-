@@ -21,8 +21,8 @@ public class WorkoutDetail {
     @JoinColumn(name = "session_id",nullable = false)
     private Workout workout;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "exercise_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "exercise_id", nullable = true)
     private Exercise exercise;
 
     //

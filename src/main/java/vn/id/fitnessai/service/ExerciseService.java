@@ -9,8 +9,10 @@ import vn.id.fitnessai.dto.ExerciseRequest;
 import vn.id.fitnessai.dto.ExerciseResponse;
 import vn.id.fitnessai.entity.Exercise;
 import vn.id.fitnessai.entity.ExerciseCategory;
+import vn.id.fitnessai.enums.WorkoutStatus;
 import vn.id.fitnessai.repository.ExerciseCategoryRepository;
 import vn.id.fitnessai.repository.ExerciseRepository;
+import vn.id.fitnessai.repository.WorkoutDetailRepository;
 
 import java.util.*;
 
@@ -20,6 +22,7 @@ public class ExerciseService {
 
     private final ExerciseRepository exerciseRepository; //Tiêm lớp repository của exercise lên
     private final ExerciseCategoryRepository exerciseCategoryRepository;    //Tiêm lớp repository của exerciseCategory lên
+    private final WorkoutDetailRepository workoutDetailRepository;
     private final Validator validator;  //Bắt các lỗi trong exerciseRequest
 
     @Transactional
@@ -236,5 +239,30 @@ public class ExerciseService {
         );
 
         return Optional.of(response);
+    }
+
+    @Transactional
+    public boolean deleteExercise(Integer exerciseId){
+
+        if (exerciseId == null || exerciseId <=0){
+            throw new IllegalArgumentException("ID bài tập phải là số nguyên dương");
+        }
+
+        Optional<Exercise> exerciseOptional = exerciseRepository.findByIdForUpdate(exerciseId);
+
+        if (exerciseOptional.isEmpty()){
+            return false;
+        }
+
+        boolean usedInActiveWorkout = workoutDetailRepository.existsByExercise_ExerciseIdAndWorkout_Status(exerciseId, WorkoutStatus.IN_PROGRESS);
+
+        if (usedInActiveWorkout){
+            throw new IllegalStateException("Không thể xóa bài tập đang thuộc buổi tập chưa kết thúc");
+        }
+
+        exerciseRepository.delete(exerciseOptional.get());
+        exerciseRepository.flush();
+
+        return true;
     }
 }
