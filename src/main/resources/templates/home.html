@@ -5,15 +5,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trang chủ - FitnessAI</title>
-    <!-- Mở trực tiếp file: dùng đường dẫn ../static/...  |  Chạy qua Spring Boot: Thymeleaf tự đổi sang @{/css/style.css} -->
+    <!-- Mở trực tiếp file: dùng đường dẫn ../static/... | Chạy qua Spring Boot: Thymeleaf tự đổi sang @{/css/style.css} -->
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
+    <style>
+        .card-clickable {
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-clickable:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+        }
+        .tag-active {
+            display: inline-block;
+            margin-top: auto;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2563eb;
+            background-color: #eff6ff;
+            border-radius: 999px;
+            align-self: flex-start;
+        }
+        .profile-summary-box {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+        }
+        .profile-metric-item {
+            font-size: 0.9rem;
+            color: #475569;
+        }
+        .profile-metric-item strong {
+            color: #0f172a;
+            font-weight: 700;
+        }
+        .profile-reminder {
+            margin-top: 14px;
+            font-size: 0.9rem;
+            color: #b45309;
+            background-color: #fef3c7;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+        }
+        .profile-reminder a {
+            color: #92400e;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body class="dash-body">
 
 <header class="topbar">
-    <a class="brand" href="home.html" th:href="@{/home}"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg><span>FitnessAI</span></a>
+    <a class="brand" href="home.html" th:href="@{/home}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
+        </svg>
+        <span>FitnessAI</span>
+    </a>
     <div class="topbar-right">
-        <!-- Chỉ ADMIN mới thấy liên kết này -->
+        <!-- Đã bỏ mục "Hồ sơ của tôi" ở đây -->
         <a class="nav-link" href="admin_dashboard.html" th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Quản trị hệ thống</a>
         <form action="#" th:action="@{/perform_logout}" method="post">
             <button type="submit" class="btn btn-primary btn-sm">ĐĂNG XUẤT</button>
@@ -23,15 +85,71 @@
 
 <main class="dash-wrap">
     <section class="welcome-card">
-        <h1>Xin chào, <span sec:authentication="name">User</span>!</h1>
+        <h1>Xin chào, <span th:text="${profile != null and profile.displayName != null ? profile.displayName : #authentication.name}">User</span>!</h1>
         <p>Chúc bạn có một buổi tập thật hiệu quả hôm nay.</p>
         <span class="role-badge">Quyền hạn: <span sec:authentication="principal.authorities">[ROLE_USER]</span></span>
+
+        <!-- Tóm tắt chỉ số sinh học -->
+        <div th:if="${profile != null and profile.calculatedBmr != null}" class="profile-summary-box">
+            <div class="profile-metric-item">Tuổi: <strong th:text="${profile.age}">--</strong></div>
+            <div class="profile-metric-item">Chiều cao: <strong th:text="${profile.heightCm + ' cm'}">--</strong></div>
+            <div class="profile-metric-item">Cân nặng: <strong th:text="${profile.weightKg + ' kg'}">--</strong></div>
+            <div class="profile-metric-item">BMR: <strong th:text="${profile.calculatedBmr + ' kcal'}">--</strong></div>
+            <div class="profile-metric-item">TDEE: <strong th:text="${profile.calculatedTdee + ' kcal'}">--</strong></div>
+        </div>
+
+        <div th:if="${profile == null or profile.calculatedBmr == null}" class="profile-reminder">
+            Bạn chưa cập nhật chỉ số cơ thể. <a th:href="@{/profile}">Thiết lập ngay</a> để nhận ước tính calo & lộ trình phù hợp!
+        </div>
     </section>
 
     <section class="card-grid">
-        <div class="card"><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg></span><h3>Thư viện bài tập</h3><p>Tra cứu bài tập theo nhóm cơ và mức độ.</p><span class="tag-soon">Sắp ra mắt</span></div>
-        <div class="card"><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><h3>Lịch tập của tôi</h3><p>Tạo buổi tập và theo dõi trạng thái hoàn thành.</p><span class="tag-soon">Sắp ra mắt</span></div>
-        <div class="card"><span class="f-icon"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg></span><h3>Tiến độ</h3><p>Xem lại quá trình luyện tập theo thời gian.</p><span class="tag-soon">Sắp ra mắt</span></div>
+        <!-- Thẻ điều hướng sang Hồ sơ & Chỉ số ở đây -->
+        <a class="card card-clickable" href="profile.html" th:href="@{/profile}">
+            <span class="f-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </span>
+            <h3>Hồ sơ & Chỉ số</h3>
+            <p>Theo dõi chiều cao, cân nặng, BMR, TDEE và mục tiêu luyện tập.</p>
+            <span class="tag-active">Xem chi tiết &rarr;</span>
+        </a>
+
+        <div class="card">
+            <span class="f-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
+                </svg>
+            </span>
+            <h3>Thư viện bài tập</h3>
+            <p>Tra cứu bài tập theo nhóm cơ và mức độ.</p>
+            <span class="tag-soon">Sắp ra mắt</span>
+        </div>
+
+        <div class="card">
+            <span class="f-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="5" width="18" height="16" rx="2"/>
+                    <path d="M3 10h18M8 3v4M16 3v4"/>
+                </svg>
+            </span>
+            <h3>Lịch tập của tôi</h3>
+            <p>Tạo buổi tập và theo dõi trạng thái hoàn thành.</p>
+            <span class="tag-soon">Sắp ra mắt</span>
+        </div>
+
+        <div class="card">
+            <span class="f-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>
+                </svg>
+            </span>
+            <h3>Tiến độ</h3>
+            <p>Xem lại quá trình luyện tập theo thời gian.</p>
+            <span class="tag-soon">Sắp ra mắt</span>
+        </div>
     </section>
 </main>
 
