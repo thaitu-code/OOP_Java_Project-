@@ -81,4 +81,23 @@ public class ExerciseController {
 
         return ResponseEntity.ok(response.get());
     }
+
+    @DeleteMapping("/admin/exercises/{exerciseId}")
+    public ResponseEntity<ExerciseResponse> deleteExercise(@PathVariable("exerciseId") Integer exerciseId){
+        boolean deleted = exerciseService.deleteExercise(exerciseId);
+
+        if (!deleted){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.noContent().build();
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalStateException(
+            IllegalStateException exception) {
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", exception.getMessage()));
+    }
 }
