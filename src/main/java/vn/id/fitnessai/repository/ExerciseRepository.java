@@ -12,7 +12,7 @@ import java.util.Optional;
 public interface ExerciseRepository
         extends JpaRepository<Exercise, Integer> {
 
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)   //Khóa bản ghi lại để tránh bị thay đổi trong quá trình xóa
     @Query("select e from Exercise e where e.exerciseId = :exerciseId")
     Optional<Exercise> findByIdForUpdate(
             @Param("exerciseId") Integer exerciseId);
