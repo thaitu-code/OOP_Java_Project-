@@ -85,7 +85,13 @@
 
 <main class="dash-wrap">
     <section class="welcome-card">
-        <h1>Xin chào, <span th:text="${profile != null and profile.displayName != null ? profile.displayName : #authentication.name}">User</span>!</h1>
+        <h1>
+            Xin chào,
+            <span th:text="${profile != null
+        and profile.displayName != null
+        and !profile.displayName.isEmpty()
+        ? profile.displayName : username}">User</span>!
+        </h1>
         <p>Chúc bạn có một buổi tập thật hiệu quả hôm nay.</p>
         <span class="role-badge">Quyền hạn: <span sec:authentication="principal.authorities">[ROLE_USER]</span></span>
 
