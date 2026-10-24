@@ -31,6 +31,7 @@ public class UserProfileService {
         if (age < 15 || age > 65) {
             throw new IllegalArgumentException("Hệ thống chỉ hỗ trợ độ tuổi từ 15 đến 65 tuổi. Tuổi hiện tại: " + age);
         }
+        BigDecimal bmi = bodyMetricsCalculator.calculateBmi(request.getWeightKg(), request.getHeightCm());
 
         BigDecimal bmr = bodyMetricsCalculator.calculateBmr(
                 request.getWeightKg(),
@@ -54,6 +55,7 @@ public class UserProfileService {
         profile.setWeightKg(request.getWeightKg());
         profile.setActivityLevel(request.getActivityLevel());
         profile.setGoal(request.getGoal());
+        profile.setCalculatedBmi(bmi);
         profile.setCalculatedBmr(bmr);
         profile.setCalculatedTdee(tdee);
         profile.setProfileCalculatedAt(LocalDateTime.now(BodyMetricsCalculator.ZONE_VN));
@@ -93,6 +95,7 @@ public class UserProfileService {
                 .weightKg(profile.getWeightKg())
                 .activityLevel(profile.getActivityLevel())
                 .goal(profile.getGoal())
+                .calculatedBmi(profile.getCalculatedBmi())
                 .calculatedBmr(profile.getCalculatedBmr())
                 .calculatedTdee(profile.getCalculatedTdee())
                 .profileCalculatedAt(profile.getProfileCalculatedAt())
