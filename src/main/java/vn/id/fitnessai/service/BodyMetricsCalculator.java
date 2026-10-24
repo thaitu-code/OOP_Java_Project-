@@ -31,6 +31,28 @@ public class BodyMetricsCalculator {
     }
 
     /**
+     * BMI = Cân nặng (kg) / (Chiều cao (m))^2
+     * Chiều cao đầu vào là cm nên cần chia 100 để đổi ra mét.
+     */
+    public BigDecimal calculateBmi(BigDecimal weightKg, BigDecimal heightCm) {
+        if (weightKg == null || heightCm == null) {
+            throw new IllegalArgumentException("Thiếu dữ liệu tính BMI");
+        }
+        if (heightCm.compareTo(BigDecimal.ZERO) <= 0 || weightKg.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Chiều cao và cân nặng phải lớn hơn 0");
+        }
+
+        // Đổi chiều cao từ cm sang m: heightM = heightCm / 100
+        BigDecimal heightM = heightCm.divide(new BigDecimal("100"), 4, RoundingMode.HALF_UP);
+
+        // heightM^2
+        BigDecimal heightMSquared = heightM.multiply(heightM);
+
+        // BMI = weightKg / heightM^2, làm tròn 2 chữ số thập phân
+        return weightKg.divide(heightMSquared, 2, RoundingMode.HALF_UP);
+    }
+
+    /**
      * BMR (Mifflin–St Jeor):
      * MALE:   10 × W + 6.25 × H - 5 × A + 5
      * FEMALE: 10 × W + 6.25 × H - 5 × A - 161

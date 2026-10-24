@@ -49,6 +49,9 @@ public class UserProfile {
     @Column(name = "goal", length = 30)
     private FitnessGoal goal;
 
+    @Column(name = "calculated_bmi", precision = 7, scale = 2)
+    private BigDecimal calculatedBmi;
+
     @Column(name = "calculated_bmr", precision = 7, scale = 2)
     private BigDecimal calculatedBmr;
 

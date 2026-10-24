@@ -243,6 +243,11 @@
                 </div>
 
                 <div class="metric-badge">
+                    <div class="metric-title">Chỉ số khối cơ thể (BMI)</div>
+                    <div class="metric-val" th:text="${profile.calculatedBmi + ' kg/m2'}">--</div>
+                </div>
+
+                <div class="metric-badge">
                     <div class="metric-title">Chuyển hóa cơ bản (BMR – Mifflin–St Jeor)</div>
                     <div class="metric-val" th:text="${profile.calculatedBmr + ' kcal/ngày'}">1455.00 kcal/ngày</div>
                 </div>

@@ -22,6 +22,7 @@ public class UserProfileResponse {
     private BigDecimal weightKg;
     private ActivityLevel activityLevel;
     private FitnessGoal goal;
+    private BigDecimal calculatedBmi;
     private BigDecimal calculatedBmr;
     private BigDecimal calculatedTdee;
     private LocalDateTime profileCalculatedAt;
