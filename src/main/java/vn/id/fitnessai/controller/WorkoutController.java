@@ -1,18 +1,19 @@
 package vn.id.fitnessai.controller;
 
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import vn.id.fitnessai.dto.WorkoutDetailRequest;
+import vn.id.fitnessai.dto.WorkoutDetailResponse;
 import vn.id.fitnessai.dto.WorkoutResponse;
 import vn.id.fitnessai.service.WorkoutService;
 
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -34,11 +35,24 @@ public class WorkoutController {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalStateException exception){
-         return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
+         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", exception.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, String>> handleIllegalArgumentException(AccessDeniedException exception){
-         return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
+         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", exception.getMessage()));
+    }
+
+    @PostMapping("/workouts/{workoutId}/details")
+    public ResponseEntity<WorkoutDetailResponse> addExerciseToWorkout(Authentication authentication,
+                                                                      @PathVariable("workoutId") Integer workoutId,
+                                                                      @Valid @RequestBody WorkoutDetailRequest request) {
+        Optional<WorkoutDetailResponse> response = workoutService.addExerciseToWorkout(authentication.getName(), workoutId, request);
+
+        if (response.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response.get());
     }
 }
