@@ -63,6 +63,20 @@
             font-weight: 600;
             text-decoration: underline;
         }
+        .fitness-progress { margin: 24px 0; }
+        .fitness-progress h2 { margin: 0 0 14px; color: #0f172a; }
+        .streak-grid, .badge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+        .streak-card, .badge-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; }
+        .streak-number { font-size: 2rem; font-weight: 800; color: #2563eb; margin: 8px 0; }
+        .status-pill { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: .82rem; font-weight: 700; background: #f1f5f9; color: #475569; }
+        .status-pill.done { background: #dcfce7; color: #166534; }
+        .badge-icon { font-size: 1.8rem; }
+        .badge-title { font-weight: 750; margin: 8px 0 4px; }
+        .badge-description { color: #64748b; font-size: .9rem; min-height: 38px; }
+        .progress-track { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 12px 0 6px; }
+        .progress-fill { height: 100%; background: #2563eb; border-radius: 999px; }
+        .badge-card.earned { border-color: #86efac; background: #f0fdf4; }
+        .fitness-note { color: #64748b; font-size: .9rem; margin-top: 10px; }
     </style>
 </head>
 <body class="dash-body">
@@ -108,6 +122,54 @@
         <div th:if="${profile == null or profile.calculatedBmr == null}" class="profile-reminder">
             Bạn chưa cập nhật chỉ số cơ thể. <a th:href="@{/profile}">Thiết lập ngay</a> để nhận ước tính calo & lộ trình phù hợp!
         </div>
+    </section>
+
+    <!-- Check-in, streak và huy hiệu -->
+    <section class="fitness-progress" th:if="${streakSummary != null}">
+        <h2>Check-in & chuỗi luyện tập</h2>
+        <div class="streak-grid">
+            <article class="streak-card">
+                <div>📅 Check-in hôm nay</div>
+                <div class="streak-number" style="font-size:1.35rem"
+                     th:text="${streakSummary.checkedInToday() ? 'Đã check-in' : 'Chưa check-in'}">Chưa check-in</div>
+                <span class="status-pill" th:classappend="${streakSummary.checkedInToday()} ? ' done' : ''"
+                      th:text="${streakSummary.checkedInToday() ? 'Hoàn thành' : 'Hoàn thành buổi tập để check-in'}">Trạng thái</span>
+                <p class="fitness-note">Check-in được ghi nhận tự động khi bạn hoàn thành buổi tập hợp lệ. Mỗi ngày chỉ tính một lần.</p>
+            </article>
+            <article class="streak-card">
+                <div>🔥 Streak hiện tại</div>
+                <div class="streak-number" th:text="${streakSummary.currentStreak()}">0</div>
+                <div>ngày liên tiếp</div>
+                <p class="fitness-note">Chuỗi cao nhất: <strong th:text="${streakSummary.highestStreak()}">0</strong> ngày</p>
+            </article>
+            <article class="streak-card">
+                <div>🎯 Mục tiêu tiếp theo</div>
+                <div class="streak-number" style="font-size:1.35rem"
+                     th:text="${nextStreakBadge != null ? nextStreakBadge.thresholdValue + ' ngày' : 'Đã đạt tất cả mốc!'}">3 ngày</div>
+                <p class="fitness-note" th:if="${nextStreakBadge != null}" th:text="${nextStreakBadge.name}">Huy hiệu tiếp theo</p>
+                <p class="fitness-note" th:if="${nextStreakBadge != null}" th:text="${'Còn ' + (nextStreakBadge.thresholdValue - streakSummary.currentStreak()) + ' ngày nữa'}">Còn 3 ngày nữa</p>
+            </article>
+        </div>
+
+        <h2 style="margin-top:24px">Huy hiệu của bạn</h2>
+        <p class="fitness-note">Các mốc streak mặc định: 3, 7, 14, 30, 60 và 100 ngày. Huy hiệu được trao tự động khi bạn đạt ngưỡng.</p>
+        <div class="badge-grid">
+            <article class="badge-card" th:each="badge : ${activeBadges}"
+                     th:classappend="${earnedBadgeIds.contains(badge.id)} ? ' earned' : ''">
+                <div class="badge-icon" th:text="${badge.icon != null and !badge.icon.isBlank() ? badge.icon : '🏅'}">🏅</div>
+                <div class="badge-title" th:text="${badge.name}">Tên huy hiệu</div>
+                <div class="badge-description" th:text="${badge.description}">Mô tả huy hiệu</div>
+                <span class="status-pill done" th:if="${earnedBadgeIds.contains(badge.id)}">Đã đạt</span>
+                <span class="status-pill" th:unless="${earnedBadgeIds.contains(badge.id)}">Chưa đạt</span>
+                <th:block th:if="${badge.metricType.name() == 'STREAK_DAYS'}">
+                    <div class="progress-track">
+                        <div class="progress-fill" th:style="|width: ${T(java.lang.Math).min(100.0, streakSummary.currentStreak() * 100.0 / badge.thresholdValue)}%|"></div>
+                    </div>
+                    <small th:text="${streakSummary.currentStreak() >= badge.thresholdValue ? 'Đã hoàn thành mốc ' + badge.thresholdValue + ' ngày' : streakSummary.currentStreak() + '/' + badge.thresholdValue + ' ngày'}">0/3 ngày</small>
+                </th:block>
+            </article>
+        </div>
+        <p class="fitness-note" th:if="${#lists.isEmpty(activeBadges)}">Chưa có huy hiệu nào được cấu hình.</p>
     </section>
 
     <section class="card-grid">
