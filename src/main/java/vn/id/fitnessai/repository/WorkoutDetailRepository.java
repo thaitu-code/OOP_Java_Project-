@@ -3,11 +3,12 @@ package vn.id.fitnessai.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
 import vn.id.fitnessai.entity.WorkoutDetail;
 import vn.id.fitnessai.enums.WorkoutStatus;
 
 import java.math.BigDecimal;
-import java.util.Optional;
+import java.util.*;
 
 public interface WorkoutDetailRepository
         extends JpaRepository<WorkoutDetail, Integer> {
@@ -27,4 +28,8 @@ public interface WorkoutDetailRepository
     WHERE d.workout.user.id = :userId
     """)
     Optional<BigDecimal> findMaxWeightByUserId(@Param("userId") Long userId);
+
+    boolean existsByWorkout_WorkoutIdAndExercise_ExerciseId(Integer workoutId, Integer exerciseId);
+
+    List<WorkoutDetail> findAllByWorkout_WorkoutIdOrderByDetailIdAsc(Integer workoutId);
 }

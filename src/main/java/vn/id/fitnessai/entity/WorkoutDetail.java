@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import vn.id.fitnessai.enums.WorkoutDetailStatus;
 
 import java.math.BigDecimal;
 
@@ -24,6 +25,10 @@ public class WorkoutDetail {
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "exercise_id", nullable = true)
     private Exercise exercise;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status",nullable = false, length = 20)
+    private WorkoutDetailStatus status = WorkoutDetailStatus.NOT_STARTED;
 
     //
     @Column(name = "exercise_id_snapshot")
@@ -57,13 +62,11 @@ public class WorkoutDetail {
     @Column(name = "calories_burned", nullable = false, precision = 8, scale = 1)
     private BigDecimal caloriesBurned;
 
-    public WorkoutDetail(Workout workout,
-                         Exercise exercise,
-                         BigDecimal durationMinutes,
-                         Integer sets,
-                         Integer reps,
-                         BigDecimal weightKg,
-                         BigDecimal caloriesBurned) {
+    public WorkoutDetail(Workout workout, Exercise exercise) {
+
+        if (workout == null){
+            throw new IllegalArgumentException("Buổi tập không được để trống");
+        }
 
         if (exercise == null) {
             throw new IllegalArgumentException("Bài tập không được để trống");
@@ -86,10 +89,7 @@ public class WorkoutDetail {
         this.metValueSnapshot = exercise.getMetValue();
 
         // Kết quả thực tế của lần tập
-        this.durationMinutes = durationMinutes;
-        this.sets = sets;
-        this.reps = reps;
-        this.weightKg = weightKg;
-        this.caloriesBurned = caloriesBurned;
+        this.durationMinutes = BigDecimal.ZERO;
+        this.caloriesBurned = BigDecimal.ZERO;
     }
 }
