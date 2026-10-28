@@ -62,9 +62,30 @@ public class WorkoutDetail {
     @Column(name = "calories_burned", nullable = false, precision = 8, scale = 1)
     private BigDecimal caloriesBurned;
 
+    // Constructor cũ: tạo chi tiết bài tập với kết quả mặc định
     public WorkoutDetail(Workout workout, Exercise exercise) {
+        this(
+                workout,
+                exercise,
+                BigDecimal.ZERO,
+                null,
+                null,
+                null,
+                BigDecimal.ZERO
+        );
+    }
 
-        if (workout == null){
+    // Constructor mới: tạo chi tiết bài tập với kết quả thực tế
+    public WorkoutDetail(
+            Workout workout,
+            Exercise exercise,
+            BigDecimal durationMinutes,
+            Integer sets,
+            Integer reps,
+            BigDecimal weightKg,
+            BigDecimal caloriesBurned
+    ) {
+        if (workout == null) {
             throw new IllegalArgumentException("Buổi tập không được để trống");
         }
 
@@ -78,18 +99,29 @@ public class WorkoutDetail {
             throw new IllegalArgumentException("Nhóm bài tập không được để trống");
         }
 
+        if (durationMinutes == null || durationMinutes.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Thời lượng tập không hợp lệ");
+        }
+
+        if (caloriesBurned == null || caloriesBurned.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Lượng calo không hợp lệ");
+        }
+
         this.workout = workout;
         this.exercise = exercise;
 
-        // Sao chép thông tin bài tập để lưu lịch sử
+        // Lưu snapshot để giữ lịch sử bài tập
         this.exerciseIdSnapshot = exercise.getExerciseId();
         this.exerciseNameSnapshot = exercise.getExerciseName();
         this.categoryIdSnapshot = category.getCategoryId();
         this.categoryNameSnapshot = category.getCategoryName();
         this.metValueSnapshot = exercise.getMetValue();
 
-        // Kết quả thực tế của lần tập
-        this.durationMinutes = BigDecimal.ZERO;
-        this.caloriesBurned = BigDecimal.ZERO;
+        // Lưu kết quả thực tế
+        this.durationMinutes = durationMinutes;
+        this.sets = sets;
+        this.reps = reps;
+        this.weightKg = weightKg;
+        this.caloriesBurned = caloriesBurned;
     }
 }
