@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import vn.id.fitnessai.enums.WorkoutDetailStatus;
 
 import java.math.BigDecimal;
 
@@ -24,6 +25,10 @@ public class WorkoutDetail {
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "exercise_id", nullable = true)
     private Exercise exercise;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status",nullable = false, length = 20)
+    private WorkoutDetailStatus status = WorkoutDetailStatus.NOT_STARTED;
 
     //
     @Column(name = "exercise_id_snapshot")
@@ -57,13 +62,32 @@ public class WorkoutDetail {
     @Column(name = "calories_burned", nullable = false, precision = 8, scale = 1)
     private BigDecimal caloriesBurned;
 
-    public WorkoutDetail(Workout workout,
-                         Exercise exercise,
-                         BigDecimal durationMinutes,
-                         Integer sets,
-                         Integer reps,
-                         BigDecimal weightKg,
-                         BigDecimal caloriesBurned) {
+    // Constructor cũ: tạo chi tiết bài tập với kết quả mặc định
+    public WorkoutDetail(Workout workout, Exercise exercise) {
+        this(
+                workout,
+                exercise,
+                BigDecimal.ZERO,
+                null,
+                null,
+                null,
+                BigDecimal.ZERO
+        );
+    }
+
+    // Constructor mới: tạo chi tiết bài tập với kết quả thực tế
+    public WorkoutDetail(
+            Workout workout,
+            Exercise exercise,
+            BigDecimal durationMinutes,
+            Integer sets,
+            Integer reps,
+            BigDecimal weightKg,
+            BigDecimal caloriesBurned
+    ) {
+        if (workout == null) {
+            throw new IllegalArgumentException("Buổi tập không được để trống");
+        }
 
         if (exercise == null) {
             throw new IllegalArgumentException("Bài tập không được để trống");
@@ -75,17 +99,25 @@ public class WorkoutDetail {
             throw new IllegalArgumentException("Nhóm bài tập không được để trống");
         }
 
+        if (durationMinutes == null || durationMinutes.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Thời lượng tập không hợp lệ");
+        }
+
+        if (caloriesBurned == null || caloriesBurned.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Lượng calo không hợp lệ");
+        }
+
         this.workout = workout;
         this.exercise = exercise;
 
-        // Sao chép thông tin bài tập để lưu lịch sử
+        // Lưu snapshot để giữ lịch sử bài tập
         this.exerciseIdSnapshot = exercise.getExerciseId();
         this.exerciseNameSnapshot = exercise.getExerciseName();
         this.categoryIdSnapshot = category.getCategoryId();
         this.categoryNameSnapshot = category.getCategoryName();
         this.metValueSnapshot = exercise.getMetValue();
 
-        // Kết quả thực tế của lần tập
+        // Lưu kết quả thực tế
         this.durationMinutes = durationMinutes;
         this.sets = sets;
         this.reps = reps;
