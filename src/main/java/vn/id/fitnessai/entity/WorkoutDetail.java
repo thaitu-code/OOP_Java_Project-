@@ -8,6 +8,7 @@ import org.hibernate.annotations.ColumnDefault;
 import vn.id.fitnessai.enums.WorkoutDetailStatus;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
 
@@ -170,5 +171,83 @@ public class WorkoutDetail {
         this.lastRecordedAt = startedAt;
         this.lastHeartbeatAt = startedAt;
         this.timerToken = UUID.randomUUID();
+    }
+
+    public boolean recordHeartbeat(
+            UUID receivedToken,
+            OffsetDateTime now,
+            Duration timeout
+    ) {
+        if (receivedToken == null) {
+            throw new IllegalArgumentException(
+                    "Token timer không được để trống"
+            );
+        }
+
+        if (now == null) {
+            throw new IllegalArgumentException(
+                    "Thời điểm ghi nhận không được để trống"
+            );
+        }
+
+        if (timeout == null || timeout.isZero() || timeout.isNegative()) {
+            throw new IllegalArgumentException(
+                    "Ngưỡng mất kết nối phải lớn hơn 0"
+            );
+        }
+
+        if (this.status != WorkoutDetailStatus.IN_PROGRESS
+                && this.status != WorkoutDetailStatus.RESTING) {
+            throw new IllegalStateException(
+                    "Bài tập không ở trạng thái được ghi nhận thời gian"
+            );
+        }
+
+        if (this.startedAt == null
+                || this.lastRecordedAt == null
+                || this.lastHeartbeatAt == null
+                || this.timerToken == null
+                || this.completedAt != null) {
+            throw new IllegalStateException(
+                    "Dữ liệu timer chưa hợp lệ, cần khôi phục trước"
+            );
+        }
+
+        if (!this.timerToken.equals(receivedToken)) {
+            throw new IllegalStateException(
+                    "Token timer không còn hợp lệ"
+            );
+        }
+
+        if (now.isBefore(this.lastRecordedAt)
+                || now.isBefore(this.lastHeartbeatAt)) {
+            throw new IllegalStateException(
+                    "Thời điểm ghi nhận không được đi lùi"
+            );
+        }
+
+        Duration heartbeatGap =
+                Duration.between(this.lastHeartbeatAt, now);
+
+        if (heartbeatGap.compareTo(timeout) > 0) {
+            this.status = WorkoutDetailStatus.FROZEN;
+            this.timerToken = null;
+
+            return false;
+        }
+
+        long elapsedMillis =
+                Duration.between(this.lastRecordedAt, now).toMillis();
+
+        if (this.status == WorkoutDetailStatus.IN_PROGRESS) {
+            this.activeDurationMillis += elapsedMillis;
+        } else {
+            this.restDurationMillis += elapsedMillis;
+        }
+
+        this.lastRecordedAt = now;
+        this.lastHeartbeatAt = now;
+
+        return true;
     }
 }
