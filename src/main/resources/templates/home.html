@@ -147,7 +147,7 @@
                 <div class="streak-number" style="font-size:1.35rem"
                      th:text="${nextStreakBadge != null ? nextStreakBadge.thresholdValue + ' ngày' : 'Đã đạt tất cả mốc!'}">3 ngày</div>
                 <p class="fitness-note" th:if="${nextStreakBadge != null}" th:text="${nextStreakBadge.name}">Huy hiệu tiếp theo</p>
-                <p class="fitness-note" th:if="${nextStreakBadge != null}" th:text="${'Còn ' + (nextStreakBadge.thresholdValue - streakSummary.currentStreak()) + ' ngày nữa'}">Còn 3 ngày nữa</p>
+                <p class="fitness-note" th:if="${nextStreakBadge != null}" th:text="${'Còn ' + (nextStreakBadge.thresholdValue - streakSummary.highestStreak()) + ' ngày nữa'}">Còn 3 ngày nữa</p>
             </article>
         </div>
 
@@ -161,12 +161,10 @@
                 <div class="badge-description" th:text="${badge.description}">Mô tả huy hiệu</div>
                 <span class="status-pill done" th:if="${earnedBadgeIds.contains(badge.id)}">Đã đạt</span>
                 <span class="status-pill" th:unless="${earnedBadgeIds.contains(badge.id)}">Chưa đạt</span>
-                <th:block th:if="${badge.metricType.name() == 'STREAK_DAYS'}">
-                    <div class="progress-track">
-                        <div class="progress-fill" th:style="|width: ${T(java.lang.Math).min(100.0, streakSummary.currentStreak() * 100.0 / badge.thresholdValue)}%|"></div>
-                    </div>
-                    <small th:text="${streakSummary.currentStreak() >= badge.thresholdValue ? 'Đã hoàn thành mốc ' + badge.thresholdValue + ' ngày' : streakSummary.currentStreak() + '/' + badge.thresholdValue + ' ngày'}">0/3 ngày</small>
-                </th:block>
+                <div class="progress-track">
+                    <div class="progress-fill" th:style="|width: ${T(java.lang.Math).min(100.0, streakSummary.highestStreak() * 100.0 / badge.thresholdValue)}%|"></div>
+                </div>
+                <small th:text="${streakSummary.highestStreak() >= badge.thresholdValue ? 'Đã hoàn thành mốc ' + badge.thresholdValue + ' ngày' : streakSummary.highestStreak() + '/' + badge.thresholdValue + ' ngày'}">0/3 ngày</small>
             </article>
         </div>
         <p class="fitness-note" th:if="${#lists.isEmpty(activeBadges)}">Chưa có huy hiệu nào được cấu hình.</p>

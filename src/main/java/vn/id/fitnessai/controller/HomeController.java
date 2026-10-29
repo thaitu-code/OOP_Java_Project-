@@ -10,7 +10,6 @@ import vn.id.fitnessai.service.CheckInStreakService;
 import vn.id.fitnessai.service.BadgeService;
 import vn.id.fitnessai.repository.UserRepository;
 import vn.id.fitnessai.entity.User;
-import vn.id.fitnessai.enums.BadgeMetricType;
 
 import java.security.Principal;
 
@@ -42,13 +41,11 @@ public class HomeController {
             model.addAttribute("streakSummary", streak);
             model.addAttribute("activeBadges", activeBadges);
             model.addAttribute("nextStreakBadge", activeBadges.stream()
-                    .filter(badge -> badge.getMetricType() == BadgeMetricType.STREAK_DAYS)
-                    .filter(badge -> badge.getThresholdValue() > streak.currentStreak())
+                    .filter(badge -> badge.getThresholdValue() > streak.highestStreak())
                     .min(java.util.Comparator.comparingLong(vn.id.fitnessai.entity.Badge::getThresholdValue))
                     .orElse(null));
             model.addAttribute("earnedBadges", earnedBadges);
             model.addAttribute("earnedBadgeIds", earnedBadgeIds);
-            model.addAttribute("streakBadgeMetric", BadgeMetricType.STREAK_DAYS);
         }
         return "home";
     }

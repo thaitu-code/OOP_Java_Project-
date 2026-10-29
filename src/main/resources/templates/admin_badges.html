@@ -36,12 +36,6 @@
             <label>Icon (emoji hoặc URL)
                 <input th:field="*{icon}" maxlength="500" placeholder="🏅">
             </label>
-            <label>Loại chỉ số
-                <select th:field="*{metricType}" required>
-                    <option value="">-- Chọn metric --</option>
-                    <option th:each="metric : ${metricTypes}" th:value="${metric}" th:text="${metric}"></option>
-                </select>
-            </label>
             <label>Ngưỡng
                 <input th:field="*{thresholdValue}" type="number" min="1" required>
             </label>
@@ -57,11 +51,10 @@
     <section class="badge-panel">
         <h2>Danh sách huy hiệu</h2>
         <table class="badge-table">
-            <thead><tr><th>Tên</th><th>Metric</th><th>Ngưỡng</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <thead><tr><th>Tên</th><th>Streak yêu cầu</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
             <tbody>
             <tr th:each="badge : ${badges}">
                 <td><span th:text="${badge.icon != null ? badge.icon : '🏅'}"></span> <strong th:text="${badge.name}"></strong><br><small th:text="${badge.description}"></small></td>
-                <td th:text="${badge.metricType}"></td>
                 <td th:text="${badge.thresholdValue}"></td>
                 <td th:text="${badge.active ? 'Đang hoạt động' : 'Đã tắt'}"></td>
                 <td>
