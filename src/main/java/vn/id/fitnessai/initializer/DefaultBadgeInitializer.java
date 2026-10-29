@@ -3,7 +3,6 @@ package vn.id.fitnessai.initializer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
-import vn.id.fitnessai.enums.BadgeMetricType;
 import vn.id.fitnessai.repository.BadgeRepository;
 import vn.id.fitnessai.service.BadgeService;
 
@@ -25,7 +24,7 @@ public class DefaultBadgeInitializer implements CommandLineRunner {
 
     private void createIfMissing(String name, String description, String icon, long threshold) {
         if (!badgeRepository.existsByNameIgnoreCase(name)) {
-            badgeService.createBadge(name, description, icon, BadgeMetricType.STREAK_DAYS, threshold, true);
+            badgeService.createBadge(name, description, icon, threshold, true);
         }
     }
 }

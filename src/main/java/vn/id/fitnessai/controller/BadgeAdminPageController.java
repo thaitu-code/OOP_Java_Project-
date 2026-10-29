@@ -5,7 +5,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import vn.id.fitnessai.dto.BadgeCreateRequest;
-import vn.id.fitnessai.enums.BadgeMetricType;
 import vn.id.fitnessai.repository.BadgeRepository;
 import vn.id.fitnessai.service.BadgeService;
 
@@ -19,7 +18,6 @@ public class BadgeAdminPageController {
     @GetMapping
     public String page(Model model) {
         model.addAttribute("badges", badgeRepository.findAll());
-        model.addAttribute("metricTypes", BadgeMetricType.values());
         model.addAttribute("badgeForm", new BadgeCreateRequest());
         return "admin_badges";
     }
@@ -28,12 +26,11 @@ public class BadgeAdminPageController {
     public String create(@ModelAttribute("badgeForm") BadgeCreateRequest form, Model model) {
         try {
             badgeService.createBadge(form.getName(), form.getDescription(), form.getIcon(),
-                    form.getMetricType(), form.getThresholdValue(), form.isActive());
+                     form.getThresholdValue(), form.isActive());
             return "redirect:/admin/badges/page?created=true";
         } catch (RuntimeException ex) {
             model.addAttribute("errorMessage", ex.getMessage());
             model.addAttribute("badges", badgeRepository.findAll());
-            model.addAttribute("metricTypes", BadgeMetricType.values());
             return "admin_badges";
         }
     }

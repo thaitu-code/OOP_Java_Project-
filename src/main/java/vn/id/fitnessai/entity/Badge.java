@@ -3,7 +3,6 @@ package vn.id.fitnessai.entity;
 import jakarta.persistence.*;
 import lombok.Getter; import lombok.NoArgsConstructor;
 import lombok.Setter;
-import vn.id.fitnessai.enums.BadgeMetricType;
 
 import java.time.LocalDateTime;
 
@@ -24,10 +23,6 @@ public class Badge {
 
     @Column(length=500)
     private String icon;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name="metric_type",nullable=false,length=40)
-    private BadgeMetricType metricType;
 
     @Column(name="threshold_value",nullable=false)
     private long thresholdValue;

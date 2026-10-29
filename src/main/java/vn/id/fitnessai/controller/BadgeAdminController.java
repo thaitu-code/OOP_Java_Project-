@@ -21,7 +21,7 @@ public class BadgeAdminController {
     public List<Map<String, Object>> list() {
         return badgeService.activeBadges().stream().map(b -> Map.<String, Object>of(
                 "id", b.getId(), "name", b.getName(), "description", b.getDescription(),
-                "icon", b.getIcon() == null ? "" : b.getIcon(), "metricType", b.getMetricType(),
+                "icon", b.getIcon() == null ? "" : b.getIcon(),
                 "thresholdValue", b.getThresholdValue(), "active", b.isActive()
         )).toList();
     }
@@ -30,9 +30,9 @@ public class BadgeAdminController {
     @ResponseStatus(HttpStatus.CREATED)
     public Map<String, Object> create(@Valid @RequestBody BadgeCreateRequest request) {
         Badge badge = badgeService.createBadge(request.getName(), request.getDescription(),
-                request.getIcon(), request.getMetricType(), request.getThresholdValue(), request.isActive());
+                request.getIcon(), request.getThresholdValue(), request.isActive());
         return Map.of("id", badge.getId(), "name", badge.getName(),
-                "metricType", badge.getMetricType(), "thresholdValue", badge.getThresholdValue());
+                "thresholdValue", badge.getThresholdValue());
     }
 
     @PatchMapping("/{id}/active")

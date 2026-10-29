@@ -30,7 +30,7 @@ public class CheckInController {
     public List<Map<String, Object>> activeBadges() {
         return badgeService.activeBadges().stream().map(b -> Map.<String, Object>of(
                 "id", b.getId(), "name", b.getName(), "description", b.getDescription(),
-                "icon", b.getIcon() == null ? "" : b.getIcon(), "metricType", b.getMetricType(),
+                "icon", b.getIcon() == null ? "" : b.getIcon(),
                 "thresholdValue", b.getThresholdValue()
         )).toList();
     }
