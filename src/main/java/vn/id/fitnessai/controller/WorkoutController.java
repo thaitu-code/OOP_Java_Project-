@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.id.fitnessai.dto.WorkoutDetailRequest;
 import vn.id.fitnessai.dto.WorkoutDetailResponse;
 import vn.id.fitnessai.dto.WorkoutResponse;
+import vn.id.fitnessai.dto.WorkoutTimerResponse;
 import vn.id.fitnessai.service.WorkoutService;
 
 import java.util.*;
@@ -55,4 +56,32 @@ public class WorkoutController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response.get());
     }
+
+    @GetMapping("/workouts/{workoutId}/details")
+    public ResponseEntity<List<WorkoutDetailResponse>> getWorkoutDetails(Authentication authentication,
+                                                                         @PathVariable("workoutId") Integer workoutId){
+        Optional<List<WorkoutDetailResponse>> responses = workoutService.getWorkoutDetails(authentication.getName(), workoutId);
+
+        if (responses.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(responses.get());
+    }
+
+    @PatchMapping("/workouts/{workoutId}/details/{detailId}/start")
+    public ResponseEntity<WorkoutTimerResponse> startWorkoutDetail(
+            Authentication authentication,
+            @PathVariable("workoutId") Integer workoutId,
+            @PathVariable("detailId") Integer detailId
+    ){
+        Optional<WorkoutTimerResponse> response = workoutService.startWorkoutDetail(authentication.getName(), workoutId, detailId);
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+
+    }
+
 }

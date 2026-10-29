@@ -2,9 +2,10 @@ package vn.id.fitnessai.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import vn.id.fitnessai.entity.WorkoutDetail;
+import vn.id.fitnessai.enums.WorkoutDetailStatus;
 import vn.id.fitnessai.enums.WorkoutStatus;
 
-import java.util.List;
+import java.util.*;
 
 public interface WorkoutDetailRepository
         extends JpaRepository<WorkoutDetail, Integer> {
@@ -15,4 +16,8 @@ public interface WorkoutDetailRepository
     boolean existsByWorkout_WorkoutIdAndExercise_ExerciseId(Integer workoutId, Integer exerciseId);
 
     List<WorkoutDetail> findAllByWorkout_WorkoutIdOrderByDetailIdAsc(Integer workoutId);
+
+    Optional<WorkoutDetail> findByDetailIdAndWorkout_workoutId(Integer detailId, Integer workoutId);
+
+    boolean existsByWorkout_User_IdAndWorkout_StatusAndStatusIn(Long userId, WorkoutStatus workoutStatus, Collection<WorkoutDetailStatus> detailStatuses);
 }

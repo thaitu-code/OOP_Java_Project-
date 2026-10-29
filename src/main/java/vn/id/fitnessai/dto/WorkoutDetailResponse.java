@@ -5,6 +5,7 @@ import lombok.Getter;
 import vn.id.fitnessai.enums.WorkoutDetailStatus;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 
 @Getter
 @AllArgsConstructor
@@ -26,4 +27,7 @@ public class WorkoutDetailResponse {
     private Integer reps;
     private BigDecimal weightKg;
     private BigDecimal caloriesBurned;
+
+    private OffsetDateTime startedAt;
+    private OffsetDateTime completedAt;
 }
