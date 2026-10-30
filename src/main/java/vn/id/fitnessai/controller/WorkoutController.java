@@ -3,23 +3,27 @@ package vn.id.fitnessai.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import vn.id.fitnessai.dto.WorkoutDetailRequest;
-import vn.id.fitnessai.dto.WorkoutDetailResponse;
-import vn.id.fitnessai.dto.WorkoutResponse;
-import vn.id.fitnessai.dto.WorkoutTimerResponse;
+import vn.id.fitnessai.dto.*;
 import vn.id.fitnessai.service.WorkoutService;
+import vn.id.fitnessai.service.WorkoutTrackingService;
 
+import java.time.Duration;
 import java.util.*;
 
 @RestController
 @RequiredArgsConstructor
 public class WorkoutController {
     private final WorkoutService workoutService;
+    private final WorkoutTrackingService workoutTrackingService;
+
+    @Value("${fitness.workout.heartbeat-timeout-seconds}")
+    private long heartbeatTimeoutSeconds;
 
     @PostMapping("/workouts")
     public ResponseEntity<WorkoutResponse> createWorkout(Authentication authentication){
@@ -81,7 +85,51 @@ public class WorkoutController {
         }
 
         return ResponseEntity.ok(response.get());
+    }
 
+    @PatchMapping("/workouts/{workoutId}/details/{detailId}/heartbeat")
+    public ResponseEntity<WorkoutTimerResponse> recordWorkoutDetailHeartbeat(
+            Authentication authentication,
+            @PathVariable("workoutId") Integer workoutId,
+            @PathVariable("detailId") Integer detailId,
+            @Valid @RequestBody WorkoutHeartbeatRequest request
+            )
+    {
+        Optional<WorkoutTimerResponse> response = workoutTrackingService.recordWorkoutDetailHeartbeat(
+                authentication.getName(),
+                workoutId,
+                detailId,
+                request,
+                Duration.ofSeconds(heartbeatTimeoutSeconds)
+        );
+
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
+
+    @PatchMapping("/workouts/{workoutId}/details/{detailId}/complete")
+    public ResponseEntity<WorkoutDetailResponse> completeWorkoutDetail(
+            Authentication authentication,
+            @PathVariable("workoutId") Integer workoutId,
+            @PathVariable("detailId") Integer detailId,
+            @Valid @RequestBody WorkoutDetailCompleteRequest request
+    ){
+        Optional<WorkoutDetailResponse> response = workoutTrackingService.completeWorkoutDetail(
+                authentication.getName(),
+                workoutId,
+                detailId,
+                request,
+                Duration.ofSeconds(heartbeatTimeoutSeconds)
+        );
+
+        if (response.isEmpty()){
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
     }
 
 }

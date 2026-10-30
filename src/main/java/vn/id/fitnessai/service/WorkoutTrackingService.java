@@ -4,23 +4,17 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.id.fitnessai.dto.*;
 import vn.id.fitnessai.entity.*;
 import vn.id.fitnessai.enums.WorkoutDetailStatus;
 import vn.id.fitnessai.enums.WorkoutStatus;
 import vn.id.fitnessai.repository.*;
-import vn.id.fitnessai.dto.WorkoutDetailCompleteRequest;
-import vn.id.fitnessai.dto.WorkoutDetailResponse;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 
-
-
-import java.time.Duration;
-import java.util.Optional;
-import java.util.Set;
+import java.time.*;
+import java.util.*;
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -28,11 +22,88 @@ public class WorkoutTrackingService {
     private static final ZoneId VN_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final WorkoutRepository workoutRepository;
     private final WorkoutDetailRepository workoutDetailRepository;
+
     //private final ExerciseRepository exerciseRepository;
     private final UserRepository userRepository;
     private final CheckInStreakService checkInStreakService;
     private final BadgeService badgeService;
     private final Validator validator;
+
+
+    @Transactional
+    public Optional<WorkoutTimerResponse> recordWorkoutDetailHeartbeat(
+            String username,
+            Integer workoutId,
+            Integer detailId,
+            WorkoutHeartbeatRequest request,
+            Duration timeout
+    ){
+        if (username == null || username.isBlank()){
+            throw new IllegalArgumentException("Thông tin người dùng không được để trống");
+        }
+
+        if (workoutId == null || workoutId <= 0){
+            throw new IllegalArgumentException("ID buổi tập phải lớn hơn 0");
+        }
+
+        if (detailId == null || detailId <= 0){
+            throw new IllegalArgumentException("ID chi tiết phải lớn hơn 0");
+        }
+
+        if (request == null){
+            throw new IllegalArgumentException("Dữ liệu heartbeat không được để trống");
+        }
+
+        Set<ConstraintViolation<WorkoutHeartbeatRequest>> violations = validator.validate(request);
+
+        if (!violations.isEmpty()){
+            throw new IllegalArgumentException(violations.iterator().next().getMessage());
+        }
+
+        User user = userRepository.findByUsernameForUpdate(username)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+
+        if (!user.isEnabled() || user.isLocked()){
+            throw new AccessDeniedException("Tài khoản chưa được xác minh hoặc đã bị khóa");
+        }
+
+        Optional<Workout> workoutOptional = workoutRepository.findByIdForUpdate(workoutId);
+
+        if (workoutOptional.isEmpty()){
+            return Optional.empty();
+        }
+
+        Workout workout = workoutOptional.get();
+
+        if (!workout.getUser().getId().equals(user.getId())){
+            throw new AccessDeniedException("Bạn không có quyền điều khiển timer trong buổi tập này");
+        }
+
+        if (workout.getStatus() != WorkoutStatus.IN_PROGRESS){
+            throw new IllegalStateException("Buổi tập đã kết thúc hoặc hủy");
+        }
+
+        Optional<WorkoutDetail> detailOptional = workoutDetailRepository.findByDetailIdAndWorkout_workoutId(detailId, workoutId);
+
+        if (detailOptional.isEmpty()){
+            return Optional.empty();
+        }
+
+        WorkoutDetail detail = detailOptional.get();
+
+        detail.recordHeartbeat(request.getTimerToken(), OffsetDateTime.now(VN_ZONE), timeout);
+
+        WorkoutDetail saved = workoutDetailRepository.saveAndFlush(detail);
+
+        return Optional.of(new WorkoutTimerResponse(
+                toDetailResponse(saved),
+                saved.getTimerToken(),
+                saved.getLastRecordedAt(),
+                saved.getLastHeartbeatAt(),
+                saved.getActiveDurationMillis(),
+                saved.getRestDurationMillis()
+        ));
+    }
 
     @Transactional
     public Optional<WorkoutDetailResponse> completeWorkoutDetail(
@@ -148,7 +219,7 @@ public class WorkoutTrackingService {
         if (completed) {
             checkInStreakService.registerValidWorkout(
                     username,
-                    saved.getCompletedAt().toLocalDate()
+                    saved.getCompletedAt()
             );
 
             badgeService.evaluateForUser(user);
