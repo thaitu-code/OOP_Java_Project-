@@ -3,7 +3,6 @@ package vn.id.fitnessai.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.repository.Query;
 import vn.id.fitnessai.entity.WorkoutDetail;
 import vn.id.fitnessai.enums.WorkoutDetailStatus;
 import vn.id.fitnessai.enums.WorkoutStatus;
@@ -20,6 +19,7 @@ public interface WorkoutDetailRepository
     SELECT COALESCE(SUM(d.caloriesBurned), 0)
     FROM WorkoutDetail d
     WHERE d.workout.user.id = :userId
+         AND d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.COMPLETED
     """)
     BigDecimal sumCaloriesByUserId(@Param("userId") Long userId);
 
@@ -27,6 +27,7 @@ public interface WorkoutDetailRepository
     SELECT MAX(d.weightKg)
     FROM WorkoutDetail d
     WHERE d.workout.user.id = :userId
+         AND d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.COMPLETED
     """)
     Optional<BigDecimal> findMaxWeightByUserId(@Param("userId") Long userId);
 
@@ -37,4 +38,6 @@ public interface WorkoutDetailRepository
     Optional<WorkoutDetail> findByDetailIdAndWorkout_workoutId(Integer detailId, Integer workoutId);
 
     boolean existsByWorkout_User_IdAndWorkout_StatusAndStatusIn(Long userId, WorkoutStatus workoutStatus, Collection<WorkoutDetailStatus> detailStatuses);
+
+    boolean existsByWorkout_WorkoutIdAndStatus(Integer workoutId, WorkoutDetailStatus status);
 }

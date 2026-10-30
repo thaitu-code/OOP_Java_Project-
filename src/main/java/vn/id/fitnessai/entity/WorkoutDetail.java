@@ -8,6 +8,7 @@ import org.hibernate.annotations.ColumnDefault;
 import vn.id.fitnessai.enums.WorkoutDetailStatus;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.util.*;
@@ -72,6 +73,13 @@ public class WorkoutDetail {
 
     @Column(name = "met_value_snapshot", precision = 4, scale = 1)
     private BigDecimal metValueSnapshot;
+
+    @Column(name = "min_duration_minutes_snapshot", precision = 6, scale = 1)
+    private BigDecimal minDurationMinutesSnapshot;
+
+    @Column(name = "body_weight_kg_snapshot", precision = 5, scale = 2
+    )
+    private BigDecimal bodyWeightKgSnapshot;
     //
 
     @Column(name = "duration_minutes", nullable = false, precision = 6, scale = 1)
@@ -165,6 +173,24 @@ public class WorkoutDetail {
             throw new IllegalStateException("Bài tập đã có mốc thời gian, không thể bắt đầu lại");
         }
 
+        if (this.exercise == null) {
+            throw new IllegalStateException(
+                    "Bài tập gốc không còn tồn tại"
+            );
+        }
+
+        BigDecimal minDurationMinutes =
+                this.exercise.getMinDurationMinutes();
+
+        if (minDurationMinutes == null
+                || minDurationMinutes.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException(
+                    "Ngưỡng thời gian tối thiểu của bài tập không hợp lệ"
+            );
+        }
+
+        this.minDurationMinutesSnapshot = minDurationMinutes;
+
         this.startedAt = startedAt;
         this.status = WorkoutDetailStatus.IN_PROGRESS;
 
@@ -247,6 +273,105 @@ public class WorkoutDetail {
 
         this.lastRecordedAt = now;
         this.lastHeartbeatAt = now;
+
+        return true;
+    }
+
+    public boolean complete(
+            UUID receivedToken,
+            OffsetDateTime now,
+            Duration timeout,
+            BigDecimal bodyWeightKg,
+            Integer sets,
+            Integer reps,
+            BigDecimal weightKg
+    ) {
+        if (bodyWeightKg == null
+                || bodyWeightKg.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException(
+                    "Cân nặng cơ thể phải lớn hơn 0"
+            );
+        }
+
+        if (this.minDurationMinutesSnapshot == null
+                || this.minDurationMinutesSnapshot
+                .compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException(
+                    "Chưa có ngưỡng thời gian hợp lệ cho lần tập này"
+            );
+        }
+
+        if (this.metValueSnapshot == null
+                || this.metValueSnapshot.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException(
+                    "MET snapshot không hợp lệ"
+            );
+        }
+
+        if (this.activeDurationMillis < 0 || this.restDurationMillis < 0) {
+            throw new IllegalStateException(
+                    "Bộ đếm thời gian không hợp lệ"
+            );
+        }
+
+        if (sets != null && sets < 0) {
+            throw new IllegalArgumentException("Số hiệp không được âm");
+        }
+
+        if (reps != null && reps < 0) {
+            throw new IllegalArgumentException(
+                    "Số lần mỗi hiệp không được âm"
+            );
+        }
+
+        if (weightKg != null && weightKg.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("Tải tập không được âm");
+        }
+
+        // Kiểm tra timer và ghi nhận khoảng thời gian cuối.
+        if (!recordHeartbeat(receivedToken, now, timeout)) {
+            return false;
+        }
+
+        BigDecimal millisPerMinute = BigDecimal.valueOf(60_000);
+
+        BigDecimal totalMillis = BigDecimal.valueOf(this.activeDurationMillis)
+                .add(BigDecimal.valueOf(this.restDurationMillis));
+
+        BigDecimal requiredMillis =
+                this.minDurationMinutesSnapshot.multiply(millisPerMinute);
+
+        // So sánh thời gian chính xác trước khi làm tròn.
+        if (totalMillis.compareTo(requiredMillis) < 0) {
+            throw new IllegalStateException(
+                    "Chưa đủ thời gian tối thiểu để hoàn thành bài tập"
+            );
+        }
+
+        BigDecimal calculatedDurationMinutes =
+                totalMillis.divide(millisPerMinute, 1, RoundingMode.HALF_UP);
+
+        BigDecimal calculatedCalories = this.metValueSnapshot
+                .multiply(new BigDecimal("3.5"))
+                .multiply(bodyWeightKg)
+                .multiply(BigDecimal.valueOf(this.activeDurationMillis))
+                .divide(
+                        BigDecimal.valueOf(200).multiply(millisPerMinute),
+                        1,
+                        RoundingMode.HALF_UP
+                );
+
+        this.durationMinutes = calculatedDurationMinutes;
+        this.caloriesBurned = calculatedCalories;
+        this.bodyWeightKgSnapshot = bodyWeightKg;
+
+        this.sets = sets;
+        this.reps = reps;
+        this.weightKg = weightKg;
+
+        this.completedAt = now;
+        this.status = WorkoutDetailStatus.COMPLETED;
+        this.timerToken = null;
 
         return true;
     }
