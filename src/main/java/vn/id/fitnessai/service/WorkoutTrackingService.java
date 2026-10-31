@@ -11,6 +11,8 @@ import vn.id.fitnessai.enums.WorkoutStatus;
 import vn.id.fitnessai.repository.*;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 
 import java.time.*;
 import java.util.*;
@@ -29,6 +31,8 @@ public class WorkoutTrackingService {
     private final BadgeService badgeService;
     private final Validator validator;
 
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Transactional
     public Optional<WorkoutTimerResponse> recordWorkoutDetailHeartbeat(
@@ -217,7 +221,8 @@ public class WorkoutTrackingService {
 
         // Lưu cả trường hợp complete() trả false và detail chuyển FROZEN.
         WorkoutDetail saved = workoutDetailRepository.saveAndFlush(detail);
-
+        entityManager.refresh(saved);
+        
         if (completed) {
             checkInStreakService.registerValidWorkout(
                     username,

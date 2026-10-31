@@ -83,6 +83,9 @@ public class WorkoutDetail {
     @Column(name = "min_duration_minutes_snapshot", precision = 6, scale = 1)
     private BigDecimal minDurationMinutesSnapshot;
 
+    @Column(name = "approved_rest_seconds_snapshot")
+    private Integer approvedRestSecondsSnapshot;
+
     @Column(name = "body_weight_kg_snapshot", precision = 5, scale = 2
     )
     private BigDecimal bodyWeightKgSnapshot;
