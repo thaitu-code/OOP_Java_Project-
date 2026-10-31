@@ -132,4 +132,23 @@ public class WorkoutController {
         return ResponseEntity.ok(response.get());
     }
 
+    @PatchMapping("/workouts/{workoutId}/details/{detailId}/recover")
+    public ResponseEntity<WorkoutTimerResponse> recoverWorkoutDetailTimer(
+            Authentication authentication,
+            @PathVariable("workoutId") Integer workoutId,
+            @PathVariable("detailId") Integer detailId
+    ) {
+        Optional<WorkoutTimerResponse> response =
+                workoutTrackingService.recoverWorkoutDetailTimer(
+                        authentication.getName(),
+                        workoutId,
+                        detailId
+                );
+
+        if (response.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(response.get());
+    }
 }

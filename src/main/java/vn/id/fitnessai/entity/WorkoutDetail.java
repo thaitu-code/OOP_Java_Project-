@@ -55,6 +55,12 @@ public class WorkoutDetail {
     @Column(name = "last_heartbeat_at")
     private OffsetDateTime lastHeartbeatAt;
 
+    @Column(name = "rest_started_at")
+    private OffsetDateTime restStartedAt;
+
+    @Column(name = "rest_ends_at")
+    private OffsetDateTime restEndsAt;
+
     @Column(name = "timer_token")
     private UUID timerToken;
 
@@ -199,6 +205,83 @@ public class WorkoutDetail {
         this.timerToken = UUID.randomUUID();
     }
 
+    public boolean freezeIfTimedOut(OffsetDateTime now, Duration timeout){
+        if (now == null){
+            throw new IllegalArgumentException("Thời điểm kiểm tra không được để trống");
+        }
+
+        if (timeout == null || timeout.isZero() || timeout.isNegative()){
+            throw new IllegalArgumentException("Ngưỡng mất kết nối phải lớn hơn 0");
+        }
+
+        if (this.status != WorkoutDetailStatus.IN_PROGRESS){
+            return false;
+        }
+
+        if (this.startedAt == null || this.lastHeartbeatAt == null || this.lastRecordedAt == null
+                || this.timerToken == null || this.completedAt != null){
+            throw new IllegalStateException("Dữ liệu timer chưa hợp lệ");
+        }
+
+        if (now.isBefore(this.startedAt) || now.isBefore(this.lastHeartbeatAt) || now.isBefore(this.lastRecordedAt)){
+            throw new IllegalStateException("Thời điểm kiểm tra không được đi lùi");
+        }
+
+        Duration heartbeatGap = Duration.between(lastHeartbeatAt, now);
+
+        if (heartbeatGap.compareTo(timeout) <= 0){
+            return false;
+        }
+
+        this.status = WorkoutDetailStatus.FROZEN;
+        timerToken = null;
+
+        return true;
+    }
+
+    public void recordRestUntil(OffsetDateTime now){
+        if (now == null){
+            throw new IllegalArgumentException("Thời điểm ghi nhận không được để trống");
+        }
+
+        if (this.status != WorkoutDetailStatus.RESTING){
+            throw new IllegalStateException("Bài tập không ở trạng thái nghỉ");
+        }
+
+        if (this.startedAt == null
+                || this.completedAt != null
+                || this.restStartedAt == null
+                || this.restEndsAt == null
+                || this.lastRecordedAt == null) {
+            throw new IllegalStateException(
+                    "Dữ liệu thời gian nghỉ chưa hợp lệ"
+            );
+        }
+
+        if (!this.restEndsAt.isAfter(this.restStartedAt)
+                || this.restStartedAt.isBefore(this.startedAt)
+                || this.lastRecordedAt.isBefore(this.restStartedAt)
+                || this.lastRecordedAt.isAfter(this.restEndsAt)
+                || this.restDurationMillis < 0) {
+            throw new IllegalStateException(
+                    "Các mốc hoặc bộ đếm thời gian nghỉ không hợp lệ"
+            );
+        }
+
+        if (now.isBefore(this.lastRecordedAt)) {
+            throw new IllegalStateException(
+                    "Thời điểm ghi nhận không được đi lùi"
+            );
+        }
+
+        OffsetDateTime recordUntil = now.isBefore(this.restEndsAt) ? now : this.restEndsAt;
+
+        long elapsedMillis = Duration.between(this.lastRecordedAt, recordUntil).toMillis();
+
+        this.restDurationMillis += elapsedMillis;
+        this.lastRecordedAt = recordUntil;
+    }
+
     public boolean recordHeartbeat(
             UUID receivedToken,
             OffsetDateTime now,
@@ -252,29 +335,176 @@ public class WorkoutDetail {
             );
         }
 
-        Duration heartbeatGap =
-                Duration.between(this.lastHeartbeatAt, now);
+        if (this.status == WorkoutDetailStatus.RESTING) {
+            recordRestUntil(now);
 
-        if (heartbeatGap.compareTo(timeout) > 0) {
-            this.status = WorkoutDetailStatus.FROZEN;
-            this.timerToken = null;
+            this.lastHeartbeatAt = now;
 
+            return true;
+        }
+
+        if (freezeIfTimedOut(now, timeout)){
             return false;
         }
 
-        long elapsedMillis =
-                Duration.between(this.lastRecordedAt, now).toMillis();
+        long elapsedMillis = Duration.between(this.lastRecordedAt, now).toMillis();
 
-        if (this.status == WorkoutDetailStatus.IN_PROGRESS) {
-            this.activeDurationMillis += elapsedMillis;
-        } else {
-            this.restDurationMillis += elapsedMillis;
-        }
+        this.activeDurationMillis += elapsedMillis;
 
         this.lastRecordedAt = now;
         this.lastHeartbeatAt = now;
 
         return true;
+    }
+
+    public boolean startRest(
+            UUID receivedToken,
+            OffsetDateTime now,
+            Duration timeout,
+            Duration approvedRestDuration
+    ){
+        if (now == null) {
+            throw new IllegalArgumentException(
+                    "Thời điểm bắt đầu nghỉ không được để trống"
+            );
+        }
+
+        if (approvedRestDuration == null
+                || approvedRestDuration.isZero()
+                || approvedRestDuration.isNegative()) {
+            throw new IllegalArgumentException(
+                    "Thời lượng nghỉ phải lớn hơn 0"
+            );
+        }
+
+        if (this.status != WorkoutDetailStatus.IN_PROGRESS) {
+            throw new IllegalStateException(
+                    "Chỉ được bắt đầu nghỉ khi đang tập"
+            );
+        }
+
+        OffsetDateTime calculatedRestEndsAt = now.plus(approvedRestDuration);
+
+        if (!recordHeartbeat(receivedToken, now, timeout)){
+            return false;
+        }
+
+        this.restStartedAt = now;
+        this.restEndsAt = calculatedRestEndsAt;
+        this.status = WorkoutDetailStatus.RESTING;
+
+        return true;
+    }
+
+    public void resumeAfterRest(
+            UUID receivedToken,
+            OffsetDateTime now
+    ) {
+        if (receivedToken == null) {
+            throw new IllegalArgumentException(
+                    "Token timer không được để trống"
+            );
+        }
+
+        if (now == null) {
+            throw new IllegalArgumentException(
+                    "Thời điểm tiếp tục không được để trống"
+            );
+        }
+
+        if (this.status != WorkoutDetailStatus.RESTING) {
+            throw new IllegalStateException(
+                    "Bài tập không ở trạng thái đang nghỉ"
+            );
+        }
+
+        if (this.timerToken == null
+                || this.lastRecordedAt == null
+                || this.lastHeartbeatAt == null
+                || this.restEndsAt == null) {
+            throw new IllegalStateException(
+                    "Dữ liệu timer chưa hợp lệ"
+            );
+        }
+
+        if (!this.timerToken.equals(receivedToken)) {
+            throw new IllegalStateException(
+                    "Token timer không còn hợp lệ"
+            );
+        }
+
+        if (now.isBefore(this.lastRecordedAt)
+                || now.isBefore(this.lastHeartbeatAt)) {
+            throw new IllegalStateException(
+                    "Thời điểm tiếp tục không được đi lùi"
+            );
+        }
+
+        if (now.isBefore(this.restEndsAt)) {
+            throw new IllegalStateException(
+                    "Chưa hết thời gian nghỉ"
+            );
+        }
+
+        recordRestUntil(now);
+
+        this.status = WorkoutDetailStatus.IN_PROGRESS;
+        this.lastRecordedAt = now;
+        this.lastHeartbeatAt = now;
+        this.timerToken = UUID.randomUUID();
+    }
+
+    public void recoverTimer(OffsetDateTime now) {
+        if (now == null) {
+            throw new IllegalArgumentException(
+                    "Thời điểm khôi phục không được để trống"
+            );
+        }
+
+        if (this.status != WorkoutDetailStatus.IN_PROGRESS
+                && this.status != WorkoutDetailStatus.FROZEN
+                && this.status != WorkoutDetailStatus.RESTING) {
+            throw new IllegalStateException(
+                    "Bài tập không ở trạng thái được khôi phục timer"
+            );
+        }
+
+        if (this.startedAt == null
+                || this.completedAt != null
+                || this.lastRecordedAt == null
+                || this.lastHeartbeatAt == null
+                || this.activeDurationMillis < 0
+                || this.restDurationMillis < 0) {
+            throw new IllegalStateException(
+                    "Dữ liệu timer chưa hợp lệ"
+            );
+        }
+
+        if ((this.status == WorkoutDetailStatus.IN_PROGRESS
+                || this.status == WorkoutDetailStatus.RESTING)
+                && this.timerToken == null) {
+            throw new IllegalStateException(
+                    "Trạng thái timer và token không đồng bộ"
+            );
+        }
+
+        if (now.isBefore(this.startedAt)
+                || now.isBefore(this.lastRecordedAt)
+                || now.isBefore(this.lastHeartbeatAt)) {
+            throw new IllegalStateException(
+                    "Thời điểm khôi phục không được đi lùi"
+            );
+        }
+
+        if (this.status == WorkoutDetailStatus.RESTING) {
+            recordRestUntil(now);
+        } else {
+            this.status = WorkoutDetailStatus.IN_PROGRESS;
+            this.lastRecordedAt = now;
+        }
+
+        this.lastHeartbeatAt = now;
+        this.timerToken = UUID.randomUUID();
     }
 
     public boolean complete(

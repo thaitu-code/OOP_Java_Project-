@@ -339,7 +339,9 @@ public class WorkoutService {
                 savedDetail.getLastRecordedAt(),
                 savedDetail.getLastHeartbeatAt(),
                 savedDetail.getActiveDurationMillis(),
-                savedDetail.getRestDurationMillis()
+                savedDetail.getRestDurationMillis(),
+                savedDetail.getRestStartedAt(),
+                savedDetail.getRestEndsAt()
         );
         return Optional.of(timerResponse);
     }

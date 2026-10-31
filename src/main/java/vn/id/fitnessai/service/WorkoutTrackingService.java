@@ -101,7 +101,9 @@ public class WorkoutTrackingService {
                 saved.getLastRecordedAt(),
                 saved.getLastHeartbeatAt(),
                 saved.getActiveDurationMillis(),
-                saved.getRestDurationMillis()
+                saved.getRestDurationMillis(),
+                saved.getRestStartedAt(),
+                saved.getRestEndsAt()
         ));
     }
 
@@ -265,6 +267,91 @@ public class WorkoutTrackingService {
         badgeService.evaluateForUser(user);
 
         return saved;
+    }
+
+    @Transactional
+    public Optional<WorkoutTimerResponse> recoverWorkoutDetailTimer(
+            String username,
+            Integer workoutId,
+            Integer detailId
+    ) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Thông tin người dùng không được để trống"
+            );
+        }
+
+        if (workoutId == null || workoutId <= 0) {
+            throw new IllegalArgumentException(
+                    "ID buổi tập phải lớn hơn 0"
+            );
+        }
+
+        if (detailId == null || detailId <= 0) {
+            throw new IllegalArgumentException(
+                    "ID chi tiết phải lớn hơn 0"
+            );
+        }
+
+        User user = userRepository.findByUsernameForUpdate(username)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Không tìm thấy người dùng"
+                ));
+
+        if (!user.isEnabled() || user.isLocked()) {
+            throw new AccessDeniedException(
+                    "Tài khoản chưa được xác minh hoặc đã bị khóa"
+            );
+        }
+
+        Optional<Workout> workoutOptional =
+                workoutRepository.findByIdForUpdate(workoutId);
+
+        if (workoutOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Workout workout = workoutOptional.get();
+
+        if (!workout.getUser().getId().equals(user.getId())) {
+            throw new AccessDeniedException(
+                    "Bạn không có quyền khôi phục timer trong buổi tập này"
+            );
+        }
+
+        if (workout.getStatus() != WorkoutStatus.IN_PROGRESS) {
+            throw new IllegalStateException(
+                    "Buổi tập đã kết thúc hoặc hủy"
+            );
+        }
+
+        Optional<WorkoutDetail> detailOptional =
+                workoutDetailRepository.findByDetailIdAndWorkout_workoutId(
+                        detailId,
+                        workoutId
+                );
+
+        if (detailOptional.isEmpty()) {
+            return Optional.empty();
+        }
+
+        WorkoutDetail detail = detailOptional.get();
+
+        detail.recoverTimer(OffsetDateTime.now(VN_ZONE));
+
+        WorkoutDetail saved =
+                workoutDetailRepository.saveAndFlush(detail);
+
+        return Optional.of(new WorkoutTimerResponse(
+                toDetailResponse(saved),
+                saved.getTimerToken(),
+                saved.getLastRecordedAt(),
+                saved.getLastHeartbeatAt(),
+                saved.getActiveDurationMillis(),
+                saved.getRestDurationMillis(),
+                saved.getRestStartedAt(),
+                saved.getRestEndsAt()
+        ));
     }
 
     private WorkoutDetailResponse toDetailResponse(WorkoutDetail detail) {
