@@ -42,6 +42,13 @@ public class Exercise {
     @Column(name = "ai_video_url", length = 500)
     private String aiVideoUrl;
 
+    @Column(name = "media_url", length = 500)
+    private String mediaUrl;
+
+    @OneToMany(mappedBy = "exercise", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
+    private java.util.List<ExerciseLevel> levels = new java.util.ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "category_id", nullable = false)
     private ExerciseCategory category;

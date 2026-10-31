@@ -113,7 +113,7 @@ Ngày nghỉ hợp lệ theo lịch đang áp dụng: không tập thì giữ ng
 | Tính toán | Backend tính BMR, TDEE, calo ăn và calo tập. |
 | Check-in | Hoàn thành ít nhất một bài hợp lệ trong các bài đã chọn; chọn bài hoặc bấm kết thúc ngay không được check-in. |
 | Chưa có lịch | Được chọn bài tự do để check-in; ngày chưa có ngày nghỉ hợp lệ được coi là ngày phải tập. |
-| Ngưỡng hoàn thành | Thời gian tối thiểu là điều kiện chặn check-in; gồm thời gian tập và nghỉ trong bài, loại thời gian pause/đóng băng. Sets/reps không phải điều kiện xác minh. |
+| Ngưỡng hoàn thành | Gồm tập + nghỉ, loại pause/đóng băng. Bài theo cấp độ dùng 2/3 thời gian dự kiến do Admin nhập để kết thúc sớm; đủ thời gian dự kiến đổi nút kết thúc đầy đủ. Sets/reps không phải điều kiện xác minh. Bài thủ công cũ giữ ngưỡng riêng. |
 | Buổi đang dở | Giữ để tiếp tục; tắt trình duyệt thì đóng băng, không cộng thời gian; chỉ một buổi và một bài đang thực hiện cho mỗi user. |
 | Reps | Số lần lặp **mỗi hiệp**. |
 | Chạy bộ | Theo dõi thời gian chạy, nghỉ giữa chặng và quãng đường. |
@@ -515,10 +515,10 @@ Một buổi tập (`workout_sessions`) có thể chứa nhiều bài. Mỗi k�
 1. Người dùng xem lịch hoặc danh sách bài có thể chọn; xem video và chỉ tiêu.
 2. Chọn một hoặc nhiều bài; backend lưu danh sách lựa chọn cho buổi.
 3. Bấm bắt đầu bài; backend ghi mốc bắt đầu và trả thông tin đồng hồ/chỉ tiêu.
-4. Frontend hiển thị đếm ngược, mục tiêu, các hiệp/chặng và thời gian nghỉ AI đề xuất được user duyệt; cho tạm dừng/tiếp tục.
+4. Với bài theo cấp độ: user chọn cấp độ riêng lúc thêm bài; timer tự tập set → nghỉ → set mới theo cấu hình Admin đã lưu cho lần tập. Với bài thủ công cũ: giữ cơ chế nghỉ được user duyệt và tạm dừng/tiếp tục.
 5. Khi bấm hoàn thành, backend kiểm tra người sở hữu, bài đã chọn, trạng thái và thời gian tối thiểu được ghi nhận; sets/reps/quãng đường là dữ liệu tự khai phục vụ theo dõi, không phải bằng chứng bắt buộc.
 6. Hợp lệ: lưu kết quả và calo; nếu đây là bài hợp lệ đầu tiên của ngày thì ghi check-in, cập nhật streak.
-7. Người dùng có thể tập tiếp các bài đã chọn. Các bài tiếp theo bổ sung kết quả nhưng không tăng streak lần nữa trong cùng ngày.
+7. Bài theo cấp độ có nút kết thúc sớm từ 2/3 thời gian dự kiến, đổi thành Kết thúc & bài tiếp theo khi đạt mốc đầy đủ; cả hai chỉ chọn bài kế tiếp sau khi lưu thành công, chờ user bấm bắt đầu. Bài tiếp theo không tăng streak lần nữa trong cùng ngày.
 8. Khi kết thúc buổi: có ít nhất một bài hợp lệ thì buổi có kết quả được công nhận; không có bài nào hợp lệ thì không tạo check-in.
 
 **Đề xuất trạng thái:** buổi đang tập/tạm dừng/đóng băng/kết thúc; bài chưa bắt đầu/đang tập/đang nghỉ/tạm dừng/đóng băng/hoàn thành. Kết thúc có ít nhất một bài hợp lệ có thể ánh xạ `COMPLETED`, kết thúc không có bài hợp lệ ánh xạ `CANCELLED`; schema hiện tại cần mở rộng trạng thái khi cần. Không yêu cầu hoàn thành tất cả bài để check-in.
@@ -585,6 +585,16 @@ MET biểu diễn mức tiêu hao tương đối so với nghỉ; quy ước 1 M
 - Không quy đổi “tập đủ bài” thành calo cố định không phụ thuộc thời gian/cân nặng.
 
 **Đã chốt:** snapshot MET/cân nặng và thông số tính tại lúc ghi kết quả; thay thông số hiện tại không làm số lịch sử đổi. Hoàn thành bài nào thì ghi calo bài đó ngay, không chờ hoàn thành cả buổi. Chỉ đủ thời gian chặn check-in không có nghĩa đã đạt mọi mục tiêu thời gian/quãng đường tự chọn; giao diện cần phân biệt “được công nhận” với “đạt mục tiêu kế hoạch”.
+
+### 11.7. Cấp độ động và chu kỳ tự động — chốt ngày 02/11/2026
+
+Admin tạo/đặt tên cấp độ tùy ý cho từng bài, cấu hình số set, reps/set (được trống cho bài thời gian), số giây/set, giây nghỉ và thời gian hoàn thành dự kiến. User chọn cấp độ riêng cho từng bài khi thêm vào buổi, không dùng buổi mẫu.
+
+Thời gian dự kiến do Admin nhập riêng, tính tập + nghỉ. Tối thiểu kết thúc sớm là `ceil(thời_gian_dự_kiến_ms × 2 / 3)` tới millisecond. Đạt mốc đầy đủ chỉ đổi nhãn nút, không tự công nhận bài. Hết set cuối vẫn đếm active trên set cuối, không tạo thêm set/nghỉ. Chỉ khi user bấm kết thúc và backend xác nhận mới gọi nghiệp vụ check-in hiện có. Cả kết thúc sớm và đầy đủ chuyển bài tiếp ở trạng thái chưa bắt đầu; bài cuối hoàn thành rồi user đóng buổi như cũ.
+
+Heartbeat phải tách active/rest tại ranh giới; calo chỉ active. Offline quá timeout không tự tập tiếp: nghỉ tới hạn rồi chờ recover, không tính bù active. Quyết định bổ sung ngày 02/11/2026: khi user tải lại/mở lại trang có bài dở, frontend tự recover một lần; Back/forward cache cũng tự khôi phục. Pause vẫn giữ pause. Chỉ đổi tab/polling hoặc bị thu hồi token không tự recover để tránh các tab giành quyền lẫn nhau. Cấu hình cấp độ và media được snapshot cho lần chọn; chỉnh dữ liệu chuẩn không đổi lịch sử. Bài cũ chưa có cấp độ tiếp tục dùng luồng thủ công; không tự backfill kế hoạch giả.
+
+Admin có thể tải GIF/MP4/WebM cho bài. Binary lưu tại thư mục bền vững của máy chủ ứng dụng, Neon lưu đường dẫn; sao lưu cả hai. Chỉ Admin upload, người đăng nhập được xem, kiểm tra loại/dung lượng/đường dẫn, không ghi đè tệp cũ còn được snapshot tham chiếu. Chi tiết API, cách sử dụng và cấu hình tại [WORKOUT_AUTOMATION.md](docs/WORKOUT_AUTOMATION.md).
 
 ## 12. Check-in, ngày nghỉ và streak
 
@@ -811,7 +821,7 @@ Job có thể chạy lại sau gián đoạn. Nếu có nhiều instance ứng d
 | --- | --- | --- |
 | Thực phẩm | Thêm/sửa/ngừng hoạt động, tìm kiếm | Tên, kcal và macro/100 g; sửa chỉ áp dụng dữ liệu mới, lịch sử giữ snapshot |
 | Nhóm cơ/danh mục | Thêm/sửa/ngừng hoạt động | Phân loại bài tập; không xóa cascade các bài/kết quả đã dùng |
-| Bài tập | Thêm/sửa/ngừng hoạt động | MET, thời gian tối thiểu, sets/reps hướng dẫn, video và cách đo; chỉ thời gian chặn check-in |
+| Bài tập | Thêm/sửa/ngừng hoạt động, quản lý cấp độ, tải GIF/video | MET; cấp độ tùy đặt tên với set/reps/giây tập/nghỉ/thời gian dự kiến; mốc kết thúc sớm tự tính 2/3; chỉ thời gian chặn công nhận |
 | Huy hiệu | Thêm/sửa/ngừng hoạt động | Quy tắc Data-Driven; cấp bù khi thêm; không thu hồi đã nhận |
 
 Khi xóa món/bài đã có lịch sử, backup có các FK `RESTRICT`; frontend phải giải thích lý do từ chối. Với bảng nối `ai_recommended_exercises`, xóa exercise hiện có thể cascade xóa liên kết đề xuất.
@@ -1015,6 +1025,14 @@ Trạng thái gợi ý: đang mở, đã check-in, nghỉ hợp lệ, bỏ lỡ.
 **Đề xuất mô hình:** `nutrition_targets` lưu phiên bản calo/gram protein/carbs/fat, ngày hiệu lực, nguồn đề xuất và thông tin hồ sơ dùng để phân tích. `meal_plans` và các dòng ngày/bữa/món lưu `food_id`, gram, snapshot dinh dưỡng và tổng backend tính. Thực đơn dự kiến không được nối tắt thành bữa đã ăn.
 
 Các thông tin AI ghi nhận lâu dài như cân nặng đích, điều kiện tập và yêu cầu đổi riêng hôm nay phải lưu có cấu trúc, nguồn user/chat và mốc áp dụng. Xóa tin hoặc đăng nhập lại không tự mất các dữ liệu nghiệp vụ đó. Nếu cần định lượng vi chất cho mục tiêu chiều cao, phải có dữ liệu vi chất thực và bộ nhu cầu theo nhóm tuổi; schema hiện chưa đáp ứng.
+
+### 19.7. Cấp độ bài tập và timer tự động — cập nhật 02/11/2026
+
+`exercise_levels` liên kết `exercise_id`, có tên cấp độ, sets, reps nullable, seconds_per_set, rest_seconds, estimated_seconds và active. Một bài có nhiều cấp độ, tên không trùng trong cùng bài; Admin có thể ngừng/kích hoạt. `exercises.media_url` trỏ tới GIF/video được lưu trên máy chủ.
+
+`workout_details` lưu level_id/name_snapshot, planned_sets/reps_snapshot, seconds_per_set_snapshot, estimated_seconds_snapshot, current_set_number, elapsed_in_set_millis, automatic_rest_phase và media_url_snapshot. Ngưỡng 2/3 tính từ estimated_seconds_snapshot theo millisecond; không lấy ngưỡng thủ công cũ để áp dụng vào cấp độ. Các bản ghi cũ có estimated_seconds_snapshot NULL tiếp tục luồng cũ. Level ID trong snapshot không tạo FK buộc phải giữ bản ghi master để đọc được lịch sử; thông số/tên/media đã được sao chép đầy đủ.
+
+File SQL bổ sung và hợp đồng request/response ở docs/WORKOUT_AUTOMATION.md. SQL đã được chuẩn bị nhưng chưa chạy trên Neon, không tuyên bố mapping được nghiệm thu trên database thật chỉ dựa trên test metadata.
 
 ## 20. Kiến trúc và luồng xử lý
 
@@ -1241,6 +1259,8 @@ Kiểm tra end-to-end, quyền truy cập, mốc ngày, dữ liệu đồng th�
 | W21 | Bắt đầu/tiếp tục tập lúc 22:00 ngoài khung khuyến nghị | AI có thể nhắc, chức năng vẫn dùng được; đủ điều kiện vẫn check-in được |
 | W22 | User đặt mục tiêu Plank | Chỉ có thời gian giữ tư thế làm mốc; hiệp/nghỉ để hướng dẫn hoặc theo dõi |
 
+Ca bổ sung cho cấp độ tự động ngày 02/11/2026: chọn level thiếu/sai bài/inactive phải bị từ chối; heartbeat qua nhiều pha phân bổ active/rest đúng một lần; ngưỡng dự kiến 1 giây từ chối ở 666ms và cho phép từ 667ms; chưa đủ ngưỡng không hiện nút; tới mốc đầy đủ chỉ đổi nút; chưa bấm thì không complete/check-in; cả kết thúc sớm/full đều chọn bài tiếp NOT_STARTED sau lưu thành công. Kiểm tra offline nghỉ tới hạn nhưng không cộng active, recover/token/pause, snapshot bất biến, Admin upload/User chỉ xem, đường dẫn/dung lượng/định dạng và HTTP Range cho video. Các test mock/fixture đã chạy không thay thế nghiệm thu Neon.
+
 ### 23.3. Ngày nghỉ, streak, thông báo và quyền
 
 | Mã | Tình huống | Kết quả mong đợi |
@@ -1367,3 +1387,5 @@ Không coi 15 nhóm quyết định và 5 quyết định tiếp nối là đã 
 Sản phẩm được coi là hoàn thiện trong phạm vi đã thống nhất khi: người mới thực hiện được hành trình sử dụng; Admin vận hành được kho dữ liệu và tài khoản; lịch được chấp nhận mới có hiệu lực; check-in/streak/ngày nghỉ đúng quy tắc; tính toán có nguồn và kiểm chứng; lịch sử theo giờ Việt Nam nhất quán; AI lỗi không tạo dữ liệu giả; dữ liệu cá nhân được phân quyền; các kịch bản nghiệm thu liên quan đã có kết quả chạy thật.
 
 Khi có quyết định mới, cập nhật mục 3, mục chức năng tương ứng, mô hình dữ liệu và kịch bản nghiệm thu cùng nhau. Không chỉ sửa một ví dụ rồi để quy tắc ở phần khác mâu thuẫn.
+
+Bổ sung 02/11/2026 cho mục 11.7/19.7: Admin được dùng media_url là link ảnh/GIF/video trực tiếp HTTP/HTTPS bên cạnh file upload. GIF/PNG/JPG/JPEG/WebP dùng hiển thị ảnh; MP4/WebM dùng trình phát. Link GitHub trang xem tệp /blob/ được chuẩn hóa sang raw khi lưu/hiển thị. Không tải binary về backend khi dùng link ngoài; nguồn ngoài có thể hết hạn/chặn nhúng, UI cần báo lỗi và có liên kết mở riêng. URL chọn vào kế hoạch được snapshot; request cũ không gửi mediaUrl giữ dữ liệu đã upload, chuỗi rỗng mới gỡ liên kết. Không bổ sung bảng/cột cho thay đổi này.

@@ -1,6 +1,7 @@
 package vn.id.fitnessai.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import vn.id.fitnessai.entity.WorkoutDetail;
@@ -40,4 +41,31 @@ public interface WorkoutDetailRepository
     boolean existsByWorkout_User_IdAndWorkout_StatusAndStatusIn(Long userId, WorkoutStatus workoutStatus, Collection<WorkoutDetailStatus> detailStatuses);
 
     boolean existsByWorkout_WorkoutIdAndStatus(Integer workoutId, WorkoutDetailStatus status);
+
+    interface WorkoutTotals {
+        Integer getWorkoutId();
+        BigDecimal getDurationMinutes();
+        BigDecimal getCaloriesBurned();
+    }
+
+    @Query("""
+            SELECT d.workout.workoutId AS workoutId,
+                   SUM(d.durationMinutes) AS durationMinutes,
+                   SUM(d.caloriesBurned) AS caloriesBurned
+            FROM WorkoutDetail d
+            WHERE d.workout.workoutId IN :workoutIds
+              AND d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.COMPLETED
+            GROUP BY d.workout.workoutId
+            """)
+    List<WorkoutTotals> sumCompletedByWorkoutIds(@Param("workoutIds") Collection<Integer> workoutIds);
+
+    @Query("""
+            SELECT DISTINCT d.workout.workoutId FROM WorkoutDetail d
+            WHERE d.workout.status = vn.id.fitnessai.enums.WorkoutStatus.IN_PROGRESS
+              AND (d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.IN_PROGRESS
+                   OR (d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.RESTING AND d.estimatedSecondsSnapshot IS NOT NULL))
+              AND d.lastHeartbeatAt < :cutoff
+            ORDER BY d.workout.workoutId
+            """)
+    List<Integer> findExpiredWorkoutIds(@Param("cutoff") java.time.OffsetDateTime cutoff, Pageable pageable);
 }

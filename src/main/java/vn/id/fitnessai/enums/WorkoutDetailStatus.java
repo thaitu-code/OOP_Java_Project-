@@ -6,5 +6,6 @@ public enum WorkoutDetailStatus {
     RESTING,
     PAUSED,
     FROZEN,
-    COMPLETED
+    COMPLETED,
+    CANCELLED
 }

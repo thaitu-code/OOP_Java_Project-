@@ -143,6 +143,7 @@
     </a>
     <div class="topbar-right">
         <a class="nav-link" href="home.html" th:href="@{/home}">Trang chủ</a>
+        <a class="nav-link" href="workout.html" th:href="@{/workout}">Tập luyện</a>
         <a class="nav-link" href="admin_dashboard.html" th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Quản trị hệ thống</a>
         <form action="#" th:action="@{/perform_logout}" method="post">
             <button type="submit" class="btn btn-primary btn-sm">ĐĂNG XUẤT</button>
