@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import vn.id.fitnessai.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
@@ -17,7 +18,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
         boolean getLocked();
     }
 
-    @Query("select u.id as id, u.isEnabled as enabled, u.isLocked as locked from User u where u.username = :username")
+    @Query("select u.id as id," +
+            " u.isEnabled as enabled, " +
+            "u.isLocked as locked " +
+            "from User u where u.username = :username")
     Optional<WorkoutAccess> findWorkoutAccessByUsername(@Param("username") String username);
 
     // Vẫn khóa cùng dòng User trước Workout; projection tránh hydrate toàn bộ tài khoản.
@@ -36,4 +40,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select u from User u where u.id = :id")
     Optional<User> findByIdForUpdate(@Param("id") Long id);
+
+    @Query("SELECT u FROM User u WHERE u.isEnabled = true AND u.isLocked = false AND u.email IS NOT NULL")
+    List<User> findAllActiveUsersForReminder();
 }
