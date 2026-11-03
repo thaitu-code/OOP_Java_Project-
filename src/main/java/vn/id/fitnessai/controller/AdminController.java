@@ -27,7 +27,7 @@ public class AdminController {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản."));
 
-        // Không cho phép khóa chính mình hoặc bất kỳ tài khoản quản trị nào.
+        // Không cho phép thao tác khóa/mở khóa tài khoản ADMIN.
         boolean isAdmin = user.getRoles().stream()
                 .anyMatch(role -> "ROLE_ADMIN".equals(role.getName()));
         boolean isCurrentUser = authentication != null

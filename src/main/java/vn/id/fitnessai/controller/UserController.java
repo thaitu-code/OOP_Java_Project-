@@ -66,10 +66,6 @@ public class UserController {
         return "login";
     }
 
-    @GetMapping("/home")
-    public String showHomePage(){
-        return "home";
-    }
 
     @GetMapping("/verify")
     public String verifyUser(

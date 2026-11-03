@@ -46,13 +46,15 @@ public class SecurityConfig {
                         // Ai cũng vào được trang đăng ký và file tĩnh
                         .requestMatchers(
                                 "/css/**", "/js/**", "/images/**",
-                                "/api/auth/**",
+                                "/",
+                                "/home",
                                 "/register",
                                 "/login",
                                 "/forgot-password",
                                 "/reset-password",
                                 "/verify"
                         ).permitAll()
+                        .requestMatchers("/profile/**").authenticated()
                         // Chỉ những tài khoản có ROLE_ADMIN mới vào được các link bắt đầu bằng /admin/
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         // Mọi trang khác bắt buộc phải đăng nhập

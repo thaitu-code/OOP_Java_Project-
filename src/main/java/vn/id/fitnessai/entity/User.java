@@ -9,7 +9,6 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 @Entity
@@ -51,4 +50,6 @@ public class User {
     @Column(name = "is_locked", nullable = false)
     private boolean isLocked = false;  // Mặc định false (không bị khóa)
 
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private UserProfile profile;
 }

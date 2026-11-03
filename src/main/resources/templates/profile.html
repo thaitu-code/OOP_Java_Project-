@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ & Chỉ số cơ thể - FitnessAI</title>
+    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
+    <style>
+        .profile-container {
+            max-width: 1040px;
+            margin: 24px auto 40px;
+            padding: 0 20px;
+        }
+        .profile-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .btn-back-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #475569;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .btn-back-home:hover {
+            background-color: #f1f5f9;
+            color: #0f172a;
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        @media (max-width: 768px) {
+            .grid-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+        .profile-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+            border: 1px solid #e2e8f0;
+        }
+        .metric-badge {
+            background-color: #f8fafc;
+            border-left: 4px solid #2563eb;
+            padding: 12px 16px;
+            margin-bottom: 12px;
+            border-radius: 6px;
+        }
+        .metric-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .metric-val {
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-top: 4px;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #334155;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus {
+            border-color: #2563eb;
+        }
+        .btn-submit {
+            background-color: #2563eb;
+            color: #fff;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+        .btn-submit:hover {
+            background-color: #1d4ed8;
+        }
+        .text-danger {
+            color: #dc2626;
+            font-size: 0.82rem;
+            margin-top: 4px;
+            display: block;
+        }
+        .alert {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .alert-success {
+            background-color: #def7ec;
+            color: #03543f;
+        }
+        .alert-danger {
+            background-color: #fde8e8;
+            color: #9b1c1c;
+        }
+    </style>
+</head>
+<body class="dash-body">
+
+<!-- Header Topbar chuẩn điều hướng -->
+<header class="topbar">
+    <a class="brand" href="home.html" th:href="@{/home}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
+        </svg>
+        <span>FitnessAI</span>
+    </a>
+    <div class="topbar-right">
+        <a class="nav-link" href="home.html" th:href="@{/home}">Trang chủ</a>
+        <a class="nav-link" href="admin_dashboard.html" th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Quản trị hệ thống</a>
+        <form action="#" th:action="@{/perform_logout}" method="post">
+            <button type="submit" class="btn btn-primary btn-sm">ĐĂNG XUẤT</button>
+        </form>
+    </div>
+</header>
+
+<main class="profile-container">
+    <div class="profile-header-bar">
+        <h2>Hồ sơ & Chỉ số cơ thể</h2>
+        <a class="btn-back-home" href="home.html" th:href="@{/home}">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Quay lại trang chủ
+        </a>
+    </div>
+
+    <!-- Thông báo kết quả -->
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+    <div class="grid-layout">
+        <!-- Cột trái: Form cập nhật thông tin -->
+        <div class="profile-card">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Cập nhật thông tin</h3>
+            <form th:action="@{/profile/update}" th:object="${profileForm}" method="post">
+                <div class="form-group">
+                    <label for="displayName">Tên hiển thị</label>
+                    <input type="text" id="displayName" th:field="*{displayName}" class="form-control" placeholder="Nhập tên hiển thị">
+                    <span class="text-danger" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="gender">Giới tính</label>
+                    <select id="gender" th:field="*{gender}" class="form-control">
+                        <option value="">-- Chọn giới tính --</option>
+                        <option th:each="g : ${genders}" th:value="${g}" th:text="${g == T(vn.id.fitnessai.enums.Gender).MALE ? 'Nam' : 'Nữ'}"></option>
+                    </select>
+                    <span class="text-danger" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="birthDate">Ngày sinh</label>
+                    <input type="date" id="birthDate" th:field="*{birthDate}" class="form-control">
+                    <span class="text-danger" th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="heightCm">Chiều cao (cm)</label>
+                    <input type="number" step="0.1" id="heightCm" th:field="*{heightCm}" class="form-control" placeholder="Ví dụ: 168.00">
+                    <span class="text-danger" th:if="${#fields.hasErrors('heightCm')}" th:errors="*{heightCm}"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="weightKg">Cân nặng cơ thể (kg)</label>
+                    <input type="number" step="0.1" id="weightKg" th:field="*{weightKg}" class="form-control" placeholder="Ví dụ: 50.00">
+                    <span class="text-danger" th:if="${#fields.hasErrors('weightKg')}" th:errors="*{weightKg}"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="activityLevel">Mức vận động</label>
+                    <select id="activityLevel" th:field="*{activityLevel}" class="form-control">
+                        <option value="">-- Chọn mức độ vận động --</option>
+                        <option th:value="SEDENTARY">Ít vận động (1.20)</option>
+                        <option th:value="LIGHT">Vận động nhẹ (1.375)</option>
+                        <option th:value="MODERATE">Vận động vừa (1.55)</option>
+                        <option th:value="ACTIVE">Vận động nhiều (1.725)</option>
+                        <option th:value="VERY_ACTIVE">Vận động rất nhiều (1.90)</option>
+                    </select>
+                    <span class="text-danger" th:if="${#fields.hasErrors('activityLevel')}" th:errors="*{activityLevel}"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="goal">Mục tiêu thể hình</label>
+                    <select id="goal" th:field="*{goal}" class="form-control">
+                        <option value="">-- Chọn mục tiêu --</option>
+                        <option th:value="LOSE_WEIGHT">Giảm cân</option>
+                        <option th:value="GAIN_MUSCLE">Tăng cơ</option>
+                        <option th:value="MAINTAIN">Duy trì vóc dáng</option>
+                        <option th:value="GAIN_WEIGHT">Tăng cân</option>
+                        <option th:value="INCREASE_HEIGHT">Tăng chiều cao / Tư thế</option>
+                    </select>
+                    <span class="text-danger" th:if="${#fields.hasErrors('goal')}" th:errors="*{goal}"></span>
+                </div>
+
+                <button type="submit" class="btn-submit">Lưu & Tính toán chỉ số</button>
+            </form>
+        </div>
+
+        <!-- Cột phải: Chỉ số BMR, TDEE và Thống kê hiện tại -->
+        <div class="profile-card">
+            <h3 style="margin-top: 0; margin-bottom: 20px;">Chỉ số cơ thể ước tính</h3>
+            <div th:if="${profile.calculatedBmr != null}">
+                <div class="metric-badge">
+                    <div class="metric-title">Tuổi hiện tại (Asia/Ho_Chi_Minh)</div>
+                    <div class="metric-val" th:text="${profile.age + ' tuổi'}">20 tuổi</div>
+                </div>
+
+                <div class="metric-badge">
+                    <div class="metric-title">Chỉ số khối cơ thể (BMI)</div>
+                    <div class="metric-val" th:text="${profile.calculatedBmi + ' kg/m2'}">--</div>
+                </div>
+
+                <div class="metric-badge">
+                    <div class="metric-title">Chuyển hóa cơ bản (BMR – Mifflin–St Jeor)</div>
+                    <div class="metric-val" th:text="${profile.calculatedBmr + ' kcal/ngày'}">1455.00 kcal/ngày</div>
+                </div>
+
+                <div class="metric-badge">
+                    <div class="metric-title">Tổng năng lượng tiêu hao (TDEE)</div>
+                    <div class="metric-val" th:text="${profile.calculatedTdee + ' kcal/ngày'}">2000.63 kcal/ngày</div>
+                </div>
+
+                <div class="metric-badge" style="border-left-color: #10b981;">
+                    <div class="metric-title">Mục tiêu hiện tại</div>
+                    <div class="metric-val" style="font-size: 1.15rem;" th:text="${profile.goal}">GAIN_MUSCLE</div>
+                </div>
+
+                <p style="font-size: 0.85rem; color: #64748b; margin-top: 20px;">
+                    Cập nhật lần cuối: <span th:text="${#temporals.format(profile.profileCalculatedAt, 'dd/MM/yyyy HH:mm')}">--</span>
+                </p>
+            </div>
+
+            <div th:unless="${profile.calculatedBmr != null}" style="color: #64748b; margin-top: 20px;">
+                <p>Bạn chưa thiết lập hồ sơ chỉ số cơ thể. Vui lòng điền form bên cạnh để hệ thống tính toán BMR & TDEE.</p>
+            </div>
+        </div>
+    </div>
+</main>
+
+</body>
+</html>

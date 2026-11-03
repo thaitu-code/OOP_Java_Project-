@@ -14,8 +14,9 @@ public interface WorkoutRepository
         extends JpaRepository<Workout, Integer> {
 
     boolean existsByUser_IdAndStatus(Long userId, WorkoutStatus status);
+    long countByUser_IdAndStatus(Long userId, WorkoutStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select w from Workout w where w.workoutId = :workoutId")
-    Optional<Workout> findByIdForUpdate(@Param("workoutId") Integer workoutId);
+    @Query("SELECT w FROM Workout w WHERE w.workoutId = :id")
+    Optional<Workout> findByIdForUpdate(@Param("id") Integer id);
 }

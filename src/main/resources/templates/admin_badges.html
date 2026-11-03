@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Quản lý huy hiệu - FitnessAI</title>
+    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
+    <style>
+        .badge-admin-wrap{max-width:1100px;margin:32px auto;padding:0 18px}
+        .badge-panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;margin-bottom:22px}
+        .badge-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+        .badge-form label{display:flex;flex-direction:column;gap:6px;font-weight:600}
+        .badge-form input,.badge-form select,.badge-form textarea{padding:10px;border:1px solid #cbd5e1;border-radius:7px;font:inherit}
+        .badge-form textarea{min-height:75px}
+        .badge-table{width:100%;border-collapse:collapse}
+        .badge-table th,.badge-table td{padding:10px;border-bottom:1px solid #e2e8f0;text-align:left}
+        .notice{padding:10px;background:#eff6ff;border-radius:8px;margin-bottom:12px}
+        @media(max-width:650px){.badge-form{grid-template-columns:1fr}.badge-panel{overflow:auto}}
+    </style>
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" th:href="@{/home}"><span>FitnessAI</span></a>
+    <a class="nav-link" th:href="@{/admin/dashboard}">Quay lại quản trị</a>
+</header>
+<main class="badge-admin-wrap">
+    <h1>Quản lý huy hiệu</h1>
+    <div class="notice" th:if="${param.created}">Đã tạo huy hiệu. Hệ thống đã xét cấp bù cho người dùng đủ điều kiện.</div>
+    <div class="notice" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+    <section class="badge-panel">
+        <h2>Tạo huy hiệu mới</h2>
+        <form class="badge-form" th:action="@{/admin/badges/page}" th:object="${badgeForm}" method="post">
+            <label>Tên huy hiệu
+                <input th:field="*{name}" required maxlength="100">
+            </label>
+            <label>Icon (emoji hoặc URL)
+                <input th:field="*{icon}" maxlength="500" placeholder="🏅">
+            </label>
+            <label>Ngưỡng
+                <input th:field="*{thresholdValue}" type="number" min="1" required>
+            </label>
+            <label style="grid-column:1/-1">Mô tả
+                <textarea th:field="*{description}" required maxlength="500"></textarea>
+            </label>
+            <label><span>Kích hoạt ngay</span>
+                <input th:field="*{active}" type="checkbox">
+            </label>
+            <div style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Tạo huy hiệu và xét cấp bù</button></div>
+        </form>
+    </section>
+    <section class="badge-panel">
+        <h2>Danh sách huy hiệu</h2>
+        <table class="badge-table">
+            <thead><tr><th>Tên</th><th>Streak yêu cầu</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody>
+            <tr th:each="badge : ${badges}">
+                <td><span th:text="${badge.icon != null ? badge.icon : '🏅'}"></span> <strong th:text="${badge.name}"></strong><br><small th:text="${badge.description}"></small></td>
+                <td th:text="${badge.thresholdValue}"></td>
+                <td th:text="${badge.active ? 'Đang hoạt động' : 'Đã tắt'}"></td>
+                <td>
+                    <form th:action="@{/admin/badges/page/{id}/active(id=${badge.id})}" method="post">
+                        <input type="hidden" name="active" th:value="${!badge.active}">
+                        <button class="btn btn-primary btn-sm" type="submit" th:text="${badge.active ? 'Tắt' : 'Bật & cấp bù'}"></button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</main>
+</body>
+</html>
