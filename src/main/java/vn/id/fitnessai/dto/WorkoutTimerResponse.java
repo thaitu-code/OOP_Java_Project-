@@ -18,4 +18,7 @@ public class WorkoutTimerResponse {
 
     private long activeDurationMillis;
     private long restDurationMillis;
+
+    private OffsetDateTime restStartedAt;
+    private OffsetDateTime restEndsAt;
 }

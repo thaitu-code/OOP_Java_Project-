@@ -1,6 +1,6 @@
 package vn.id.fitnessai.service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +37,7 @@ public class ExerciseService {
         if (!violations.isEmpty()){
             throw new IllegalArgumentException(violations.iterator().next().getMessage());
         }
+        String mediaUrl = ExerciseMediaLinks.normalize(request.getMediaUrl());
 
         Optional<ExerciseCategory> categoryOptional = exerciseCategoryRepository.findById(request.getCategoryId());
 
@@ -59,45 +60,22 @@ public class ExerciseService {
         exercise.setRecommendedSets(request.getRecommendedSets());
         exercise.setRecommendedReps(request.getRecommendedReps());
         exercise.setAiVideoUrl(request.getAiVideoUrl());
+        exercise.setMediaUrl(mediaUrl);
 
         //Lưu xuống repository
         Exercise savedExercise = exerciseRepository.save(exercise);
 
-        return new ExerciseResponse(
-                savedExercise.getExerciseId(),
-                savedExercise.getExerciseName(),
-                savedExercise.isActive(),
-                savedExercise.getDescription(),
-                savedExercise.getMetValue(),
-                savedExercise.getMinDurationMinutes(),
-                savedExercise.getRecommendedSets(),
-                savedExercise.getRecommendedReps(),
-                savedExercise.getAiVideoUrl(),
-                savedExercise.getCategory().getCategoryId(),
-                savedExercise.getCategory().getCategoryName()
-        );
+        return ExerciseResponse.from(savedExercise);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ExerciseResponse> getAllExercises(){
 
         List<Exercise> exercises = exerciseRepository.findAll();
         List<ExerciseResponse> responses = new ArrayList<>();
 
         for (Exercise exercise : exercises){
-            ExerciseResponse response = new ExerciseResponse(
-                    exercise.getExerciseId(),
-                    exercise.getExerciseName(),
-                    exercise.isActive(),
-                    exercise.getDescription(),
-                    exercise.getMetValue(),
-                    exercise.getMinDurationMinutes(),
-                    exercise.getRecommendedSets(),
-                    exercise.getRecommendedReps(),
-                    exercise.getAiVideoUrl(),
-                    exercise.getCategory().getCategoryId(),
-                    exercise.getCategory().getCategoryName()
-            );
+            ExerciseResponse response = ExerciseResponse.from(exercise);
 
             responses.add(response);
         }
@@ -105,7 +83,7 @@ public class ExerciseService {
         return responses;
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Optional<ExerciseResponse> getExerciseById(Integer exerciseId){
         if (exerciseId == null || exerciseId <= 0){
             throw new IllegalArgumentException("ID bài tập phải là số nguyên dương");
@@ -119,19 +97,7 @@ public class ExerciseService {
 
         Exercise exercise = exerciseOptional.get();
 
-        ExerciseResponse response = new ExerciseResponse(
-                exercise.getExerciseId(),
-                exercise.getExerciseName(),
-                exercise.isActive(),
-                exercise.getDescription(),
-                exercise.getMetValue(),
-                exercise.getMinDurationMinutes(),
-                exercise.getRecommendedSets(),
-                exercise.getRecommendedReps(),
-                exercise.getAiVideoUrl(),
-                exercise.getCategory().getCategoryId(),
-                exercise.getCategory().getCategoryName()
-        );
+        ExerciseResponse response = ExerciseResponse.from(exercise);
 
         return Optional.of(response);
     }
@@ -152,7 +118,8 @@ public class ExerciseService {
         if (!violations.isEmpty()){
             throw new IllegalArgumentException(violations.iterator().next().getMessage());
         }
-        Optional<Exercise> exerciseOptional = exerciseRepository.findById(exerciseId);
+        String mediaUrl = ExerciseMediaLinks.normalize(request.getMediaUrl());
+        Optional<Exercise> exerciseOptional = exerciseRepository.findByIdForUpdate(exerciseId);
 
         if (exerciseOptional.isEmpty()){
             return Optional.empty();
@@ -184,25 +151,15 @@ public class ExerciseService {
         exercise.setRecommendedSets(request.getRecommendedSets());
         exercise.setRecommendedReps(request.getRecommendedReps());
         exercise.setAiVideoUrl(request.getAiVideoUrl());
+        // Request cũ không có mediaUrl giữ media hiện tại; chuỗi rỗng chủ động gỡ liên kết.
+        if (request.getMediaUrl() != null) exercise.setMediaUrl(mediaUrl);
         exercise.setCategory(category);
 
         //Lưu xuống db
         Exercise savedExercise = exerciseRepository.save(exercise);
 
         //Chuyển sang DTO response
-        ExerciseResponse response = new ExerciseResponse(
-                savedExercise.getExerciseId(),
-                savedExercise.getExerciseName(),
-                savedExercise.isActive(),
-                savedExercise.getDescription(),
-                savedExercise.getMetValue(),
-                savedExercise.getMinDurationMinutes(),
-                savedExercise.getRecommendedSets(),
-                savedExercise.getRecommendedReps(),
-                savedExercise.getAiVideoUrl(),
-                savedExercise.getCategory().getCategoryId(),
-                savedExercise.getCategory().getCategoryName()
-        );
+        ExerciseResponse response = ExerciseResponse.from(savedExercise);
 
         return Optional.of(response);
     }
@@ -214,7 +171,7 @@ public class ExerciseService {
             throw new IllegalArgumentException("ID bài tập phải là số nguyên dương");
         }
 
-        Optional<Exercise> exerciseOptional = exerciseRepository.findById(exerciseId);
+        Optional<Exercise> exerciseOptional = exerciseRepository.findByIdForUpdate(exerciseId);
         if (exerciseOptional.isEmpty()){
             return Optional.empty();
         }
@@ -224,19 +181,7 @@ public class ExerciseService {
 
         Exercise savedExercise = exerciseRepository.save(exercise);
 
-        ExerciseResponse response = new ExerciseResponse(
-                savedExercise.getExerciseId(),
-                savedExercise.getExerciseName(),
-                savedExercise.isActive(),
-                savedExercise.getDescription(),
-                savedExercise.getMetValue(),
-                savedExercise.getMinDurationMinutes(),
-                savedExercise.getRecommendedSets(),
-                savedExercise.getRecommendedReps(),
-                savedExercise.getAiVideoUrl(),
-                savedExercise.getCategory().getCategoryId(),
-                savedExercise.getCategory().getCategoryName()
-        );
+        ExerciseResponse response = ExerciseResponse.from(savedExercise);
 
         return Optional.of(response);
     }
@@ -260,6 +205,9 @@ public class ExerciseService {
             throw new IllegalStateException("Không thể xóa bài tập đang thuộc buổi tập chưa kết thúc");
         }
 
+        // Hibernate schema update may leave an existing FK without ON DELETE SET NULL.
+        // Detach closed history explicitly in this transaction before deleting the master.
+        workoutDetailRepository.detachExerciseReferences(exerciseId);
         exerciseRepository.delete(exerciseOptional.get());
         exerciseRepository.flush();
 

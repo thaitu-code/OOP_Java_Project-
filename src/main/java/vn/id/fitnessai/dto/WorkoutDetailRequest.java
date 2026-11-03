@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
-
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,8 +14,7 @@ public class WorkoutDetailRequest {
     @NotNull(message = "ID bài tập không được để trống")
     @Positive(message = "ID bài tập phải lớn hơn 0")
     private Integer exerciseId;
-    private BigDecimal durationMinutes;
-    private Integer sets;
-    private Integer reps;
-    private BigDecimal weightKg;
+
+    @Positive(message = "ID cấp độ phải lớn hơn 0")
+    private Integer levelId;
 }

@@ -37,6 +37,9 @@ public class ExerciseRequest {
     @Size(max = 500, message = "URL video không được vượt quá 500 kí tự")
     private String aiVideoUrl;
 
+    @Size(max = 500, message = "Link ảnh/video không được vượt quá 500 ký tự")
+    private String mediaUrl;
+
     @NotNull(message = "Nhóm bài tập không được để trống")
     @Positive(message = "ID nhóm bài tập phải là số nguyên dương")
     private Integer categoryId;

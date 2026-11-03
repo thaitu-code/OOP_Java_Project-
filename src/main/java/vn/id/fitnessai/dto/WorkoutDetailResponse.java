@@ -1,6 +1,7 @@
 package vn.id.fitnessai.dto;
 
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.Getter;
 import vn.id.fitnessai.enums.WorkoutDetailStatus;
 
@@ -8,26 +9,33 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 
 @Getter
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class WorkoutDetailResponse {
+    @Setter private WorkoutAutomationResponse automation;
 
-    private Integer detailId;
-    private Integer workoutId;
+    private final Integer detailId;
+    private final Integer workoutId;
 
-    private Integer exerciseIdSnapshot;
-    private String exerciseNameSnapshot;
-    private Integer categoryIdSnapshot;
-    private String categoryNameSnapshot;
-    private BigDecimal metValueSnapshot;
+    private final Integer exerciseIdSnapshot;
+    private final String exerciseNameSnapshot;
+    private final Integer categoryIdSnapshot;
+    private final String categoryNameSnapshot;
+    private final BigDecimal metValueSnapshot;
 
-    private WorkoutDetailStatus status;
+    private final WorkoutDetailStatus status;
 
-    private BigDecimal durationMinutes;
-    private Integer sets;
-    private Integer reps;
-    private BigDecimal weightKg;
-    private BigDecimal caloriesBurned;
+    private final BigDecimal durationMinutes;
+    private final Integer sets;
+    private final Integer reps;
+    private final BigDecimal weightKg;
+    private final BigDecimal caloriesBurned;
 
-    private OffsetDateTime startedAt;
-    private OffsetDateTime completedAt;
+    private final OffsetDateTime startedAt;
+    private final OffsetDateTime completedAt;
+
+    private final Integer approvedRestSecondsSnapshot;
+    private final BigDecimal minDurationMinutesSnapshot;
+    private final long activeDurationMillis;
+    private final long restDurationMillis;
+    private final OffsetDateTime cancelledAt;
 }

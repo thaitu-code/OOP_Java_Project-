@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}" content="">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" content="X-CSRF-TOKEN">
+    <title>Tập luyện - FitnessAI</title>
+    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="../static/css/workout.css" th:href="@{/css/workout.css}">
+    <script defer src="../static/js/workout.js" th:src="@{/js/workout.js}"></script>
+</head>
+<body class="dash-body workout-body">
+<header class="topbar">
+    <a class="brand" href="home.html" th:href="@{/home}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
+        <span>FitnessAI</span>
+    </a>
+    <nav class="topbar-right" aria-label="Điều hướng chính">
+        <a class="nav-link" th:href="@{/home}" href="home.html">Trang chủ</a>
+        <a class="nav-link" th:href="@{/profile}" href="profile.html">Hồ sơ</a>
+        <a class="nav-link" th:if="${isWorkoutAdmin}" th:href="@{/admin/dashboard}">Quản trị</a>
+        <form th:action="@{/perform_logout}" method="post"><button class="btn btn-primary btn-sm" type="submit">Đăng xuất</button></form>
+    </nav>
+</header>
+<main id="workout-app" class="workout-wrap" data-base="/" data-manage="false" data-admin="false"
+      data-heartbeat="10" data-timeout="30"
+      th:attr="data-base=@{/},data-manage=${manageLibrary},data-admin=${isWorkoutAdmin},data-heartbeat=${heartbeatIntervalSeconds},data-timeout=${heartbeatTimeoutSeconds}">
+    <section class="workout-hero">
+        <div><span class="eyebrow">MỖI NGÀY MỘT BƯỚC TIẾN</span><h1>Tập hôm nay.<br>Khỏe hơn mỗi ngày.</h1>
+            <p>Chọn bài tập phù hợp, giữ nhịp của bạn và ghi lại từng nỗ lực.</p>
+            <button type="button" class="w-btn hero-btn" id="hero-start" disabled>Bắt đầu buổi tập</button>
+        </div>
+        <div class="hero-art" aria-hidden="true"><svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="round"><circle cx="100" cy="100" r="88" stroke-width="1"/><path d="m60 110 50-50M51 88l38 38M74 65l38 38M88 51l38 38M110 112l38 38M125 98l38 38"/></svg><span>YOUR PACE. YOUR PROGRESS.</span></div>
+    </section>
+
+    <div id="app-notice" class="w-notice" role="status" aria-live="polite" hidden></div>
+    <div class="w-notice warning" th:if="${profile == null or profile.weightKg == null or profile.weightKg.signum() &lt;= 0}">
+        Cập nhật cân nặng trong <a th:href="@{/profile}" href="profile.html">hồ sơ cơ thể</a> trước khi hoàn thành bài để hệ thống tính calo.
+    </div>
+    <div id="hours-note" class="w-note" hidden>Gợi ý giờ tập: 05–08h, 15–18h hoặc 19–21h theo giờ Việt Nam. Bạn vẫn có thể tập vào lúc khác phù hợp với mình.</div>
+
+    <section class="workout-stats" aria-label="Tổng quan tập luyện">
+        <article><span class="stat-mark blue">✓</span><div><span>Check-in hôm nay</span><strong id="stat-checkin">Đang tải…</strong></div></article>
+        <article><span class="stat-mark orange">↗</span><div><span>Chuỗi hiện tại</span><strong id="stat-streak">—</strong></div></article>
+        <article><span class="stat-mark blue">◷</span><div><span>Buổi đang tập · thời lượng đã ghi</span><strong id="stat-duration">—</strong></div></article>
+        <article><span class="stat-mark green">ϟ</span><div><span>Buổi đang tập · calo đã ghi</span><strong id="stat-calories">—</strong></div></article>
+    </section>
+    <nav class="workout-tabs" aria-label="Các phần tập luyện">
+        <button class="active" data-tab="session" type="button" aria-current="page">Buổi tập của tôi</button>
+        <button data-tab="library" type="button">Thư viện bài tập</button>
+        <button data-tab="history" type="button">Lịch sử tập luyện</button>
+        <button data-tab="manage" type="button" th:if="${isWorkoutAdmin}">Quản lý thư viện</button>
+    </nav>
+    <p id="workout-activity" class="workout-activity" role="status" aria-live="polite" hidden>Đang xử lý…</p>
+
+    <section id="panel-session" class="workout-panel">
+        <div class="section-heading"><div><h2>Buổi tập của bạn</h2><p id="session-caption">Đang tải buổi tập…</p></div><button class="w-btn secondary" data-action="refresh" type="button">Làm mới</button></div>
+        <div id="empty-session" class="w-card empty-state" hidden><span class="empty-symbol">＋</span><h3>Sẵn sàng cho buổi tập mới?</h3><p>Tạo một buổi tập, chọn bài trong thư viện và bắt đầu khi bạn sẵn sàng.</p><button class="w-btn" data-action="create" type="button">Tạo buổi tập</button></div>
+        <div id="live-session" class="session-grid" hidden>
+            <div class="session-list-column">
+                <section class="w-card"><div class="card-heading"><h3>Bài trong buổi <span id="detail-count" class="count-pill">0</span></h3><button class="w-btn small secondary" data-action="browse" type="button">＋ Thêm bài</button></div>
+                    <p class="w-note">Hoàn thành ít nhất một bài hợp lệ để được check-in. Thời gian nghỉ được tính vào ngưỡng tối thiểu.</p><div id="session-details" class="detail-list"></div>
+                </section>
+                <section class="w-card session-close"><h3>Kết thúc khi bạn sẵn sàng</h3><p>Bài hoàn thành được giữ nguyên. Những bài còn dở sẽ được đánh dấu hủy khi đóng buổi.</p><div class="button-row"><button class="w-btn" id="finish-workout" data-action="finish" type="button">Hoàn thành buổi</button><button class="w-btn danger-quiet" data-action="cancel-workout" type="button">Hủy buổi tập</button></div></section>
+            </div>
+            <aside class="w-card timer-card" aria-label="Điều khiển bài tập">
+                <div class="card-heading"><span class="eyebrow">ĐANG THEO DÕI</span><span id="timer-status" class="w-pill">Chưa chọn bài</span></div>
+                <h3 id="timer-name">Chọn một bài để bắt đầu</h3><p id="timer-category" class="w-note">Các kết quả sẽ được lưu cho từng bài tập.</p>
+                <p id="timer-plan" class="w-note"></p><div id="timer-media" class="exercise-motion"></div>
+                <div class="timer-face"><span id="timer-mode">Thời gian tập</span><strong id="timer-clock">00:00</strong><small id="timer-sync">Chưa bắt đầu</small></div>
+                <div class="timer-metrics"><div><span>Tập đã ghi</span><strong id="active-time">00:00</strong></div><div><span>Nghỉ đã ghi</span><strong id="rest-time">00:00</strong></div></div>
+                <div class="w-progress"><span id="minimum-progress"></span></div><p id="minimum-note" class="w-note">Chọn bài để xem thời gian tối thiểu.</p>
+                <p id="lease-note" class="w-notice warning" hidden></p>
+                <div class="button-row timer-actions">
+                    <button class="w-btn" id="start-detail" data-action="start" type="button" hidden>Bắt đầu bài</button>
+                    <button class="w-btn" id="recover-detail" data-action="recover" type="button" hidden>Khôi phục điều khiển</button>
+                    <button class="w-btn secondary" id="pause-detail" data-action="pause" type="button" hidden>Tạm dừng</button>
+                    <button class="w-btn secondary" id="rest-detail" data-action="rest" type="button" hidden>Nghỉ giữa hiệp</button>
+                    <button class="w-btn" id="resume-detail" data-action="resume" type="button" hidden>Tiếp tục tập</button>
+                </div>
+                <form id="rest-form" class="rest-form" hidden><label for="rest-seconds">Thời lượng nghỉ mỗi lần (1–300 giây)</label><div class="input-action"><input id="rest-seconds" name="restSeconds" type="number" min="1" max="300" step="1" required placeholder="Ví dụ: 60"><button class="w-btn small secondary" type="submit">Duyệt nghỉ</button></div><p id="approved-rest" class="w-note"></p></form>
+                <form id="complete-form" hidden><h4>Ghi nhận kết quả</h4><p class="w-note">Không bắt buộc nhập. Reps là số lần mỗi hiệp; tải tập khác với cân nặng cơ thể.</p><div class="result-fields"><label>Số hiệp<input name="sets" type="number" min="0" step="1"></label><label>Reps / hiệp<input name="reps" type="number" min="0" step="1"></label><label>Tải tập (kg)<input name="weightKg" type="number" min="0" max="9999.99" step="0.01"></label></div><button class="w-btn full-width" id="complete-detail" type="submit">Hoàn thành bài tập</button></form>
+                <p class="w-note timer-footnote">Calo chỉ tính từ thời gian đang tập. Khi tải lại trang, bài đang dở được tự khôi phục; thời gian tập mất kết nối không cộng bù, thời gian nghỉ vẫn chạy tới mốc đã duyệt.</p>
+            </aside>
+        </div>
+    </section>
+
+    <section id="panel-library" class="workout-panel" hidden>
+        <div class="section-heading"><div><h2>Chọn bài, bắt đầu hành trình</h2><p>Hướng dẫn, nhóm cơ và thông số cho buổi tập của bạn.</p></div><button class="w-btn secondary" data-action="refresh" type="button">Làm mới thư viện</button></div>
+        <div class="library-filters"><label class="search-field"><span>Tìm bài tập</span><input id="exercise-search" type="search" placeholder="Nhập tên hoặc nhóm bài tập…"></label><label>Nhóm bài tập<select id="category-filter"><option value="">Tất cả nhóm</option></select></label><label id="active-filter-label" hidden>Trạng thái<select id="active-filter"><option value="active">Đang hoạt động</option><option value="all">Tất cả</option><option value="inactive">Đã ngừng</option></select></label></div>
+        <p id="library-count" class="w-note"></p><div id="exercise-library" class="exercise-grid"></div>
+    </section>
+
+    <section id="panel-history" class="workout-panel" hidden>
+        <div class="section-heading"><div><h2>Nhìn lại từng nỗ lực</h2><p>Lịch sử lưu kết quả tại thời điểm tập, kể cả khi bài đã rời thư viện.</p></div><label>Trạng thái<select id="history-status"><option value="">Tất cả buổi</option><option value="COMPLETED">Hoàn thành</option><option value="CANCELLED">Đã hủy</option><option value="IN_PROGRESS">Đang tập</option></select></label></div>
+        <div class="w-card table-scroll"><table class="w-table"><thead><tr><th>Buổi tập</th><th>Thời gian bắt đầu · GMT+7</th><th>Trạng thái</th><th>Thời lượng</th><th>Calo</th><th></th></tr></thead><tbody id="history-rows"></tbody></table></div><div class="pagination"><button class="w-btn small secondary" id="history-prev" type="button">← Trước</button><span id="history-page">—</span><button class="w-btn small secondary" id="history-next" type="button">Sau →</button></div>
+    </section>
+
+    <section id="panel-manage" class="workout-panel" th:if="${isWorkoutAdmin}" hidden>
+        <div class="section-heading"><div><h2>Quản lý thư viện</h2><p>Quản lý dữ liệu chuẩn. Các thay đổi không ghi đè kết quả tập đã lưu.</p></div><div class="button-row"><button class="w-btn secondary" data-action="new-category" type="button">＋ Nhóm bài tập</button><button class="w-btn" data-action="new-exercise" type="button">＋ Bài tập</button></div></div>
+        <section class="w-card"><h3>Nhóm bài tập</h3><p class="w-note">Ngừng nhóm chỉ chặn gán mới; các bài hiện có vẫn được chọn tập.</p><div id="manage-categories" class="category-list"></div></section>
+        <section class="w-card manage-exercises"><div class="card-heading"><h3>Bài tập</h3><label>Tìm bài<input id="manage-search" type="search" placeholder="Tên bài tập…"></label></div><div class="table-scroll"><table class="w-table"><thead><tr><th>Bài tập / Nhóm</th><th>MET</th><th>Tối thiểu</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="manage-exercises"></tbody></table></div></section>
+    </section>
+    <p class="workout-footer">Đều đặn theo nhịp của bạn. Ngày tập và lịch sử hiển thị theo giờ Việt Nam.</p>
+    <noscript><p class="w-notice warning">Vui lòng bật JavaScript để sử dụng phần tập luyện.</p></noscript>
+</main>
+<dialog id="workout-dialog" class="workout-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><h2 id="dialog-title"></h2><button type="button" class="icon-button" id="dialog-close" aria-label="Đóng">×</button></div><div id="dialog-content"></div></dialog>
+</body>
+</html>

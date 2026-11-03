@@ -9,10 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import vn.id.fitnessai.entity.*;
 import vn.id.fitnessai.repository.*;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.List;
+import java.time.*;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +28,7 @@ public class CheckInStreakService {
      * User row lock serializes simultaneous requests from multiple tabs.
      */
     @Transactional
-    public void registerValidWorkout(String username, LocalDate completedDate) {
+    public void registerValidWorkout(String username, OffsetDateTime completedAt) {
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
 
@@ -39,10 +36,13 @@ public class CheckInStreakService {
             throw new IllegalStateException("Tài khoản chưa được xác minh hoặc đã bị khóa");
         }
 
-        LocalDate today = LocalDate.now(VN_ZONE);
-        if (completedDate == null || !completedDate.equals(today)) {
-            throw new IllegalStateException("Check-in chỉ được ghi nhận cho ngày hoàn thành thực tế theo giờ Việt Nam");
+        if (completedAt == null){
+            throw new IllegalArgumentException("Thời điểm hoàn thành không được để trống");
         }
+
+        LocalDateTime completionTimeVN = completedAt.atZoneSameInstant(VN_ZONE).toLocalDateTime();
+
+        LocalDate completedDate = completionTimeVN.toLocalDate();
 
         DailyFitnessRecord record = dailyRecordRepository
                 .findByUser_IdAndActivityDate(user.getId(), completedDate)
@@ -53,7 +53,7 @@ public class CheckInStreakService {
         }
 
         record.setCheckedIn(true);
-        record.setFirstCheckedInAt(LocalDateTime.now(VN_ZONE));
+        record.setFirstCheckedInAt(completionTimeVN);
         dailyRecordRepository.save(record);
 
         UserStreak streak = userStreakRepository.findByUser_Id(user.getId())
@@ -130,19 +130,25 @@ public class CheckInStreakService {
 
     private void sendMissedWorkoutReminderIfNeeded(User user, UserStreak streak, LocalDate targetDate) {
         if (streak.getConsecutiveMissedDays() < 3 || user.isLocked() || !user.isEnabled()) return;
+
         DailyFitnessRecord target = dailyRecordRepository
                 .findByUser_IdAndActivityDate(user.getId(), targetDate)
                 .orElseGet(() -> new DailyFitnessRecord(user, targetDate));
+
         if (target.isRestDayValid() || target.isReminderSent()) return;
+
         try {
             SimpleMailMessage message = new SimpleMailMessage();
             message.setTo(user.getEmail());
             message.setSubject("FitnessAI - Nhắc nhở luyện tập");
             message.setText("Bạn đã bỏ lỡ " + streak.getConsecutiveMissedDays()
                     + " ngày tập bắt buộc liên tiếp. Hãy hoàn thành một bài tập hợp lệ hôm nay để bắt đầu lại chuỗi nhé!");
+
             mailSender.send(message);
+
             target.setReminderSent(true);
             dailyRecordRepository.save(target);
+
         } catch (RuntimeException ignored) {
             // Keep day-finalization idempotent if the mail provider is temporarily unavailable.
         }
@@ -150,16 +156,22 @@ public class CheckInStreakService {
 
     @Transactional
     public StreakSummary getSummary(String username) {
-        User user = userRepository.findByUsername(username)
+
+        User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+
+        LocalDate today = LocalDate.now(VN_ZONE);
+
         UserStreak streak = userStreakRepository.findByUser_Id(user.getId())
                 .orElseGet(() -> new UserStreak(user));
+
         // Dashboard reads must not show a stale streak if midnight job was down.
-        reconcileUserUntil(user, streak, LocalDate.now(VN_ZONE).minusDays(1));
+        reconcileUserUntil(user, streak, today.minusDays(1));
         userStreakRepository.save(streak);
-        LocalDate today = LocalDate.now(VN_ZONE);
+
         boolean checkedIn = dailyRecordRepository.findByUser_IdAndActivityDate(user.getId(), today)
                 .map(DailyFitnessRecord::isCheckedIn).orElse(false);
+
         return new StreakSummary(streak.getCurrentStreak(), streak.getHighestStreak(),
                 streak.getConsecutiveMissedDays(), checkedIn, today);
     }

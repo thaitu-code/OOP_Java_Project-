@@ -1,6 +1,9 @@
 package vn.id.fitnessai.service;
 
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +13,8 @@ import vn.id.fitnessai.dto.WorkoutDetailRequest;
 import vn.id.fitnessai.dto.WorkoutDetailResponse;
 import vn.id.fitnessai.dto.WorkoutResponse;
 import vn.id.fitnessai.dto.WorkoutTimerResponse;
+import vn.id.fitnessai.dto.WorkoutPageResponse;
+import vn.id.fitnessai.dto.WorkoutSessionStateResponse;
 import vn.id.fitnessai.entity.Exercise;
 import vn.id.fitnessai.entity.User;
 import vn.id.fitnessai.entity.Workout;
@@ -24,6 +29,7 @@ import vn.id.fitnessai.repository.WorkoutRepository;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 @Service
@@ -46,11 +52,8 @@ public class WorkoutService {
             throw new IllegalArgumentException("Thông tin người dùng không được để trống");
         }
 
-        User user = userRepository.findByUsernameForUpdate(username).orElseThrow(() -> new IllegalArgumentException("Thông tin người dùng không được để trống"));
-
-        if (!user.isEnabled() || user.isLocked()){
-            throw new AccessDeniedException("Tài khoản chưa được xác minh hoặc đã bị khóa");
-        }
+        UserRepository.WorkoutAccess access = lockedWorkoutUser(username);
+        User user = userRepository.getReferenceById(access.getId());
 
         boolean hasActiveWorkout = workoutRepository.existsByUser_IdAndStatus(user.getId(), WorkoutStatus.IN_PROGRESS);
 
@@ -58,19 +61,11 @@ public class WorkoutService {
             throw new IllegalStateException("Bạn đang có một buổi tập chưa kết thúc");
         }
 
-        Workout workout = new Workout(user, OffsetDateTime.now(VIETNAM_ZONE));
+        Workout workout = new Workout(user, OffsetDateTime.now(VIETNAM_ZONE).truncatedTo(ChronoUnit.MICROS));
 
         Workout savedWorkout = workoutRepository.save(workout);
 
-        return new WorkoutResponse(
-                savedWorkout.getWorkoutId(),
-                savedWorkout.getUser().getId(),
-                savedWorkout.getStartTime(),
-                savedWorkout.getEndTime(),
-                savedWorkout.getStatus(),
-                BigDecimal.ZERO,
-                BigDecimal.ZERO
-        );
+        return WorkoutDtoMapper.workout(savedWorkout, List.of());
     }
 
     @Transactional
@@ -95,10 +90,10 @@ public class WorkoutService {
         }
 
         //Tìm user bằng username để update
-        User user = userRepository.findByUsernameForUpdate(username)
+        UserRepository.WorkoutAccess user = userRepository.findWorkoutAccessForUpdate(username)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản đăng nhập"));
 
-        if (!user.isEnabled() || user.isLocked()){
+        if (!user.getEnabled() || user.getLocked()){
             throw new AccessDeniedException("Tài khoản chưa được xác minh hoặc đã bị khóa");
         }
 
@@ -142,27 +137,17 @@ public class WorkoutService {
 
         //Tạo và lưu bài tập mới
         WorkoutDetail detail = new WorkoutDetail(workout, exercise);
+        if (request.getLevelId() != null) {
+            var level = exercise.getLevels().stream()
+                    .filter(l -> l.getId().equals(request.getLevelId()) && l.isActive()).findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Cấp độ không thuộc bài tập hoặc đã ngừng hoạt động"));
+            detail.configureAutomation(level);
+        } else if (!exercise.getLevels().isEmpty()) {
+            throw new IllegalArgumentException("Hãy chọn cấp độ cho bài tập");
+        }
         WorkoutDetail savedDetail = workoutDetailRepository.save(detail);
 
-        WorkoutDetailResponse response = new WorkoutDetailResponse(
-                savedDetail.getDetailId(),
-                savedDetail.getWorkout().getWorkoutId(),
-                savedDetail.getExerciseIdSnapshot(),
-                savedDetail.getExerciseNameSnapshot(),
-                savedDetail.getCategoryIdSnapshot(),
-                savedDetail.getCategoryNameSnapshot(),
-                savedDetail.getMetValueSnapshot(),
-                savedDetail.getStatus(),
-                savedDetail.getDurationMinutes(),
-                savedDetail.getSets(),
-                savedDetail.getReps(),
-                savedDetail.getWeightKg(),
-                savedDetail.getCaloriesBurned(),
-                savedDetail.getStartedAt(),
-                savedDetail.getCompletedAt()
-        );
-
-        return Optional.of(response);
+        return Optional.of(WorkoutDtoMapper.detail(savedDetail));
     }
 
     @Transactional
@@ -175,9 +160,9 @@ public class WorkoutService {
             throw new IllegalArgumentException("ID buổi tập phải lớn hơn 0");
         }
 
-        User user = userRepository.findByUsername(username).orElseThrow(()->new IllegalArgumentException("Không tìm thấy tài khoản đang đăng nhập"));
+        UserRepository.WorkoutAccess user = readableUser(username);
 
-        if (user.isLocked() || !user.isEnabled()){
+        if (user.getLocked() || !user.getEnabled()){
             throw new AccessDeniedException("Tài khoản chưa được xác minh hoặc đã bị khóa");
         }
 
@@ -197,32 +182,7 @@ public class WorkoutService {
         //Lấy các bài tập trong buổi tập theo ID tăng dần
         List<WorkoutDetail> details = workoutDetailRepository.findAllByWorkout_WorkoutIdOrderByDetailIdAsc(workoutId);
 
-        //Chuyển entity thành response
-        List<WorkoutDetailResponse> responses = new ArrayList<>();
-
-        for (WorkoutDetail detail : details){
-            WorkoutDetailResponse response = new WorkoutDetailResponse(
-                    detail.getDetailId(),
-                    workout.getWorkoutId(),
-                    detail.getExerciseIdSnapshot(),
-                    detail.getExerciseNameSnapshot(),
-                    detail.getCategoryIdSnapshot(),
-                    detail.getCategoryNameSnapshot(),
-                    detail.getMetValueSnapshot(),
-                    detail.getStatus(),
-                    detail.getDurationMinutes(),
-                    detail.getSets(),
-                    detail.getReps(),
-                    detail.getWeightKg(),
-                    detail.getCaloriesBurned(),
-                    detail.getStartedAt(),
-                    detail.getCompletedAt()
-            );
-
-            responses.add(response);
-        }
-
-        return Optional.of(responses);
+        return Optional.of(details.stream().map(WorkoutDtoMapper::detail).toList());
     }
 
     @Transactional
@@ -240,10 +200,10 @@ public class WorkoutService {
         }
 
         //Tìm và khóa tài khoản để cập nhật (tránh xung đột dữ liệu)
-        User user = userRepository.findByUsernameForUpdate(username).orElseThrow(()->
+        UserRepository.WorkoutAccess user = userRepository.findWorkoutAccessForUpdate(username).orElseThrow(()->
                 new IllegalArgumentException("Không tìm thấy tài khoản đăng nhập"));    //Trả về 400
 
-        if (user.isLocked() || !user.isEnabled()){
+        if (user.getLocked() || !user.getEnabled()){
             throw new AccessDeniedException("Tài khoản chưa được xác minh hoặc đã bị khóa");    //Trả về 409
         }
 
@@ -311,36 +271,102 @@ public class WorkoutService {
         }
 
         //Tạo thời gian
-        detail.start(OffsetDateTime.now(VIETNAM_ZONE));
+        detail.start(OffsetDateTime.now(VIETNAM_ZONE).truncatedTo(ChronoUnit.MICROS));
 
         WorkoutDetail savedDetail = workoutDetailRepository.save(detail);
 
-        WorkoutDetailResponse response = new WorkoutDetailResponse(
-                savedDetail.getDetailId(),
-                savedDetail.getWorkout().getWorkoutId(),
-                savedDetail.getExerciseIdSnapshot(),
-                savedDetail.getExerciseNameSnapshot(),
-                savedDetail.getCategoryIdSnapshot(),
-                savedDetail.getCategoryNameSnapshot(),
-                savedDetail.getMetValueSnapshot(),
-                savedDetail.getStatus(),
-                savedDetail.getDurationMinutes(),
-                savedDetail.getSets(),
-                savedDetail.getReps(),
-                savedDetail.getWeightKg(),
-                savedDetail.getCaloriesBurned(),
-                savedDetail.getStartedAt(),
-                savedDetail.getCompletedAt()
-        );
+        return Optional.of(WorkoutDtoMapper.timer(savedDetail, true));
+    }
 
-        WorkoutTimerResponse timerResponse = new WorkoutTimerResponse(
-                response,
-                savedDetail.getTimerToken(),
-                savedDetail.getLastRecordedAt(),
-                savedDetail.getLastHeartbeatAt(),
-                savedDetail.getActiveDurationMillis(),
-                savedDetail.getRestDurationMillis()
-        );
-        return Optional.of(timerResponse);
+    @Transactional(readOnly = true)
+    public Optional<WorkoutResponse> getWorkout(String username, Integer workoutId) {
+        UserRepository.WorkoutAccess user = readableUser(username);
+        if (workoutId == null || workoutId <= 0) {
+            throw new IllegalArgumentException("ID buổi tập phải lớn hơn 0");
+        }
+        return workoutRepository.findById(workoutId).map(workout -> {
+            if (!workout.getUser().getId().equals(user.getId())) {
+                throw new AccessDeniedException("Bạn không có quyền xem buổi tập này");
+            }
+            return WorkoutDtoMapper.workout(workout,
+                    workoutDetailRepository.findAllByWorkout_WorkoutIdOrderByDetailIdAsc(workoutId));
+        });
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<WorkoutResponse> getCurrentWorkout(String username) {
+        UserRepository.WorkoutAccess user = readableUser(username);
+        return workoutRepository.findByUser_IdAndStatus(user.getId(), WorkoutStatus.IN_PROGRESS)
+                .map(workout -> WorkoutDtoMapper.workout(workout,
+                        workoutDetailRepository.findAllByWorkout_WorkoutIdOrderByDetailIdAsc(workout.getWorkoutId())));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<WorkoutSessionStateResponse> getCurrentWorkoutState(String username) {
+        UserRepository.WorkoutAccess user = readableUser(username);
+        return workoutRepository.findByUser_IdAndStatus(user.getId(), WorkoutStatus.IN_PROGRESS).map(workout -> {
+            List<WorkoutDetail> details = workoutDetailRepository.findAllByWorkout_WorkoutIdOrderByDetailIdAsc(workout.getWorkoutId());
+            WorkoutTimerResponse timer = details.stream()
+                    .filter(d -> EnumSet.of(WorkoutDetailStatus.IN_PROGRESS, WorkoutDetailStatus.RESTING,
+                            WorkoutDetailStatus.PAUSED, WorkoutDetailStatus.FROZEN).contains(d.getStatus()))
+                    .findFirst().map(d -> WorkoutDtoMapper.timer(d, false)).orElse(null);
+            return new WorkoutSessionStateResponse(WorkoutDtoMapper.workout(workout, details),
+                    details.stream().map(WorkoutDtoMapper::detail).toList(), timer);
+        });
+    }
+
+    @Transactional(readOnly = true)
+    public WorkoutPageResponse getWorkouts(String username, int page, int size, WorkoutStatus status) {
+        UserRepository.WorkoutAccess user = readableUser(username);
+        if (page < 0 || size < 1 || size > 100) {
+            throw new IllegalArgumentException("Trang phải từ 0 và kích thước trang từ 1 đến 100");
+        }
+        PageRequest pageable = PageRequest.of(page, size,
+                Sort.by(Sort.Order.desc("startTime"), Sort.Order.desc("workoutId")));
+        Page<Workout> workouts = status == null
+                ? workoutRepository.findByUser_Id(user.getId(), pageable)
+                : workoutRepository.findByUser_IdAndStatus(user.getId(), status, pageable);
+        Map<Integer, WorkoutDetailRepository.WorkoutTotals> totals = new HashMap<>();
+        if (workouts.hasContent()) {
+            List<Integer> ids = workouts.getContent().stream().map(Workout::getWorkoutId).toList();
+            for (WorkoutDetailRepository.WorkoutTotals total : workoutDetailRepository.sumCompletedByWorkoutIds(ids)) {
+                totals.put(total.getWorkoutId(), total);
+            }
+        }
+        List<WorkoutResponse> content = workouts.getContent().stream().map(workout -> {
+            WorkoutDetailRepository.WorkoutTotals total = totals.get(workout.getWorkoutId());
+            return WorkoutDtoMapper.workout(workout, total == null ? BigDecimal.ZERO : total.getDurationMinutes(),
+                    total == null ? BigDecimal.ZERO : total.getCaloriesBurned());
+        }).toList();
+        return new WorkoutPageResponse(content, page, size, workouts.getTotalElements(), workouts.getTotalPages());
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<List<WorkoutDetailResponse>> getRemainingWorkoutDetails(String username, Integer workoutId) {
+        return getWorkoutDetails(username, workoutId).map(details -> details.stream()
+                .filter(detail -> detail.getStatus() != WorkoutDetailStatus.COMPLETED
+                        && detail.getStatus() != WorkoutDetailStatus.CANCELLED)
+                .toList());
+    }
+
+    private UserRepository.WorkoutAccess lockedWorkoutUser(String username) {
+        UserRepository.WorkoutAccess user = userRepository.findWorkoutAccessForUpdate(username)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản đăng nhập"));
+        if (!user.getEnabled() || user.getLocked()) {
+            throw new AccessDeniedException("Tài khoản chưa được xác minh hoặc đã bị khóa");
+        }
+        return user;
+    }
+
+    private UserRepository.WorkoutAccess readableUser(String username) {
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Thông tin người dùng không được để trống");
+        }
+        UserRepository.WorkoutAccess user = userRepository.findWorkoutAccessByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản đăng nhập"));
+        if (!user.getEnabled() || user.getLocked()) {
+            throw new AccessDeniedException("Tài khoản chưa được xác minh hoặc đã bị khóa");
+        }
+        return user;
     }
 }

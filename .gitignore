@@ -1,6 +1,10 @@
 HELP.md
 PROCESS.md
+docs
+scripts
+
 target/
+/uploads/exercises/
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
