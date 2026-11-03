@@ -205,6 +205,9 @@ public class ExerciseService {
             throw new IllegalStateException("Không thể xóa bài tập đang thuộc buổi tập chưa kết thúc");
         }
 
+        // Hibernate schema update may leave an existing FK without ON DELETE SET NULL.
+        // Detach closed history explicitly in this transaction before deleting the master.
+        workoutDetailRepository.detachExerciseReferences(exerciseId);
         exerciseRepository.delete(exerciseOptional.get());
         exerciseRepository.flush();
 

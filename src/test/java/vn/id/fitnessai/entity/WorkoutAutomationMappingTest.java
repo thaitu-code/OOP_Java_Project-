@@ -29,6 +29,10 @@ class WorkoutAutomationMappingTest {
                 assertNotNull(factory.getMetamodel().entity(Exercise.class).getAttribute("levels"));
                 var query = session.createSelectionQuery("select d.workout.workoutId from WorkoutDetail d where d.estimatedSecondsSnapshot is not null and d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.RESTING", Integer.class);
                 assertNotNull(query, "Parse JPQL only; do not execute or connect to a database");
+                var detachMethod = vn.id.fitnessai.repository.WorkoutDetailRepository.class
+                        .getMethod("detachExerciseReferences", Integer.class);
+                String detachHql = detachMethod.getAnnotation(org.springframework.data.jpa.repository.Query.class).value();
+                assertNotNull(session.createMutationQuery(detachHql), "Validate actual repository mutation without executing it");
             }
         } finally { StandardServiceRegistryBuilder.destroy(registry); }
     }

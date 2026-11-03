@@ -12,6 +12,12 @@ Phạm vi tài liệu: backend thư viện bài tập và vòng đời buổi t�
 
 ## Buổi tập
 
+### Xóa bài tập khỏi thư viện
+
+`DELETE /admin/exercises/{exerciseId}` dành cho Admin, có CSRF: thành công `204`, không tìm thấy `404`, còn thuộc bất kỳ buổi `IN_PROGRESS` nào thì `409`.
+
+Từ bản sửa ngày 03/11/2026, Service khóa Exercise, kiểm tra buổi mở, rồi đặt liên kết `WorkoutDetail.exercise` thành NULL trước khi xóa Exercise trong cùng transaction. Không xóa dòng lịch sử hoặc sửa snapshot, trạng thái, thời lượng, calo và check-in. Các cấp độ được ORM xóa theo Exercise; media cũ vẫn giữ để lịch sử sử dụng. Luồng không phụ thuộc khóa ngoại hiện có đã được chuyển sang `ON DELETE SET NULL` hay chưa; cột `workout_details.exercise_id` vẫn phải cho phép NULL. Lỗi ràng buộc dữ liệu trả `409` và ghi metadata an toàn vào log máy chủ.
+
 | Method | URL | Body / kết quả |
 |---|---|---|
 | POST | `/workouts` | Không body; `201` tạo buổi, `409` nếu đã có buổi mở |

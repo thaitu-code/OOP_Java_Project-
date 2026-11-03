@@ -3,6 +3,7 @@ package vn.id.fitnessai.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.repository.query.Param;
 import vn.id.fitnessai.entity.WorkoutDetail;
 import vn.id.fitnessai.enums.WorkoutDetailStatus;
@@ -16,6 +17,12 @@ public interface WorkoutDetailRepository
 
     //Check ID cùa bài tập cần xóa có liên kết với trạng thái của WorkoutDetail không
     boolean existsByExercise_ExerciseIdAndWorkout_Status(Integer ExerciseId, WorkoutStatus status);
+
+    // Caller must lock Exercise and reject references from open workouts first.
+    // Only detach the master-data link; snapshots and training results stay intact.
+    @Modifying(flushAutomatically = true)
+    @Query("update WorkoutDetail d set d.exercise = null where d.exercise.exerciseId = :exerciseId")
+    int detachExerciseReferences(@Param("exerciseId") Integer exerciseId);
     @Query("""
     SELECT COALESCE(SUM(d.caloriesBurned), 0)
     FROM WorkoutDetail d
