@@ -18,6 +18,7 @@
     </a>
     <nav class="topbar-right" aria-label="Điều hướng chính">
         <a class="nav-link" th:href="@{/home}" href="home.html">Trang chủ</a>
+        <a class="nav-link" th:href="@{/nutrition}" href="nutrition.html">Dinh dưỡng</a>
         <a class="nav-link" th:href="@{/profile}" href="profile.html">Hồ sơ</a>
         <a class="nav-link" th:if="${isWorkoutAdmin}" th:href="@{/admin/dashboard}">Quản trị</a>
         <form th:action="@{/perform_logout}" method="post"><button class="btn btn-primary btn-sm" type="submit">Đăng xuất</button></form>

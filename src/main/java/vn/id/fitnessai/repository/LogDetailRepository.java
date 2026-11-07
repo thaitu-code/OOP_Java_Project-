@@ -71,4 +71,27 @@ public interface LogDetailRepository
             WHERE d.nutritionLog.user.id = :userId
             """)
     long countLoggedDaysByUserId(@Param("userId") Long userId);
+
+
+    interface LogHistoryTotals extends NutritionTotals {
+        Integer getLogId();
+        Long getItemCount();
+    }
+
+    @Query("""
+        SELECT d.nutritionLog.logId AS logId,
+               COUNT(d.detailId) AS itemCount,
+               SUM(d.calculatedCalories) AS calories,
+               SUM(d.calculatedProtein) AS protein,
+               SUM(d.calculatedCarbs) AS carbs,
+               SUM(d.calculatedFat) AS fat
+        FROM LogDetail d
+        WHERE d.nutritionLog.user.id = :userId
+          AND d.nutritionLog.logId IN (:logIds)
+        GROUP BY d.nutritionLog.logId
+        """)
+    List<LogHistoryTotals> sumForHistory(
+            @Param("logIds") List<Integer> logIds,
+            @Param("userId") Long userId
+    );
 }

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}" content="">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" content="X-CSRF-TOKEN">
+    <title>Dinh dưỡng - FitnessAI</title>
+    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
+    <link rel="stylesheet" href="../static/css/nutrition.css" th:href="@{/css/nutrition.css}">
+    <script defer src="../static/js/nutrition.js" th:src="@{/js/nutrition.js}"></script>
+</head>
+<body class="dash-body nutrition-body">
+<header class="topbar">
+    <a class="brand" href="home.html" th:href="@{/home}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
+        <span>FitnessAI</span>
+    </a>
+    <nav class="topbar-right" aria-label="Điều hướng chính">
+        <a class="nav-link" href="home.html" th:href="@{/home}">Trang chủ</a>
+        <a class="nav-link" href="workout.html" th:href="@{/workout}">Tập luyện</a>
+        <a class="nav-link" href="profile.html" th:href="@{/profile}">Hồ sơ</a>
+        <a class="nav-link" th:if="${isNutritionAdmin}" th:href="@{/admin/dashboard}">Quản trị</a>
+        <form th:action="@{/perform_logout}" method="post">
+            <button class="btn btn-primary btn-sm" type="submit">Đăng xuất</button>
+        </form>
+    </nav>
+</header>
+
+<main id="nutrition-app" class="nutrition-wrap" data-base="/" data-admin="false" data-manage="false"
+      th:attr="data-base=@{/},data-admin=${isNutritionAdmin},data-manage=${manageNutritionLibrary}">
+    <section class="n-hero">
+        <div>
+            <span class="n-eyebrow">TỪNG BỮA ĂN, TỪNG BƯỚC TIẾN</span>
+            <h1>Ăn uống rõ ràng.<br>Theo dõi mỗi ngày.</h1>
+            <p>Ghi lại món ăn, theo dõi năng lượng và hiểu hơn về những lựa chọn của bạn.</p>
+            <button class="n-btn n-hero-button" type="button" data-action="add-today">＋ Ghi món ăn hôm nay</button>
+        </div>
+        <div class="n-hero-art" aria-hidden="true">
+            <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="100" cy="100" r="88" stroke-width="1"/>
+                <circle cx="100" cy="103" r="49" stroke-width="5"/>
+                <circle cx="100" cy="103" r="35" stroke-width="2"/>
+                <path d="M29 65v31m9-31v31m9-31v31m-18-6q9 15 18 0m-9 13v45m120-83v82m0-82q-21 24 0 39" stroke-width="4"/>
+                <path d="M89 109q-9-35 24-41 5 34-24 41Zm0 0 19-25" stroke-width="3"/>
+            </svg>
+            <span>YOUR FOOD. YOUR BALANCE.</span>
+        </div>
+    </section>
+
+    <div id="nutrition-notice" class="n-notice" role="status" aria-live="polite" hidden></div>
+    <p id="nutrition-activity" class="n-activity" role="status" hidden>Đang lưu thay đổi…</p>
+
+    <nav class="n-tabs" aria-label="Các phần dinh dưỡng">
+        <button type="button" class="active" data-tab="diary" aria-current="page">Nhật ký ăn uống</button>
+        <button type="button" data-tab="foods">Thực phẩm</button>
+        <button type="button" data-tab="history">Lịch sử</button>
+        <button type="button" data-tab="manage" th:if="${isNutritionAdmin}">Quản lý thư viện</button>
+    </nav>
+
+    <section id="n-panel-diary" class="n-panel" aria-labelledby="diary-heading">
+        <div class="n-heading">
+            <div><h2 id="diary-heading">Nhật ký ăn uống của bạn</h2><p id="diary-caption">Đang tải nhật ký…</p></div>
+            <div class="n-date-controls">
+                <label for="diary-date">Ngày theo giờ Việt Nam<input id="diary-date" type="date" required></label>
+                <button class="n-btn secondary" type="button" data-action="today">Hôm nay</button>
+                <button class="n-btn secondary" type="button" data-action="refresh">Làm mới</button>
+            </div>
+        </div>
+        <div id="diary-readonly" class="n-notice" hidden>Đây là nhật ký của ngày khác. Bạn có thể xem lại; thêm, sửa và xóa món chỉ áp dụng cho hôm nay.</div>
+        <div class="n-stats" aria-label="Tổng dinh dưỡng của ngày đang xem">
+            <article class="n-stat"><span class="n-stat-icon energy" aria-hidden="true">ϟ</span><div><span>Năng lượng</span><strong id="total-calories">—</strong><small>kcal</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon protein" aria-hidden="true">P</span><div><span>Đạm</span><strong id="total-protein">—</strong><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon carbs" aria-hidden="true">C</span><div><span>Tinh bột</span><strong id="total-carbs">—</strong><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon fat" aria-hidden="true">F</span><div><span>Chất béo</span><strong id="total-fat">—</strong><small>g</small></div></article>
+        </div>
+        <div id="diary-meals" class="n-meals" aria-busy="true"><p class="n-loading">Đang tải các bữa ăn…</p></div>
+        <p class="n-note n-bottom-note">Dinh dưỡng được ghi nhận theo khối lượng thực phẩm. Thông tin món đã lưu được giữ lại khi thư viện thay đổi.</p>
+    </section>
+
+    <section id="n-panel-foods" class="n-panel" aria-labelledby="foods-heading" hidden>
+        <div class="n-heading"><div><h2 id="foods-heading">Khám phá thực phẩm</h2><p>Tra cứu dinh dưỡng trên 100 g, chọn món và ghi lại lượng bạn đã ăn.</p></div><button class="n-btn secondary" type="button" data-action="refresh">Làm mới</button></div>
+        <div class="n-filters">
+            <label class="n-search">Tìm thực phẩm<input id="food-search" type="search" maxlength="150" placeholder="Nhập tên thực phẩm…"></label>
+            <label>Nhóm thực phẩm<select id="food-category"><option value="">Tất cả nhóm</option></select></label>
+        </div>
+        <p id="food-count" class="n-note" role="status"></p>
+        <div id="food-grid" class="n-food-grid"></div>
+        <nav class="n-pagination" aria-label="Phân trang thực phẩm">
+            <button id="foods-prev" class="n-btn small secondary" type="button" disabled>← Trước</button><span id="foods-page">—</span><button id="foods-next" class="n-btn small secondary" type="button" disabled>Sau →</button>
+        </nav>
+    </section>
+
+    <section id="n-panel-history" class="n-panel" aria-labelledby="history-heading" hidden>
+        <div class="n-heading"><div><h2 id="history-heading">Nhìn lại từng bữa ăn</h2><p>Các ngày có nhật ký được hiển thị từ mới đến cũ, kể cả ngày đã xóa hết món.</p></div><button class="n-btn secondary" type="button" data-action="refresh">Làm mới</button></div>
+        <div class="n-card n-table-scroll">
+            <table class="n-table">
+                <caption class="n-sr-only">Lịch sử nhật ký dinh dưỡng</caption>
+                <thead><tr><th scope="col">Ngày</th><th scope="col">Số món</th><th scope="col">Calo (kcal)</th><th scope="col">Đạm (g)</th><th scope="col">Tinh bột (g)</th><th scope="col">Chất béo (g)</th><th scope="col">Thao tác</th></tr></thead>
+                <tbody id="nutrition-history-rows"></tbody>
+            </table>
+        </div>
+        <nav class="n-pagination" aria-label="Phân trang lịch sử">
+            <button id="history-prev" class="n-btn small secondary" type="button" disabled>← Trước</button><span id="history-page">—</span><button id="history-next" class="n-btn small secondary" type="button" disabled>Sau →</button>
+        </nav>
+    </section>
+
+    <section id="n-panel-manage" class="n-panel" aria-labelledby="manage-heading" th:if="${isNutritionAdmin}" hidden>
+        <div class="n-heading"><div><h2 id="manage-heading">Quản lý thư viện dinh dưỡng</h2><p>Cập nhật thực phẩm và nhóm. Nhật ký đã lưu giữ nguyên thông tin tại thời điểm ghi nhận.</p></div><div class="n-buttons"><button class="n-btn secondary" type="button" data-action="new-category">＋ Nhóm thực phẩm</button><button class="n-btn" type="button" data-action="new-food">＋ Thực phẩm</button><button class="n-btn secondary" type="button" data-action="refresh">Làm mới</button></div></div>
+        <section class="n-card">
+            <h3>Nhóm thực phẩm</h3>
+            <p class="n-note">Ngừng nhóm sẽ ẩn các thực phẩm trong nhóm khỏi thư viện chọn món. Nhật ký cũ vẫn được giữ lại.</p>
+            <div id="manage-categories" class="n-category-grid"></div>
+        </section>
+        <section class="n-card n-manage-foods">
+            <div class="n-heading"><h3>Thực phẩm</h3><label>Tìm trong tất cả trạng thái<input id="manage-food-search" type="search" maxlength="150" placeholder="Tên thực phẩm…"></label></div>
+            <div class="n-table-scroll"><table class="n-table"><caption class="n-sr-only">Quản lý thực phẩm</caption><thead><tr><th scope="col">Thực phẩm / Nhóm</th><th scope="col">Dinh dưỡng trên 100 g</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead><tbody id="manage-food-rows"></tbody></table></div>
+            <nav class="n-pagination" aria-label="Phân trang quản lý thực phẩm"><button id="manage-prev" class="n-btn small secondary" type="button" disabled>← Trước</button><span id="manage-page">—</span><button id="manage-next" class="n-btn small secondary" type="button" disabled>Sau →</button></nav>
+        </section>
+    </section>
+
+    <p class="n-footer">Từng lựa chọn nhỏ, một thói quen tốt hơn. Ngày ăn uống hiển thị theo giờ Việt Nam.</p>
+    <noscript><p class="n-notice warning">Vui lòng bật JavaScript để sử dụng nhật ký dinh dưỡng.</p></noscript>
+</main>
+
+<dialog id="nutrition-dialog" class="n-dialog" aria-labelledby="nutrition-dialog-title">
+    <div class="n-dialog-heading"><h2 id="nutrition-dialog-title">Thông tin dinh dưỡng</h2><button id="nutrition-dialog-close" type="button" class="n-icon-button" aria-label="Đóng hộp thoại">×</button></div>
+    <p id="nutrition-dialog-error" class="n-notice error" role="alert" hidden></p>
+    <div id="nutrition-dialog-content"></div>
+</dialog>
+</body>
+</html>
