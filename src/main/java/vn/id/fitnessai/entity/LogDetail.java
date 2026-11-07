@@ -98,8 +98,10 @@ public class LogDetail {
 
     public LogDetail(NutritionLog log, Food food, MealType mealType, BigDecimal grams,
                      String note, NutritionEntrySource source, OffsetDateTime now) {
+
         if (log == null) throw new IllegalArgumentException("Món ăn phải thuộc một nhật ký");
         this.nutritionLog = log;
+
         update(food, mealType, grams, note, source, now);
         this.loggedAt = this.updatedAt;
         this.createdSource = this.lastModifiedSource;

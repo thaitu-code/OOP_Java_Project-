@@ -43,4 +43,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.isEnabled = true AND u.isLocked = false AND u.email IS NOT NULL")
     List<User> findAllActiveUsersForReminder();
+
+    interface NutritionAccess {
+        Long getId();
+        boolean getEnabled();
+        boolean getLocked();
+    }
+
+    @Query("""
+        SELECT u.id AS id,
+               u.isEnabled AS enabled,
+               u.isLocked AS locked
+        FROM User u
+        WHERE u.username = :username
+        """)
+    Optional<NutritionAccess> findNutritionAccessByUsername(
+            @Param("username") String username
+    );
 }
