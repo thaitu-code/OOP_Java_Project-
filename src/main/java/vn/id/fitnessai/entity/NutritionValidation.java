@@ -60,6 +60,7 @@ final class NutritionValidation {
         try {
             URI uri = new URI(normalized);
             String scheme = uri.getScheme();
+
             if (scheme == null || !(scheme.equalsIgnoreCase("http") || scheme.equalsIgnoreCase("https"))
                     || uri.getHost() == null || uri.getRawUserInfo() != null || uri.getRawPath() == null
                     || !uri.getRawPath().toLowerCase(Locale.ROOT).matches(".*\\.(png|jpe?g|webp|gif)$")) {
@@ -75,7 +76,9 @@ final class NutritionValidation {
 
     static OffsetDateTime time(OffsetDateTime now, OffsetDateTime previous) {
         if (now == null) throw new IllegalArgumentException("Thiếu thời điểm xử lý từ server");
+
         OffsetDateTime normalized = now.truncatedTo(ChronoUnit.MICROS);
+
         if (previous != null && normalized.isBefore(previous)) {
             throw new IllegalArgumentException("Thời điểm cập nhật không được đi lùi");
         }
