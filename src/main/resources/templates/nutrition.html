@@ -55,6 +55,7 @@
         <button type="button" class="active" data-tab="diary" aria-current="page">Nhật ký ăn uống</button>
         <button type="button" data-tab="foods">Thực phẩm</button>
         <button type="button" data-tab="history">Lịch sử</button>
+        <button type="button" data-tab="meal-plan">Lịch ăn uống AI</button>
         <button type="button" data-tab="manage" th:if="${isNutritionAdmin}">Quản lý thư viện</button>
     </nav>
 
@@ -76,6 +77,12 @@
         </div>
         <div id="diary-meals" class="n-meals" aria-busy="true"><p class="n-loading">Đang tải các bữa ăn…</p></div>
         <p class="n-note n-bottom-note">Dinh dưỡng được ghi nhận theo khối lượng thực phẩm. Thông tin món đã lưu được giữ lại khi thư viện thay đổi.</p>
+    </section>
+
+    <section id="n-panel-meal-plan" class="n-panel" hidden>
+        <div class="n-heading"><div><h2>Lịch ăn uống AI theo ngày</h2><p>Kế hoạch dự kiến, không đồng nghĩa với đã ăn. Tạo hoặc điều chỉnh bằng chat AI.</p></div><a class="n-btn" th:href="@{/ai}">Tạo / thay đổi bằng AI</a></div>
+        <div class="n-card" style="padding:18px;margin-bottom:16px"><label for="meal-ai-select">Chọn thực đơn đã lưu</label> <select id="meal-ai-select"></select> <button class="n-btn secondary" id="meal-ai-refresh" type="button">Làm mới</button> <button class="n-btn" id="meal-ai-log-today" type="button">Ghi món hôm nay vào nhật ký</button><p id="meal-ai-notice" role="status"></p></div>
+        <div id="meal-ai-calendar" class="n-meals"></div>
     </section>
 
     <section id="n-panel-foods" class="n-panel" aria-labelledby="foods-heading" hidden>
@@ -128,5 +135,6 @@
     <p id="nutrition-dialog-error" class="n-notice error" role="alert" hidden></p>
     <div id="nutrition-dialog-content"></div>
 </dialog>
+<script defer th:src="@{/js/meal-calendar.js}" src="../static/js/meal-calendar.js"></script>
 </body>
 </html>

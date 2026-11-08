@@ -15,4 +15,5 @@ import java.time.*;
  @Column(name="read_at") private OffsetDateTime readAt;
  @Column(name="expired_at") private OffsetDateTime expiredAt;
  @Column(name="status",nullable=false,length=24) private String status="PROPOSED";
+ @Column(name="workout_start_date") private LocalDate workoutStartDate;
 }

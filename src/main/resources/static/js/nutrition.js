@@ -255,7 +255,7 @@
     } finally { if (epoch === state.epochs.history) { state.loaded.historyLoading = false; syncControls(); } }
   }
   function setTab(tab) {
-    if (!["diary", "foods", "history", ...(admin ? ["manage"] : [])].includes(tab)) tab = "diary";
+    if (!["diary", "foods", "history", "meal-plan", ...(admin ? ["manage"] : [])].includes(tab)) tab = "diary";
     state.tab = tab;
     document.querySelectorAll("[data-tab]").forEach(node => {
       const active = node.dataset.tab === tab;

@@ -12,6 +12,13 @@ import java.util.*;
  @RestController @RequestMapping("/api/ai") @RequiredArgsConstructor public static class Api {
   private final AiAssistantService service;
   private final vn.id.fitnessai.service.AiWeeklyWorkoutService weekly;
+  private final vn.id.fitnessai.service.AiActionService actions;
+  private final vn.id.fitnessai.service.AiPlanApplyService apply;
+  @PostMapping("/recommendations/{id}/log-today") public Map<String,Object> logToday(Principal p,@PathVariable Long id){return apply.logToday(p.getName(),id);}
+  @PostMapping("/recommendations/{id}/apply-workout") public Map<String,Object> applyWorkout(Principal p,@PathVariable Long id){return apply.applyWorkout(p.getName(),id);}
+  @PostMapping("/recommendations/{id}/start-today-workout") public Map<String,Object> startWorkout(Principal p,@PathVariable Long id){return apply.startTodayWorkout(p.getName(),id);}
+  public record ActionRequest(String instruction) {}
+  @PostMapping("/actions") public vn.id.fitnessai.service.AiActionService.ActionResponse action(Principal p,@RequestBody ActionRequest r){return actions.execute(p.getName(),r.instruction());}
   @PostMapping("/weekly-workout") public AiAssistantService.PlanResult weekly(Principal p,@RequestBody vn.id.fitnessai.service.AiWeeklyWorkoutService.WeeklyRequest request){return weekly.generate(p.getName(),request);}
   public record ChatRequest(String sessionId,String content) {}
   @GetMapping("/chat") public AiAssistantService.ChatPage history(Principal p,@RequestParam(required=false) Long before){return service.history(p.getName(),before);}

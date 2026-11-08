@@ -37,8 +37,13 @@ import java.util.*;
  @Transactional public Message mark(String username,Long id,String status){User u=own(username);AiChatMessage m=chats.findById(id).orElseThrow();if(!m.getUser().getId().equals(u.getId()))throw new SecurityException("Không có quyền");m.setStatus(status);return map(chats.save(m));}
  @Transactional public Message saveReply(String username,String session,UUID turn,String answer){User u=own(username);AiChatMessage m=new AiChatMessage();m.setUser(u);m.setSessionId(session);m.setTurnId(turn);m.setSender("AI");m.setContent(answer);return map(chats.save(m));}
  @Transactional(readOnly=true) public String systemContext(User u){StringBuilder s=new StringBuilder("Bạn là trợ lý FitnessAI, trả lời tiếng Việt. Không được tự nhận đã cập nhật lịch tập hoặc nhật ký ăn. Các gợi ý chat chỉ là tham khảo, phải được xác nhận và lưu qua API kế hoạch. Không tự bịa dữ liệu, không chẩn đoán bệnh. ");profiles.findByUserId(u.getId()).ifPresent(x->{s.append("Hồ sơ: giới tính ").append(x.getGender()).append(", chiều cao cm ").append(x.getHeightCm()).append(", cân nặng kg ").append(x.getWeightKg()).append(", vận động ").append(x.getActivityLevel()).append(", mục tiêu ").append(x.getGoal()).append(", TDEE ").append(x.getCalculatedTdee()).append(" kcal. Cân nặng đích chưa được lưu ở hồ sơ này; nếu cần hãy hỏi user. ");});return s.toString();}
- public record RecommendationView(Long id,String type,String title,String content,String status,boolean read,OffsetDateTime createdAt){}
- private RecommendationView view(AiRecommendation x){return new RecommendationView(x.getId(),x.getType(),x.getTitle(),x.getContent(),x.getStatus(),x.getReadAt()!=null,x.getCreatedAt());}
+ public record RecommendationView(Long id,String type,String title,String content,String status,boolean read,OffsetDateTime createdAt,LocalDate workoutStartDate){}
+ private LocalDate workoutStart(AiRecommendation x){
+  if(x.getWorkoutStartDate()!=null)return x.getWorkoutStartDate();
+  LocalDate created=x.getCreatedAt().atZoneSameInstant(NutritionLog.VN_ZONE).toLocalDate();
+  return created.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY));
+ }
+ private RecommendationView view(AiRecommendation x){return new RecommendationView(x.getId(),x.getType(),x.getTitle(),x.getContent(),x.getStatus(),x.getReadAt()!=null,x.getCreatedAt(),workoutStart(x));}
  @Transactional(readOnly=true) public List<RecommendationView> recommendations(String username){return recommendations.findTop100ByProfile_User_IdOrderByIdDesc(own(username).getId()).stream().map(this::view).toList();}
  private static final Set<String> TYPES=Set.of("MEAL_PLAN","WORKOUT_PLAN","CALORIE_ALERT","INACTIVITY_ALERT","STREAK_MILESTONE");
  public record MealItem(Integer foodId,LocalDate date,vn.id.fitnessai.enums.MealType mealType,BigDecimal grams){}
@@ -51,6 +56,7 @@ import java.util.*;
  if(!"MEAL_PLAN".equals(r.type())&&r.meals()!=null&&!r.meals().isEmpty())throw new IllegalArgumentException("Danh sách món chỉ dành cho MEAL_PLAN");if(!"WORKOUT_PLAN".equals(r.type())&&r.exercises()!=null&&!r.exercises().isEmpty())throw new IllegalArgumentException("Danh sách bài chỉ dành cho WORKOUT_PLAN");
  if(r.mealLogId()!=null)throw new IllegalArgumentException("Không cho gắn meal_log_id khi tạo kế hoạch dự kiến; nhật ký thực tế được quản lý riêng");
  AiRecommendation a=new AiRecommendation();a.setProfile(p);a.setType(r.type());a.setTitle(r.title());a.setContent(r.content());
+ if("WORKOUT_PLAN".equals(r.type())) { LocalDate now=LocalDate.now(NutritionLog.VN_ZONE); a.setWorkoutStartDate(now.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))); }
  if(r.chatId()!=null){AiChatMessage m=chats.findById(r.chatId()).orElseThrow(()->new IllegalArgumentException("Chat không tồn tại"));if(!m.getUser().getId().equals(u.getId())||m.getDeletedAt()!=null)throw new SecurityException("Chat không thuộc user");a.setChat(m);}
  a=recommendations.save(a);BigDecimal k=BigDecimal.ZERO,pr=k,ca=k,fa=k;
  if("MEAL_PLAN".equals(r.type())){if(r.meals()==null||r.meals().isEmpty()||r.meals().size()>60)throw new IllegalArgumentException("Thực đơn cần 1-60 món");if(r.targetCalories()==null||r.targetCalories().signum()<=0)throw new IllegalArgumentException("Thiếu mục tiêu calo");for(MealItem item:r.meals()){

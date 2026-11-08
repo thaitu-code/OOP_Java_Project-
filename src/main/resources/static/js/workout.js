@@ -426,7 +426,7 @@
   }
   function setTab(tab) {
     if (tab === "manage" && !admin) tab = "session";
-    if (!["session", "library", "history", "manage"].includes(tab)) tab = "session";
+    if (!["session", "ai-calendar", "library", "history", "manage"].includes(tab)) tab = "session";
     state.tab = tab;
     document.querySelectorAll("[data-tab]").forEach(button => {
       const active = button.dataset.tab === tab;

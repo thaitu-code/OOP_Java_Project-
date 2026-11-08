@@ -50,13 +50,15 @@
     </section>
     <nav class="workout-tabs" aria-label="Các phần tập luyện">
         <button class="active" data-tab="session" type="button" aria-current="page">Buổi tập của tôi</button>
+        <button data-tab="ai-calendar" type="button">Lịch tập AI</button>
         <button data-tab="library" type="button">Thư viện bài tập</button>
         <button data-tab="history" type="button">Lịch sử tập luyện</button>
         <button data-tab="manage" type="button" th:if="${isWorkoutAdmin}">Quản lý thư viện</button>
     </nav>
     <p id="workout-activity" class="workout-activity" role="status" aria-live="polite" hidden>Đang xử lý…</p>
 
-    <section class="w-card ai-week-section" aria-labelledby="weekly-ai-heading">
+    <section id="panel-ai-calendar" class="workout-panel" hidden>
+    <div class="w-card ai-week-section" aria-labelledby="weekly-ai-heading">
         <div class="section-heading"><div><span class="eyebrow">TRỢ LÝ TẬP LUYỆN</span><h2 id="weekly-ai-heading">Lịch tập AI trong 7 ngày</h2><p>AI chọn bài từ thư viện hiện tại. Lịch gợi ý được lưu riêng, không tự bắt đầu buổi tập.</p></div></div>
         <form id="weekly-ai-form" class="ai-week-form">
             <label>Mục tiêu<select name="goal"><option value="GENERAL">Sức khỏe tổng quát</option><option value="MUSCLE">Tăng cơ</option><option value="WEIGHT_LOSS">Giảm mỡ</option><option value="ENDURANCE">Sức bền</option></select></label>
@@ -67,7 +69,13 @@
         <p id="weekly-ai-notice" class="w-note" role="status" aria-live="polite"></p>
         <div class="ai-week-history"><label>Lịch đã lưu <select id="weekly-plan-select"><option value="">Chưa có lịch</option></select></label><button class="w-btn small secondary" id="weekly-refresh" type="button">Làm mới lịch</button></div>
         <div id="weekly-plan-title" class="ai-week-title"></div>
+        <div id="weekly-apply-actions" class="ai-apply-actions" hidden>
+            <button id="weekly-apply" class="w-btn" type="button">✓ Apply — Áp dụng lịch tập</button>
+            <button id="weekly-start-today" class="w-btn secondary" type="button" hidden>＋ Thêm các bài hôm nay vào buổi tập</button>
+            <p id="weekly-apply-note" class="w-note"></p>
+        </div>
         <div id="weekly-calendar" class="ai-week-grid" aria-live="polite"></div>
+    </div>
     </section>
 
     <section id="panel-session" class="workout-panel">

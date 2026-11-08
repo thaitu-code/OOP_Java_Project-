@@ -85,3 +85,12 @@
 .ai-week-title h3{margin:20px 0 6px;}.ai-week-title p{color:#64748b;white-space:pre-wrap;}
 #weekly-ai-notice{min-height:22px;white-space:pre-wrap;}
 @media(max-width:600px){.ai-week-section{padding:14px}.ai-week-form>*{width:100%}.ai-week-grid{grid-template-columns:1fr}}
+
+/* Lịch tập AI: review and apply before writing today's session */
+.ai-apply-actions{margin:18px 0;padding:16px;border:1px solid #d4e3f2;border-radius:12px;background:#f5faff;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ai-apply-actions[hidden]{display:none}
+.ai-apply-actions .w-note{flex-basis:100%;margin:0}
+.ai-week-day.is-today{border:2px solid #2879c8;background:#eff8ff}
+.ai-week-day.is-past{opacity:.7}
+.ai-week-day .day-meta{display:block;color:#64748b;font-size:12px;margin-top:-5px;margin-bottom:10px}
+.ai-week-day .today-pill{display:inline-block;background:#dbeafe;color:#1d4ed8;padding:3px 7px;border-radius:6px;font-size:11px;margin-left:8px}
