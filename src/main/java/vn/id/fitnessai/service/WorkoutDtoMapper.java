@@ -29,6 +29,8 @@ final class WorkoutDtoMapper {
                 detail.getActiveDurationMillis(), detail.getRestDurationMillis(), time(detail.getCancelledAt())
         );
 
+        response.setPlannedSets(detail.getPlannedSetsSnapshot());
+        response.setPlannedReps(detail.getPlannedRepsSnapshot());
         if (detail.isAutomatic()) {
             long total = detail.getActiveDurationMillis() + detail.getRestDurationMillis();
             long remaining = detail.automaticPhaseRemainingMillis();

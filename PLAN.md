@@ -708,7 +708,7 @@ Với `STREAK_DAYS`, người từng có chuỗi 14 nhưng hiện reset vẫn đ
 
 ### 14.1. Hai chức năng khác nhau
 
-- **Chat:** trao đổi hỏi–đáp, lưu từng tin trong `chat_histories`.
+- **Chat:** trao đổi hỏi–đáp, lưu từng tin trong `chat_historigites`.
 - **Khuyến nghị:** kế hoạch hoặc cảnh báo chính thức, lưu trong `ai_recommendations`; có trạng thái đã đọc.
 
 Không phải mỗi câu AI trả lời đều tạo một khuyến nghị. Đọc câu “bạn có thể thử Squat” trong chat không tự thêm Squat vào lịch đang áp dụng.

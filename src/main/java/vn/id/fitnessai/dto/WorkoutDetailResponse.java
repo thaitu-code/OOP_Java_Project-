@@ -12,6 +12,8 @@ import java.time.OffsetDateTime;
 @RequiredArgsConstructor
 public class WorkoutDetailResponse {
     @Setter private WorkoutAutomationResponse automation;
+    @Setter private Integer plannedSets;
+    @Setter private Integer plannedReps;
 
     private final Integer detailId;
     private final Integer workoutId;

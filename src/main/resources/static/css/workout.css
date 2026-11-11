@@ -70,3 +70,27 @@
 .level-list { display: grid; gap: 12px; margin-top: 16px; }
 .motion-media img, .motion-media video { display: block; width: 100%; max-height: 300px; object-fit: contain; border-radius: 12px; }
 .motion-media .inline-exercise-media[hidden] { display: none; }
+/* AI weekly schedule – namespaced to avoid affecting existing workout controls */
+.ai-week-section{margin:22px 0;padding:24px;}
+.ai-week-form{display:flex;align-items:end;gap:14px;flex-wrap:wrap;margin:18px 0;}
+.ai-week-form label,.ai-week-history label{display:flex;flex-direction:column;gap:7px;font-weight:600;color:#16375e;font-size:14px;}
+.ai-week-form select,.ai-week-history select{min-width:145px;max-width:100%;border:1px solid #cbd5e1;border-radius:10px;padding:11px;background:#fff;color:#14335b;}
+.ai-week-history{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin:20px 0;}
+.ai-week-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px;}
+.ai-week-day{border:1px solid #d8e3f2;background:#f8fbff;border-radius:14px;padding:16px;min-height:130px;}
+.ai-week-day h4{margin:0 0 12px;color:#143b71;font-size:16px;}
+.ai-week-day ul{margin:0;padding-left:18px;}.ai-week-day li{margin:0 0 12px;line-height:1.4;}
+.ai-week-day li small{display:block;color:#64748b;margin-top:3px;}
+.ai-week-day .ai-rest{color:#047857;font-weight:600;margin-top:24px;}
+.ai-week-title h3{margin:20px 0 6px;}.ai-week-title p{color:#64748b;white-space:pre-wrap;}
+#weekly-ai-notice{min-height:22px;white-space:pre-wrap;}
+@media(max-width:600px){.ai-week-section{padding:14px}.ai-week-form>*{width:100%}.ai-week-grid{grid-template-columns:1fr}}
+
+/* Lịch tập AI: review and apply before writing today's session */
+.ai-apply-actions{margin:18px 0;padding:16px;border:1px solid #d4e3f2;border-radius:12px;background:#f5faff;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ai-apply-actions[hidden]{display:none}
+.ai-apply-actions .w-note{flex-basis:100%;margin:0}
+.ai-week-day.is-today{border:2px solid #2879c8;background:#eff8ff}
+.ai-week-day.is-past{opacity:.7}
+.ai-week-day .day-meta{display:block;color:#64748b;font-size:12px;margin-top:-5px;margin-bottom:10px}
+.ai-week-day .today-pill{display:inline-block;background:#dbeafe;color:#1d4ed8;padding:3px 7px;border-radius:6px;font-size:11px;margin-left:8px}

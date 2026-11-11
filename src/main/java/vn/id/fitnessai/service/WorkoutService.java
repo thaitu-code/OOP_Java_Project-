@@ -89,6 +89,10 @@ public class WorkoutService {
             throw new IllegalArgumentException(violations.iterator().next().getMessage());
         }
 
+        if ((request.getPlannedSets() == null) != (request.getPlannedReps() == null)) {
+            throw new IllegalArgumentException("Cần truyền cả số hiệp và số lần tập dự kiến");
+        }
+
         //Tìm user bằng username để update
         UserRepository.WorkoutAccess user = userRepository.findWorkoutAccessForUpdate(username)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản đăng nhập"));
@@ -144,6 +148,9 @@ public class WorkoutService {
             detail.configureAutomation(level);
         } else if (!exercise.getLevels().isEmpty()) {
             throw new IllegalArgumentException("Hãy chọn cấp độ cho bài tập");
+        }
+        if (request.getPlannedSets() != null) {
+            detail.applyPlannedWork(request.getPlannedSets(), request.getPlannedReps());
         }
         WorkoutDetail savedDetail = workoutDetailRepository.save(detail);
 

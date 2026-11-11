@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface LogDetailRepository
         extends JpaRepository<LogDetail, Integer> {
 
+    boolean existsByAiMealPlanItemId(Long aiMealPlanItemId);
+
     List<LogDetail> findAllByNutritionLog_LogIdAndNutritionLog_User_IdOrderByDetailIdAsc(
             Integer logId,
             Long userId
