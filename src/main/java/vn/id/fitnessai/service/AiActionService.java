@@ -81,7 +81,7 @@ public class AiActionService {
                 BigDecimal kcal=new BigDecimal(root.path("targetCalories").asText("0"));
                 if(kcal.compareTo(BigDecimal.valueOf(1000))<0 || kcal.compareTo(BigDecimal.valueOf(5000))>0)
                     throw new IllegalArgumentException("Mục tiêu năng lượng AI tạo không hợp lệ");
-                var result=assistant.create(username,new AiAssistantService.PlanRequest("MEAL_PLAN",title,message,null,null,kcal,items,null));
+                var result=assistant.create(username,new AiAssistantService.PlanRequest("MEAL_PLAN",title,message,null,null,kcal,items,null,null));
                 return new ActionResponse(action,"Đã lưu thực đơn dự kiến. Xem tab Lịch ăn uống; nhật ký đã ăn không bị thay đổi.",result.recommendation().id(),null);
             }
             if("WORKOUT_PLAN".equals(action)) {
@@ -93,7 +93,7 @@ public class AiActionService {
                     if(!allowed.contains(id)) throw new IllegalArgumentException("AI chọn bài tập không có trong thư viện");
                     items.add(new AiAssistantService.ExerciseItem(id,n.path("dayOfWeek").asInt(),n.path("sets").asInt(),n.path("reps").asInt()));
                 }
-                var result=assistant.create(username,new AiAssistantService.PlanRequest("WORKOUT_PLAN",title,message,null,null,null,null,items));
+                var result=assistant.create(username,new AiAssistantService.PlanRequest("WORKOUT_PLAN",title,message,null,null,null,null,items,null));
                 return new ActionResponse(action,"Đã lưu lịch tập dự kiến. Xem lịch tập AI; chưa ghi nhận buổi tập đã hoàn thành.",result.recommendation().id(),null);
             }
             if("PROFILE_UPDATE".equals(action)) {

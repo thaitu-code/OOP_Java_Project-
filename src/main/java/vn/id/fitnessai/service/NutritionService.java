@@ -65,6 +65,18 @@ public class NutritionService {
             String username,
             LogDetailRequest request
     ) {
+        return addFoodInternal(username, request, null);
+    }
+
+    /** Internal AI-only write path; a unique plan-item ID makes retries idempotent. */
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public NutritionLogResponse addFoodFromAi(String username, LogDetailRequest request, Long planItemId) {
+        if (planItemId == null || planItemId <= 0)
+            throw new IllegalArgumentException("Mã món từ lịch AI không hợp lệ");
+        return addFoodInternal(username, request, planItemId);
+    }
+
+    private NutritionLogResponse addFoodInternal(String username, LogDetailRequest request, Long planItemId) {
         Long userId = requireUserId(username);
         validateRequest(request);
 
@@ -131,9 +143,10 @@ public class NutritionService {
                 request.getMealType(),
                 request.getWeightGrams(),
                 request.getNote(),
-                NutritionEntrySource.USER,
+                planItemId == null ? NutritionEntrySource.USER : NutritionEntrySource.AI,
                 acceptedAt
         );
+        if (planItemId != null) detail.linkAiMealPlanItem(planItemId);
 
         logDetailRepository.saveAndFlush(detail);
 

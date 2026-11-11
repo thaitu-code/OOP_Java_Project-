@@ -275,10 +275,10 @@
       .map(key => state.exercises.find(e => e.exerciseId === Number(key.slice(4))))
       .filter(e => e && !state.details.some(d => d.exerciseIdSnapshot === e.exerciseId));
     const renderKey = JSON.stringify([state.selected, state.details.map(d => [d.detailId, d.exerciseNameSnapshot,
-      d.categoryNameSnapshot, d.status, d.durationMinutes, d.caloriesBurned]), pending.map(e => e.exerciseId)]);
+      d.categoryNameSnapshot, d.status, d.durationMinutes, d.caloriesBurned, d.plannedSets, d.plannedReps]), pending.map(e => e.exerciseId)]);
     if (renderKey === detailsRenderKey) return;
     detailsRenderKey = renderKey;
-    $("session-details").innerHTML = state.details.length ? state.details.map((d, index) => `<article class="detail-item ${d.detailId === state.selected ? "selected" : ""}"><span class="detail-number">${String(index + 1).padStart(2, "0")}</span><div class="detail-info"><strong>${esc(d.exerciseNameSnapshot)}</strong><p class="w-note">${esc(d.categoryNameSnapshot)}${d.status === "COMPLETED" ? ` · ${fmt(d.durationMinutes)} phút · ${fmt(d.caloriesBurned)} kcal` : ""}</p>${pill(d.status)}</div><button class="w-btn small secondary" type="button" data-action="select-detail" data-id="${d.detailId}">${d.status === "COMPLETED" || d.status === "CANCELLED" ? "Xem" : "Chọn"}</button></article>`).join("") : '<p class="w-note">Buổi tập chưa có bài nào. Chọn “Thêm bài” để mở thư viện.</p>';
+    $("session-details").innerHTML = state.details.length ? state.details.map((d, index) => `<article class="detail-item ${d.detailId === state.selected ? "selected" : ""}"><span class="detail-number">${String(index + 1).padStart(2, "0")}</span><div class="detail-info"><strong>${esc(d.exerciseNameSnapshot)}</strong><p class="w-note">${esc(d.categoryNameSnapshot)}${d.plannedSets ? ` · Dự kiến ${d.plannedSets} hiệp × ${d.plannedReps ?? "—"} lần` : ""}${d.status === "COMPLETED" ? ` · ${fmt(d.durationMinutes)} phút · ${fmt(d.caloriesBurned)} kcal` : ""}</p>${pill(d.status)}</div><button class="w-btn small secondary" type="button" data-action="select-detail" data-id="${d.detailId}">${d.status === "COMPLETED" || d.status === "CANCELLED" ? "Xem" : "Chọn"}</button></article>`).join("") : '<p class="w-note">Buổi tập chưa có bài nào. Chọn “Thêm bài” để mở thư viện.</p>';
     if (pending.length) {
       if (!state.details.length) $("session-details").innerHTML = "";
       const previews = pending.map(e => `<article class="detail-item pending-item" aria-busy="true"><span class="pending-spinner" aria-hidden="true"></span><div class="detail-info"><strong>${esc(e.exerciseName)}</strong><p class="w-note">Đang thêm vào buổi · chờ máy chủ xác nhận</p></div></article>`).join("");
@@ -292,14 +292,17 @@
       $("complete-form").reset(); $("rest-form").reset();
       $("complete-form").dataset.detail = d ? String(d.detailId) : "";
       if (d) {
-        for (const field of ["sets", "reps", "weightKg"]) $("complete-form").elements[field].value = d[field] ?? "";
+        for (const field of ["sets", "reps", "weightKg"]) {
+          const suggested = field === "sets" ? d.plannedSets : field === "reps" ? d.plannedReps : null;
+          $("complete-form").elements[field].value = d[field] ?? suggested ?? "";
+        }
         $("rest-seconds").value = d.approvedRestSecondsSnapshot ?? "";
       }
     }
     setText("timer-name", d?.exerciseNameSnapshot || "Chọn một bài để bắt đầu");
     setText("timer-category", d ? `${d.categoryNameSnapshot} · MET ${fmt(d.metValueSnapshot)}` : "Các kết quả sẽ được lưu cho từng bài tập.");
     const plan = d?.automation;
-    setText("timer-plan", plan ? `${plan.levelName} · Set ${plan.currentSet}/${plan.plannedSets} · ${plan.reps ?? "—"} reps/set · ${plan.secondsPerSet}s/set · Nghỉ ${d.approvedRestSecondsSnapshot}s · Mục tiêu ${clock(plan.estimatedSeconds * 1000)}` : "");
+    setText("timer-plan", plan ? `${plan.levelName} · Set ${plan.currentSet}/${plan.plannedSets} · ${plan.reps ?? "—"} reps/set · ${plan.secondsPerSet}s/set · Nghỉ ${d.approvedRestSecondsSnapshot}s · Mục tiêu ${clock(plan.estimatedSeconds * 1000)}` : d?.plannedSets ? `Kế hoạch AI: ${d.plannedSets} hiệp × ${d.plannedReps} lần/hiệp` : "");
     const motion = plan ? plan.mediaUrl || "" : state.exercises.find(e => e.exerciseId === d?.exerciseIdSnapshot)?.mediaUrl || "";
     if ($("timer-media").dataset.source !== motion) { $("timer-media").dataset.source = motion; $("timer-media").innerHTML = mediaMarkup(motion); }
     setText("timer-status", d ? labels[d.status] : "Chưa chọn bài");
@@ -717,6 +720,21 @@
   const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "2-digit", hourCycle: "h23", timeZone: "Asia/Ho_Chi_Minh" }).format(new Date()));
   $("hours-note").hidden = (hour >= 5 && hour < 8) || (hour >= 15 && hour < 18) || (hour >= 19 && hour < 21);
   $("active-filter-label").hidden = !admin;
+  // AI Apply works on this page; refresh the in-memory session instead of changing only the URL hash.
+  window.addEventListener("fitnessai:workout-updated", event => {
+    setTab("session");
+    perform(async () => {
+      await loadSession();
+      renderSession();
+      notice(event.detail?.message || "Đã cập nhật buổi tập từ lịch AI.", "success");
+    }, false, { key: "ai:refresh-session" });
+  });
+  window.addEventListener("hashchange", () => {
+    setTab(location.hash.slice(1));
+    if (state.tab === "session" && state.ready) {
+      perform(async () => { await loadSession(); renderSession(); }, false, { key: "hash:refresh-session" });
+    }
+  });
   setTab(location.hash.slice(1) || (app.dataset.manage === "true" ? "manage" : "session"));
   // Các vùng tải độc lập; summary chậm không khóa thao tác thư viện/buổi tập.
   const initialSession = loadSession().then(async () => {

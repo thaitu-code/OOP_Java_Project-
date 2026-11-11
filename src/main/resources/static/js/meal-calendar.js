@@ -23,13 +23,14 @@
   }catch(e){notice.textContent='Không tải được lịch ăn uống: '+e.message}}
   document.getElementById('meal-ai-log-today').addEventListener('click',async()=>{
     if(!select.value)return;
-    if(!confirm('Xác nhận bạn đã ăn các món trong thực đơn AI hôm nay? Hành động này sẽ ghi vào nhật ký và có thể tạo mục trùng nếu đã ghi trước đó.'))return;
+    if(!confirm('Xác nhận bạn đã ăn các món trong thực đơn AI hôm nay? Những món đã ghi từ lịch AI này sẽ được tự động bỏ qua, không nhân đôi nhật ký.'))return;
+    const button=document.getElementById('meal-ai-log-today');button.disabled=true;
     const csrf=document.querySelector('meta[name="_csrf"]')?.content;
     const csrfHeader=document.querySelector('meta[name="_csrf_header"]')?.content||'X-CSRF-TOKEN';
     try{const res=await fetch('/api/ai/recommendations/'+encodeURIComponent(select.value)+'/log-today',{method:'POST',credentials:'same-origin',headers:{[csrfHeader]:csrf}});
       const body=await res.json().catch(()=>({}));if(!res.ok)throw Error(body.error||'HTTP '+res.status);
       notice.textContent=body.message+' — chuyển sang Nhật ký để xem.';
-    }catch(e){notice.textContent=e.message}
+    }catch(e){notice.textContent=e.message}finally{button.disabled=false}
   });
   select.addEventListener('change',()=>show().catch(e=>notice.textContent=e.message));
   document.getElementById('meal-ai-refresh').addEventListener('click',load);

@@ -59,11 +59,12 @@
 
     <section id="panel-ai-calendar" class="workout-panel" hidden>
     <div class="w-card ai-week-section" aria-labelledby="weekly-ai-heading">
-        <div class="section-heading"><div><span class="eyebrow">TRỢ LÝ TẬP LUYỆN</span><h2 id="weekly-ai-heading">Lịch tập AI trong 7 ngày</h2><p>AI chọn bài từ thư viện hiện tại. Lịch gợi ý được lưu riêng, không tự bắt đầu buổi tập.</p></div></div>
+        <div class="section-heading"><div><span class="eyebrow">TRỢ LÝ TẬP LUYỆN</span><h2 id="weekly-ai-heading">Lịch tập AI trong 7 ngày</h2><p>AI chọn bài từ thư viện hiện tại. Xem trước rồi nhấn Apply để kích hoạt; nếu hôm nay có bài, hệ thống sẽ thêm vào buổi tập.</p></div></div>
         <form id="weekly-ai-form" class="ai-week-form">
             <label>Mục tiêu<select name="goal"><option value="GENERAL">Sức khỏe tổng quát</option><option value="MUSCLE">Tăng cơ</option><option value="WEIGHT_LOSS">Giảm mỡ</option><option value="ENDURANCE">Sức bền</option></select></label>
             <label>Trình độ<select name="level"><option value="BEGINNER">Mới bắt đầu</option><option value="INTERMEDIATE">Trung bình</option><option value="ADVANCED">Nâng cao</option></select></label>
             <label>Ngày tập / tuần<select name="daysPerWeek"><option value="3">3 ngày</option><option value="4" selected>4 ngày</option><option value="5">5 ngày</option><option value="6">6 ngày</option><option value="7">7 ngày</option><option value="2">2 ngày</option><option value="1">1 ngày</option></select></label>
+            <label>Ngày bắt đầu (mặc định hôm nay)<input type="date" name="startDate" id="weekly-start-date" required></label>
             <button class="w-btn" id="weekly-generate" type="submit">✨ AI tạo lịch 7 ngày</button>
         </form>
         <p id="weekly-ai-notice" class="w-note" role="status" aria-live="polite"></p>

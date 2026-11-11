@@ -92,6 +92,16 @@ public class LogDetail {
     @Column(name = "last_modified_source", nullable = false, length = 16)
     private NutritionEntrySource lastModifiedSource;
 
+    // One AI plan item can be logged at most once, even if requests are retried.
+    @Column(name = "ai_meal_plan_item_id", unique = true)
+    private Long aiMealPlanItemId;
+
+    public void linkAiMealPlanItem(Long itemId) {
+        if (itemId == null || itemId <= 0 || aiMealPlanItemId != null || createdSource != NutritionEntrySource.AI)
+            throw new IllegalArgumentException("Mã món trong lịch AI không hợp lệ");
+        aiMealPlanItemId = itemId;
+    }
+
     @Version
     @Column(name = "version", nullable = false)
     private Long version;

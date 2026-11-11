@@ -5,7 +5,9 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import vn.id.fitnessai.entity.Exercise;
+import vn.id.fitnessai.entity.NutritionLog;
 import vn.id.fitnessai.repository.ExerciseRepository;
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -17,9 +19,15 @@ public class AiWeeklyWorkoutService {
     private final ExerciseRepository exercises;
     private final ObjectMapper mapper;
 
-    public record WeeklyRequest(String goal, String level, Integer daysPerWeek) {}
+    public record WeeklyRequest(String goal, String level, Integer daysPerWeek, LocalDate startDate) {}
     public AiAssistantService.PlanResult generate(String username, WeeklyRequest req) {
         if (req == null) throw new IllegalArgumentException("Thiếu lựa chọn lịch tập");
+        LocalDate startDate = req.startDate() == null ? LocalDate.now(NutritionLog.VN_ZONE) : req.startDate();
+        LocalDate today = LocalDate.now(NutritionLog.VN_ZONE);
+        if (startDate.isBefore(today) || startDate.isAfter(today.plusDays(90)))
+            throw new IllegalArgumentException("Ngày bắt đầu phải từ hôm nay đến 90 ngày tới");
+        int firstDayOfWeek = startDate.getDayOfWeek().getValue();
+        String firstDayName = firstDayOfWeek == 7 ? "Chủ nhật" : "Thứ " + (firstDayOfWeek + 1);
         int days = req.daysPerWeek() == null ? 4 : req.daysPerWeek();
         if (days < 1 || days > 7) throw new IllegalArgumentException("Số ngày tập phải từ 1 đến 7");
         String goal = normalize(req.goal(), Set.of("GENERAL", "MUSCLE", "WEIGHT_LOSS", "ENDURANCE"), "GENERAL");
@@ -32,7 +40,9 @@ public class AiWeeklyWorkoutService {
         String instructions = "Bạn là huấn luyện viên FitnessAI. Tạo lịch 7 ngày (thứ 2=1 đến chủ nhật=7) bằng bài tập CÓ SẴN. " +
                 "Mục tiêu=" + goal + "; trình độ=" + level + "; số ngày tập=" + days + ". " +
                 "Chỉ trả JSON hợp lệ, không markdown: {\"title\":\"...\",\"note\":\"...\",\"exercises\":[{\"exerciseId\":1,\"dayOfWeek\":1,\"sets\":3,\"reps\":10}]}. " +
-                "Tạo bài ở chính xác " + days + " ngày khác nhau, chia ngày nghỉ hợp lý. Mỗi ngày tập 2-5 bài; mỗi bài 1-6 hiệp, 1-40 reps. " +
+                "Tạo bài ở chính xác " + days + " ngày khác nhau, chia ngày nghỉ hợp lý. " +
+                "Ngày đầu tiên của lịch là " + firstDayName + " (dayOfWeek=" + firstDayOfWeek + "), BẮT BUỘC có bài tập ở ngày đó. " +
+                "Mỗi ngày tập 2-5 bài; mỗi bài 1-6 hiệp, 1-40 reps. " +
                 "Không bịa ID. Danh mục được phép: " + candidates;
         String raw = gemini.generate("Bạn xuất JSON thuần để hệ thống xử lý. Không cung cấp lời khuyên nguy hiểm; ưu tiên nghỉ phục hồi.",
                 List.of(Map.of("role","user","text",instructions)));
@@ -51,13 +61,15 @@ public class AiWeeklyWorkoutService {
                 activeDays.add(day); plan.add(new AiAssistantService.ExerciseItem(id,day,sets,reps));
             }
             if(activeDays.size()!=days) throw new IllegalArgumentException("AI trả số ngày tập khác lựa chọn");
+            if(!activeDays.contains(firstDayOfWeek))
+                throw new IllegalArgumentException("AI chưa xếp bài vào ngày bắt đầu lịch. Vui lòng tạo lại.");
             String title=root.path("title").asText("Lịch tập AI 7 ngày");
             String note=root.path("note").asText("Kế hoạch gợi ý, chỉ áp dụng khi người dùng lựa chọn.");
             if(title.isBlank())title="Lịch tập AI 7 ngày";
             if(note.isBlank())note="Lịch tập được tạo dựa trên thư viện bài tập hiện có.";
             title=title.substring(0,Math.min(180,title.length()));
             note=note.substring(0,Math.min(3000,note.length()));
-            return assistant.create(username,new AiAssistantService.PlanRequest("WORKOUT_PLAN",title,note,null,null,null,null,plan));
+            return assistant.create(username,new AiAssistantService.PlanRequest("WORKOUT_PLAN",title,note,null,null,null,null,plan,startDate));
         } catch (IllegalArgumentException e) { throw e; }
         catch (Exception e) { throw new IllegalStateException("AI trả dữ liệu lịch tập không đúng định dạng. Hãy tạo lại.",e); }
     }

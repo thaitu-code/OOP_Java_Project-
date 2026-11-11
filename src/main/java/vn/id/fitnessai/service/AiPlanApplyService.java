@@ -17,6 +17,7 @@ public class AiPlanApplyService {
     private final AiMealPlanItemRepository meals;
     private final AiRecommendedExerciseRepository exercises;
     private final NutritionService nutrition;
+    private final LogDetailRepository loggedDetails;
     private final WorkoutService workout;
 
     private AiRecommendation own(String username, Long id, String expectedType) {
@@ -29,18 +30,27 @@ public class AiPlanApplyService {
 
     @Transactional
     public Map<String,Object> logToday(String username, Long id) {
+        // Serialize repeated/concurrent Apply requests for the same user.
+        users.findByUsernameForUpdate(username)
+            .orElseThrow(()->new SecurityException("Tài khoản không tồn tại"));
         own(username,id,"MEAL_PLAN");
         LocalDate today=LocalDate.now(NutritionLog.VN_ZONE);
         var items=meals.findByRecommendation_IdOrderByPlanDateAscIdAsc(id).stream().filter(m->today.equals(m.getPlanDate())).toList();
         if(items.isEmpty())throw new IllegalArgumentException("Không có món được lên kế hoạch cho hôm nay");
-        // Atomic: any validation failure rolls back the entire insert set.
+        // Each item is tracked individually: two identical foods in the same meal may both be intentional.
+        int added=0;
         for(var item:items) {
+            if(loggedDetails.existsByAiMealPlanItemId(item.getId()))continue;
             LogDetailRequest request=new LogDetailRequest();
             request.setFoodId(item.getFood().getFoodId());request.setMealType(item.getMealType());
             request.setWeightGrams(item.getGrams());request.setNote("Ghi từ thực đơn AI #"+id+" (người dùng xác nhận)");
-            nutrition.addFood(username,request);
+            nutrition.addFoodFromAi(username,request,item.getId());
+            added++;
         }
-        return Map.of("message","Đã ghi "+items.size()+" món của hôm nay vào nhật ký", "count",items.size());
+        int skipped=items.size()-added;
+        return Map.of("message",added==0 ? "Các món hôm nay đã được ghi vào nhật ký; không thêm trùng."
+                : "Đã ghi "+added+" món vào nhật ký (bỏ qua "+skipped+" món đã ghi).",
+                "count",added,"skipped",skipped);
     }
 
     /** Exactly one active workout schedule per user; user-row lock serializes concurrent Apply requests. */
@@ -108,6 +118,8 @@ public class AiPlanApplyService {
         for(var item:toAdd) {
             WorkoutDetailRequest request=new WorkoutDetailRequest();
             request.setExerciseId(item.getExercise().getExerciseId());
+            request.setPlannedSets(item.getPlannedSets());
+            request.setPlannedReps(item.getPlannedReps());
             // Exercises with configured levels require a level ID in WorkoutService.
             var level=item.getExercise().getLevels().stream().filter(l->l.isActive()).findFirst();
             level.ifPresent(l->request.setLevelId(l.getId()));

@@ -255,6 +255,25 @@ public class WorkoutDetail {
         this.mediaUrlSnapshot = this.exercise.getMediaUrl();
     }
 
+    /** Preserve the plan independently from actual results, and keep automatic timer targets consistent. */
+    public void applyPlannedWork(int plannedSets, int plannedReps) {
+        if (status != WorkoutDetailStatus.NOT_STARTED || startedAt != null || plannedSets < 1 || plannedSets > 30
+                || plannedReps < 1 || plannedReps > 200) {
+            throw new IllegalArgumentException("Số hiệp/lần tập AI không hợp lệ");
+        }
+        Integer estimated = null;
+        if (isAutomatic()) {
+            long seconds = (long) plannedSets * secondsPerSetSnapshot
+                    + (long) Math.max(0, plannedSets - 1) * approvedRestSecondsSnapshot;
+            if (seconds <= 0 || seconds > 86400)
+                throw new IllegalArgumentException("Thời lượng dự kiến của lịch AI vượt giới hạn 24 giờ");
+            estimated = (int) seconds;
+        }
+        this.plannedSetsSnapshot = plannedSets;
+        this.plannedRepsSnapshot = plannedReps;
+        if (estimated != null) this.estimatedSecondsSnapshot = estimated;
+    }
+
     public long minimumRequiredMillis() {
         // Làm tròn lên tới millisecond để không công nhận sớm hơn đúng tỷ lệ 2/3.
         if (isAutomatic()) return (this.estimatedSecondsSnapshot * 2000L + 2) / 3;

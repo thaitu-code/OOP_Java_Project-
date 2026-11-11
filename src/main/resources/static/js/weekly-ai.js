@@ -8,6 +8,13 @@
   // en-CA can be locale-dependent; use parts to ensure YYYY-MM-DD.
   const vnToday = () => {const parts = new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const get=k=>parts.find(x=>x.type===k).value;return `${get('year')}-${get('month')}-${get('day')}`};
   const notice = message => { $('weekly-ai-notice').textContent = message; };
+  const startDateField = $('weekly-start-date');
+  if (startDateField) {
+    startDateField.min = vnToday();
+    startDateField.max = weekDate(vnToday(), 90);
+    startDateField.value = vnToday();
+  }
+  const sessionUpdated = result => window.dispatchEvent(new CustomEvent('fitnessai:workout-updated', {detail: result}));
   const add = (parent, tag, text, className) => {const el=document.createElement(tag);el.textContent=text;if(className)el.className=className;parent.append(el);return el;};
   function weekDate(start, offset) {const d=new Date(start+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+offset);return d.toISOString().slice(0,10);}
   const fullDate = date => new Date(date+'T12:00:00Z').toLocaleDateString('vi-VN',{timeZone:'UTC',weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
@@ -45,7 +52,7 @@
     apply.hidden=applied;
     const todayString=vnToday();
     const inWeek=todayString>=start&&todayString<=end;
-    const dayIndex=inWeek?(Math.round((Date.parse(todayString+'T12:00:00Z')-Date.parse(start+'T12:00:00Z'))/86400000)+1):0;
+    const dayIndex=inWeek?(new Date(todayString+'T12:00:00Z').getUTCDay()||7):0;
     const todayItems=inWeek?detail.exercises.filter(e=>e.dayOfWeek===dayIndex):[];
     startButton.hidden=!applied||!inWeek||todayItems.length===0;
     $('weekly-apply-note').textContent = todayString<start
@@ -83,6 +90,7 @@
   form.addEventListener('submit',async event=>{
     event.preventDefault();const button=$('weekly-generate');button.disabled=true;notice('Đang tạo lịch tập từ thư viện…');
     try{const data=Object.fromEntries(new FormData(form));data.daysPerWeek=Number(data.daysPerWeek);
+      if(!data.startDate)throw Error('Hãy chọn ngày bắt đầu lịch tập.');
       const result=await request('/api/ai/weekly-workout',{method:'POST',body:JSON.stringify(data)});
       await refresh(result.recommendation.id);notice('Đã tạo lịch tập 7 ngày. Xem lịch rồi bấm Apply để xác nhận.');
     }catch(e){notice('Không tạo được lịch: '+e.message);}finally{button.disabled=false;}
@@ -95,7 +103,7 @@
       // Apply is the user's confirmation to write today's workout immediately.
       if(!$('weekly-start-today').hidden){
         try{const workout=await request(`/api/ai/recommendations/${id}/start-today-workout`,{method:'POST'});
-          notice(workout.message);location.assign('/workout#session');return;
+          notice(workout.message);sessionUpdated(workout);return;
         }catch(e){notice('Lịch đã áp dụng, nhưng chưa thể thêm bài hôm nay: '+e.message);return;}
       }
       notice(response.message);
@@ -106,7 +114,7 @@
     if(!selectedPlan||!confirm('Thêm bài tập hôm nay từ lịch AI vào buổi tập đang diễn ra (hoặc tạo buổi mới)? Bài trùng sẽ được bỏ qua.'))return;
     const button=$('weekly-start-today');button.disabled=true;
     try{const result=await request(`/api/ai/recommendations/${selectedPlan.id}/start-today-workout`,{method:'POST'});
-      notice(result.message);location.assign('/workout#session');}
+      notice(result.message);sessionUpdated(result);}
     catch(e){notice(e.message);button.disabled=false;}
   });
   $('weekly-plan-select').addEventListener('change',()=>show($('weekly-plan-select').value).catch(e=>notice(e.message)));

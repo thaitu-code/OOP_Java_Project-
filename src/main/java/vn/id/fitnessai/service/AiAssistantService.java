@@ -48,7 +48,7 @@ import java.util.*;
  private static final Set<String> TYPES=Set.of("MEAL_PLAN","WORKOUT_PLAN","CALORIE_ALERT","INACTIVITY_ALERT","STREAK_MILESTONE");
  public record MealItem(Integer foodId,LocalDate date,vn.id.fitnessai.enums.MealType mealType,BigDecimal grams){}
  public record ExerciseItem(Integer exerciseId,Integer dayOfWeek,Integer sets,Integer reps){}
- public record PlanRequest(String type,String title,String content,Long chatId,Integer mealLogId,BigDecimal targetCalories,List<MealItem> meals,List<ExerciseItem> exercises){}
+ public record PlanRequest(String type,String title,String content,Long chatId,Integer mealLogId,BigDecimal targetCalories,List<MealItem> meals,List<ExerciseItem> exercises,LocalDate workoutStartDate){}
  public record PlanResult(RecommendationView recommendation,BigDecimal calories,BigDecimal protein,BigDecimal carbs,BigDecimal fat,BigDecimal targetCalories){}
  private BigDecimal calc(BigDecimal per100,BigDecimal grams){return per100.multiply(grams).divide(BigDecimal.valueOf(100),2,RoundingMode.HALF_UP);}
  @Transactional public PlanResult create(String username,PlanRequest r){User u=own(username);UserProfile p=profile(u);
@@ -56,7 +56,12 @@ import java.util.*;
  if(!"MEAL_PLAN".equals(r.type())&&r.meals()!=null&&!r.meals().isEmpty())throw new IllegalArgumentException("Danh sách món chỉ dành cho MEAL_PLAN");if(!"WORKOUT_PLAN".equals(r.type())&&r.exercises()!=null&&!r.exercises().isEmpty())throw new IllegalArgumentException("Danh sách bài chỉ dành cho WORKOUT_PLAN");
  if(r.mealLogId()!=null)throw new IllegalArgumentException("Không cho gắn meal_log_id khi tạo kế hoạch dự kiến; nhật ký thực tế được quản lý riêng");
  AiRecommendation a=new AiRecommendation();a.setProfile(p);a.setType(r.type());a.setTitle(r.title());a.setContent(r.content());
- if("WORKOUT_PLAN".equals(r.type())) { LocalDate now=LocalDate.now(NutritionLog.VN_ZONE); a.setWorkoutStartDate(now.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.MONDAY))); }
+ if("WORKOUT_PLAN".equals(r.type())) {
+  LocalDate now=LocalDate.now(NutritionLog.VN_ZONE);
+  LocalDate start=r.workoutStartDate()==null?now:r.workoutStartDate();
+  if(start.isBefore(now)||start.isAfter(now.plusDays(90)))throw new IllegalArgumentException("Ngày bắt đầu lịch tập phải từ hôm nay đến 90 ngày tới");
+  a.setWorkoutStartDate(start);
+ } else if(r.workoutStartDate()!=null)throw new IllegalArgumentException("Chỉ lịch tập mới có ngày bắt đầu");
  if(r.chatId()!=null){AiChatMessage m=chats.findById(r.chatId()).orElseThrow(()->new IllegalArgumentException("Chat không tồn tại"));if(!m.getUser().getId().equals(u.getId())||m.getDeletedAt()!=null)throw new SecurityException("Chat không thuộc user");a.setChat(m);}
  a=recommendations.save(a);BigDecimal k=BigDecimal.ZERO,pr=k,ca=k,fa=k;
  if("MEAL_PLAN".equals(r.type())){if(r.meals()==null||r.meals().isEmpty()||r.meals().size()>60)throw new IllegalArgumentException("Thực đơn cần 1-60 món");if(r.targetCalories()==null||r.targetCalories().signum()<=0)throw new IllegalArgumentException("Thiếu mục tiêu calo");for(MealItem item:r.meals()){
