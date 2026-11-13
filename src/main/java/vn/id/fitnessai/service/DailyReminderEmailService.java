@@ -43,6 +43,7 @@ public class DailyReminderEmailService {
             log.info("Đã gửi email nhắc nhở thành công cho: {}", toEmail);
         } catch (Exception e) {
             log.error("Lỗi khi gửi email nhắc nhở tới {}: {}", toEmail, e.getMessage());
+            throw new IllegalStateException("Chưa gửi được email nhắc tập", e);
         }
     }
 }

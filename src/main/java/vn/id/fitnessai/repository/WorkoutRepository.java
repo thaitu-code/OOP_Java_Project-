@@ -15,6 +15,8 @@ import java.util.Optional;
 public interface WorkoutRepository
         extends JpaRepository<Workout, Integer> {
 
+    Optional<Workout> findFirstByUser_IdOrderByStartTimeAsc(Long userId);
+
     boolean existsByUser_IdAndStatus(Long userId, WorkoutStatus status);
     long countByUser_IdAndStatus(Long userId, WorkoutStatus status);
 

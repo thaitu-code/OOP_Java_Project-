@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="../static/css/workout.css" th:href="@{/css/workout.css}">
     <script defer src="../static/js/weekly-ai.js" th:src="@{/js/weekly-ai.js}"></script>
     <script defer src="../static/js/workout.js" th:src="@{/js/workout.js}"></script>
+    <meta name="app-base" th:content="@{/}">
 </head>
 <body class="dash-body workout-body">
 <header class="topbar">
@@ -59,19 +60,19 @@
 
     <section id="panel-ai-calendar" class="workout-panel" hidden>
     <div class="w-card ai-week-section" aria-labelledby="weekly-ai-heading">
-        <div class="section-heading"><div><span class="eyebrow">TRỢ LÝ TẬP LUYỆN</span><h2 id="weekly-ai-heading">Lịch tập AI trong 7 ngày</h2><p>AI chọn bài từ thư viện hiện tại. Xem trước rồi nhấn Apply để kích hoạt; nếu hôm nay có bài, hệ thống sẽ thêm vào buổi tập.</p></div></div>
+        <div class="section-heading"><div><span class="eyebrow">TRỢ LÝ TẬP LUYỆN</span><h2 id="weekly-ai-heading">Lịch tập AI theo tuần</h2><p>Trao đổi với AI để tạo lịch lặp tuần phù hợp. Chấp nhận lịch và thêm bài hôm nay là hai thao tác riêng.</p></div></div>
         <form id="weekly-ai-form" class="ai-week-form">
             <label>Mục tiêu<select name="goal"><option value="GENERAL">Sức khỏe tổng quát</option><option value="MUSCLE">Tăng cơ</option><option value="WEIGHT_LOSS">Giảm mỡ</option><option value="ENDURANCE">Sức bền</option></select></label>
             <label>Trình độ<select name="level"><option value="BEGINNER">Mới bắt đầu</option><option value="INTERMEDIATE">Trung bình</option><option value="ADVANCED">Nâng cao</option></select></label>
             <label>Ngày tập / tuần<select name="daysPerWeek"><option value="3">3 ngày</option><option value="4" selected>4 ngày</option><option value="5">5 ngày</option><option value="6">6 ngày</option><option value="7">7 ngày</option><option value="2">2 ngày</option><option value="1">1 ngày</option></select></label>
             <label>Ngày bắt đầu (mặc định hôm nay)<input type="date" name="startDate" id="weekly-start-date" required></label>
-            <button class="w-btn" id="weekly-generate" type="submit">✨ AI tạo lịch 7 ngày</button>
+            <button class="w-btn" id="weekly-generate" type="submit">Trao đổi với AI để tạo lịch</button>
         </form>
         <p id="weekly-ai-notice" class="w-note" role="status" aria-live="polite"></p>
         <div class="ai-week-history"><label>Lịch đã lưu <select id="weekly-plan-select"><option value="">Chưa có lịch</option></select></label><button class="w-btn small secondary" id="weekly-refresh" type="button">Làm mới lịch</button></div>
         <div id="weekly-plan-title" class="ai-week-title"></div>
         <div id="weekly-apply-actions" class="ai-apply-actions" hidden>
-            <button id="weekly-apply" class="w-btn" type="button">✓ Apply — Áp dụng lịch tập</button>
+            <button id="weekly-apply" class="w-btn" type="button">Chấp nhận lịch tập</button>
             <button id="weekly-start-today" class="w-btn secondary" type="button" hidden>＋ Thêm các bài hôm nay vào buổi tập</button>
             <p id="weekly-apply-note" class="w-note"></p>
         </div>
@@ -131,5 +132,6 @@
     <noscript><p class="w-notice warning">Vui lòng bật JavaScript để sử dụng phần tập luyện.</p></noscript>
 </main>
 <dialog id="workout-dialog" class="workout-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><h2 id="dialog-title"></h2><button type="button" class="icon-button" id="dialog-close" aria-label="Đóng">×</button></div><div id="dialog-content"></div></dialog>
+<script defer th:src="@{/js/ai-notifications.js}"></script>
 </body>
 </html>

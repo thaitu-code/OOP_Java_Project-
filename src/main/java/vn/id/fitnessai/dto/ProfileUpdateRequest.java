@@ -13,6 +13,8 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class ProfileUpdateRequest {
+    @PositiveOrZero
+    private Long expectedVersion;
 
     @NotBlank(message = "Tên hiển thị không được để trống")
     private String displayName;

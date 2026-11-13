@@ -14,6 +14,9 @@ import java.util.List;
 public interface ExerciseRepository
         extends JpaRepository<Exercise, Integer> {
 
+    @Query("select (count(a) > 0) from AiRecommendedExercise a where a.exercise.exerciseId = :id")
+    boolean isUsedByAiPlans(@Param("id") Integer id);
+
     @Override
     @EntityGraph(attributePaths = {"category", "levels"})
     List<Exercise> findAll();

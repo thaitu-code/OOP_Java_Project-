@@ -7,6 +7,7 @@ import lombok.Getter; import lombok.Setter;
 @Getter
 @Setter
 public class AiRecommendedExercise {
+    private Integer levelId;
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;

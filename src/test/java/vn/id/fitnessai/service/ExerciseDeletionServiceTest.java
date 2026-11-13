@@ -66,6 +66,13 @@ class ExerciseDeletionServiceTest {
         verify(exercises).flush();
     }
 
+    @Test void aiPlanReferenceRequiresDeactivationInsteadOfBreakingTheForeignKey() {
+        when(exercises.findByIdForUpdate(7)).thenReturn(Optional.of(exercise));
+        when(exercises.isUsedByAiPlans(7)).thenReturn(true);
+        assertThrows(IllegalStateException.class, () -> service.deleteExercise(7));
+        verify(exercises, never()).delete(any()); verify(details, never()).detachExerciseReferences(any());
+    }
+
     @Test void failedDetachStopsBeforeMasterDeletion() {
         when(exercises.findByIdForUpdate(7)).thenReturn(Optional.of(exercise));
         var failure = new DataIntegrityViolationException("Test conflict");

@@ -63,7 +63,10 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login") // Đường dẫn (URL) trỏ tới trang login HTML của bạn
                         .loginProcessingUrl("/perform_login") // URL này Spring tự bắt khi form submit (không cần bạn viết Controller)
-                        .defaultSuccessUrl("/home", true) // Nếu đăng nhập thành công, chuyển hướng tới /home
+                        .successHandler((request, response, authentication) -> {
+                            request.getSession().setAttribute("fitness-ai-context", java.util.UUID.randomUUID().toString().replace("-", ""));
+                            response.sendRedirect(request.getContextPath() + "/home");
+                        })
                         .failureHandler((request, response, exception) -> {
                             if (exception instanceof LockedException) {
                                 response.sendRedirect(request.getContextPath() + "/login?locked=true");

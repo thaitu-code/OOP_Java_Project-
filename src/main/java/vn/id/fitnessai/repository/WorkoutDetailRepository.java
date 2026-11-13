@@ -15,6 +15,9 @@ import java.util.*;
 public interface WorkoutDetailRepository
         extends JpaRepository<WorkoutDetail, Integer> {
 
+    boolean existsByWorkout_User_IdAndStartedAtGreaterThanEqualAndStartedAtLessThan(
+            Long userId, java.time.OffsetDateTime start, java.time.OffsetDateTime end);
+
     //Check ID cùa bài tập cần xóa có liên kết với trạng thái của WorkoutDetail không
     boolean existsByExercise_ExerciseIdAndWorkout_Status(Integer ExerciseId, WorkoutStatus status);
 

@@ -21,13 +21,23 @@ public class AiAssistantController {
     @RequiredArgsConstructor
     public static class Api {
         private final AiAssistantService service;
-        private final vn.id.fitnessai.service.AiWeeklyWorkoutService weekly;
-        private final vn.id.fitnessai.service.AiActionService actions;
+        private final vn.id.fitnessai.service.AiConversationService conversation;
+        private final vn.id.fitnessai.service.AiConversationStore conversationStore;
+        private final vn.id.fitnessai.service.AiDraftService drafts;
+        private final vn.id.fitnessai.service.AiNotificationService notifications;
+        private final vn.id.fitnessai.service.AiScheduleService schedule;
+        private final vn.id.fitnessai.service.AiAccess access;
         private final vn.id.fitnessai.service.AiPlanApplyService apply;
 
         @PostMapping("/recommendations/{id}/log-today")
         public Map<String,Object> logToday(Principal p,@PathVariable Long id){
             return apply.logToday(p.getName(),id);
+        }
+        public record MealSelectionRequest(List<vn.id.fitnessai.service.AiPlanApplyService.MealSelection> items) {}
+        @PostMapping("/recommendations/{id}/log-meals")
+        public Map<String,Object> logMeals(Principal p, @PathVariable Long id, @RequestBody MealSelectionRequest request) {
+            if (request.items() == null) throw new IllegalArgumentException("Hãy chọn món đã ăn");
+            return apply.logSelected(p.getName(), id, request.items());
         }
 
         @PostMapping("/recommendations/{id}/apply-workout")
@@ -41,23 +51,50 @@ public class AiAssistantController {
         public record ActionRequest(String instruction) {}
 
         @PostMapping("/actions")
-        public vn.id.fitnessai.service.AiActionService.ActionResponse action(Principal p,@RequestBody ActionRequest r){
-            return actions.execute(p.getName(),r.instruction());
+        public ResponseEntity<Map<String,String>> action(Principal p,@RequestBody ActionRequest r){
+            return ResponseEntity.status(HttpStatus.GONE).body(Map.of("error", "Hãy gửi yêu cầu qua chat thống nhất; thao tác này không còn ghi trực tiếp."));
         }
         @PostMapping("/weekly-workout")
-        public AiAssistantService.PlanResult weekly(Principal p,
-                                                    @RequestBody vn.id.fitnessai.service.AiWeeklyWorkoutService.WeeklyRequest request){
-            return weekly.generate(p.getName(),request);
+        public ResponseEntity<Map<String,String>> weekly(Principal p){
+            return ResponseEntity.status(HttpStatus.GONE).body(Map.of("error", "Tạo lịch qua hội thoại AI để có đủ ngữ cảnh và bản xem trước."));
         }
-        public record ChatRequest(String sessionId,String content) {}
+        public record ChatRequest(String sessionId,String content,UUID requestId) {}
+
+        @GetMapping("/chat/session")
+        public Map<String,String> session(jakarta.servlet.http.HttpSession session) {
+            if (session.getAttribute("fitness-ai-context") == null) session.setAttribute("fitness-ai-context", UUID.randomUUID().toString().replace("-", ""));
+            return Map.of("sessionId", session.getAttribute("fitness-ai-context").toString());
+        }
 
         @GetMapping("/chat")
         public AiAssistantService.ChatPage history(Principal p,@RequestParam(required=false) Long before){
             return service.history(p.getName(),before);
         }
         @PostMapping("/chat")
-        public AiAssistantService.ChatResult send(Principal p,@RequestBody ChatRequest req){
-            return service.send(p.getName(),req.sessionId(),req.content());
+        public vn.id.fitnessai.service.AiConversationStore.Reply send(Principal p,@RequestBody ChatRequest req){
+            return conversation.send(p.getName(),req.sessionId(),req.content(),req.requestId());
+        }
+
+        @GetMapping("/chat/turns/{requestId}")
+        public vn.id.fitnessai.service.AiConversationStore.Reply turn(Principal p, @PathVariable UUID requestId) {
+            return conversationStore.reply(p.getName(), requestId);
+        }
+        @GetMapping("/proposals")
+        public List<vn.id.fitnessai.service.AiConversationStore.Proposal> pending(Principal p, @RequestParam String sessionId) {
+            return conversationStore.pending(p.getName(), sessionId);
+        }
+        @PostMapping("/proposals/{id}/confirm")
+        public vn.id.fitnessai.service.AiDraftService.Result confirm(Principal p, @PathVariable UUID id) { return drafts.decide(p.getName(), id, true); }
+        @PostMapping("/proposals/{id}/cancel")
+        public vn.id.fitnessai.service.AiDraftService.Result cancel(Principal p, @PathVariable UUID id) { return drafts.decide(p.getName(), id, false); }
+        @GetMapping("/notifications")
+        public List<vn.id.fitnessai.service.AiNotificationService.View> notifications(Principal p) { return notifications.refresh(p.getName()); }
+        @PatchMapping("/notifications/{id}/read")
+        public vn.id.fitnessai.service.AiNotificationService.View readNotification(Principal p, @PathVariable Long id) { return notifications.read(p.getName(), id); }
+        @GetMapping("/schedule")
+        public Map<String,Object> effective(Principal p, @RequestParam(required=false) java.time.LocalDate date) {
+            var day = date == null ? java.time.LocalDate.now(vn.id.fitnessai.entity.NutritionLog.VN_ZONE) : date;
+            return schedule.effective(access.require(p.getName()).getId(), day).map(r -> service.detail(p.getName(), r.getId())).orElse(Map.of());
         }
 
         @DeleteMapping("/chat/{id}")
@@ -85,6 +122,6 @@ public class AiAssistantController {
         }
         @ExceptionHandler({IllegalArgumentException.class,SecurityException.class,NoSuchElementException.class,IllegalStateException.class})
         public ResponseEntity<Map<String,String>> error(Exception e){
-            HttpStatus status=e instanceof SecurityException?HttpStatus.FORBIDDEN:e instanceof NoSuchElementException?HttpStatus.NOT_FOUND:e instanceof IllegalStateException?HttpStatus.SERVICE_UNAVAILABLE:HttpStatus.BAD_REQUEST;return ResponseEntity.status(status).body(Map.of("error",e.getMessage()));}
+            HttpStatus status=e instanceof vn.id.fitnessai.service.AiRateLimitException?HttpStatus.TOO_MANY_REQUESTS:e instanceof SecurityException?HttpStatus.FORBIDDEN:e instanceof NoSuchElementException?HttpStatus.NOT_FOUND:e instanceof IllegalStateException?HttpStatus.CONFLICT:HttpStatus.BAD_REQUEST;return ResponseEntity.status(status).body(Map.of("error",e.getMessage() == null ? "Yêu cầu không hợp lệ" : e.getMessage()));}
     }
 }

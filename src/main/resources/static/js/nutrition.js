@@ -109,6 +109,10 @@
     state.epochs[key] = (state.epochs[key] || 0) + 1;
     return state.epochs[key];
   }
+  window.addEventListener("fitnessai:nutrition-updated", () => {
+    state.loaded.history = false;
+    loadDiary(today()).catch(report);
+  });
   function pageData(data) {
     if (!Array.isArray(data?.content) || !data.page || !Number.isInteger(data.page.number) || !Number.isInteger(data.page.totalPages)) throw new Error("Dữ liệu phân trang không hợp lệ.");
     return data;

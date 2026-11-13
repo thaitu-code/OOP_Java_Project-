@@ -78,6 +78,9 @@
         .badge-card.earned { border-color: #86efac; background: #f0fdf4; }
         .fitness-note { color: #64748b; font-size: .9rem; margin-top: 10px; }
     </style>
+    <meta name="app-base" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
 </head>
 <body class="dash-body">
 
@@ -233,5 +236,6 @@
     </section>
 </main>
 
+<script defer th:if="${profile != null}" th:src="@{/js/ai-notifications.js}"></script>
 </body>
 </html>

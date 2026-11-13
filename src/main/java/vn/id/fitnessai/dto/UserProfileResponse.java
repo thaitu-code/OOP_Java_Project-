@@ -13,6 +13,9 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class UserProfileResponse {
+    private long version;
+    private BigDecimal targetWeightKg;
+    private String trainingPreferences;
     private String username;
     private String displayName;
     private Gender gender;

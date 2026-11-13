@@ -22,8 +22,10 @@ public class AiAssistantService {
     private final AiRecommendedExerciseRepository exerciseItems;
     private final FoodRepository foods;
     private final ExerciseRepository exercises;
-    private final GeminiAiClient gemini;
-    private static final int MAX_TEXT = 3000;
+
+    private final LogDetailRepository loggedDetails;
+    private final AiActionDraftRepository drafts;
+
 
     private User own(String username) {
         User u = users.findByUsername(username).orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại"));
@@ -62,108 +64,22 @@ public class AiAssistantService {
 
     @Transactional
     public void delete(String username, Long id) {
-        User u = own(username);
+        User u = users.findByUsernameForUpdate(username).orElseThrow(() -> new SecurityException("Không tìm thấy tài khoản"));
+        if (!u.isEnabled() || u.isLocked()) throw new SecurityException("Tài khoản không khả dụng");
         AiChatMessage m = chats.findById(id).orElseThrow(() -> new NoSuchElementException("Không tìm thấy tin"));
         if (!m.getUser().getId().equals(u.getId())) {
             throw new SecurityException("Không được xóa tin người khác");
         }
         m.setDeletedAt(OffsetDateTime.now());
-    }
-
-    @Transactional
-    public Message begin(String username, String session, String text, UUID turnId) {
-        User u = own(username);
-        if (session == null || !session.matches("[A-Za-z0-9_-]{8,80}")) {
-            throw new IllegalArgumentException("Phiên chat không hợp lệ");
-        }
-        if (text == null || text.isBlank() || text.length()>MAX_TEXT) {
-            throw new IllegalArgumentException("Tin nhắn phải có 1-3000 ký tự");
-        }
-        AiChatMessage m = new AiChatMessage();
-        m.setUser(u);
-        m.setSessionId(session);
-        m.setTurnId(turnId);
-        m.setSender("USER");
-        m.setContent(text.trim());
-        m.setStatus("PENDING");
-        return map(chats.save(m));
-    }
-
-    public record ChatResult(Message userMessage, Message aiMessage, String error) {
-    }
-
-    public ChatResult send(String username, String session, String text) {
-        UUID turn = UUID.randomUUID();
-        Message user = begin(username, session, text, turn);
-        try {
-            User u = own(username);
-            String system = systemContext(u);
-            List<AiChatMessage> recent = chats.findByUser_IdAndSessionIdAndDeletedAtIsNullAndIdLessThanOrderByIdDesc(u.getId(), session, user.id(), PageRequest.of(0, 200));
-            Collections.reverse(recent);
-            List<Map<String, Object>> prompt = new ArrayList<>();
-            // Preserve up to 10 completed user/AI turns, never include the current message twice.
-            Map<UUID, List<AiChatMessage>> turns = new LinkedHashMap<>();
-            for (AiChatMessage m : recent) {
-                if ("COMPLETE".equals(m.getStatus())) {
-                    turns.computeIfAbsent(m.getTurnId(), x -> new ArrayList<>()).add(m);
-                }
-            }
-            List<List<AiChatMessage>> pairs = new ArrayList<>();
-            for (var value : turns.values()) {
-                if (value.size() == 2 && value.get(0).getSender().equals("USER") && value.get(1).getSender().equals("AI")) {
-                    pairs.add(value);
-                }
-            }
-            for (var pair : pairs.subList(Math.max(0, pairs.size() - 10), pairs.size())) {
-                for (var m : pair) {
-                    prompt.add(Map.of(
-                            "role", m.getSender().equals("USER") ? "user" : "model",
-                            "text", m.getContent()
-                    ));
-                }
-            }
-            prompt.add(Map.of("role", "user", "text", text.trim()));
-            String answer = gemini.generate(system, prompt);
-            return new ChatResult(mark(username, user.id(), "COMPLETE"), saveReply(username, session, turn, answer), null);
-        } catch (Exception e) {
-            mark(username, user.id(), "FAILED");
-            return new ChatResult(new Message(user.id(), user.sessionId(), user.turnId(), user.sender(), user.content(), "FAILED", user.createdAt()), null, e instanceof IllegalStateException ? e.getMessage() :"Không nhận được phản hồi Gemini: "+ e.getClass().getSimpleName());
+        for (var draft : drafts.findByUser_IdAndTurnIdOrderByCreatedAtAsc(u.getId(), m.getTurnId())) {
+            if (draft.getStatus().equals("PENDING")) { draft.setStatus("CANCELLED"); draft.setResult("Đã xóa tin liên quan; đề xuất chưa thực hiện được hủy."); }
         }
     }
 
-    @Transactional
-    public Message mark(String username, Long id, String status) {
-        User u = own(username);
-        AiChatMessage m = chats.findById(id).orElseThrow();
-        if (!m.getUser().getId().equals(u.getId())) {
-            throw new SecurityException("Không có quyền");
-        }
-        m.setStatus(status);
-        return map(chats.save(m));
-    }
-
-    @Transactional
-    public Message saveReply(String username, String session, UUID turn, String answer) {
-        User u = own(username);
-        AiChatMessage m = new AiChatMessage();
-        m.setUser(u);
-        m.setSessionId(session);
-        m.setTurnId(turn);
-        m.setSender("AI");
-        m.setContent(answer);
-        return map(chats.save(m));
-    }
-
-    @Transactional(readOnly = true)
-    public String systemContext(User u) {
-        StringBuilder s = new StringBuilder("Bạn là trợ lý FitnessAI, trả lời tiếng Việt. Không được tự nhận đã cập nhật lịch tập hoặc nhật ký ăn. Các gợi ý chat chỉ là tham khảo, phải được xác nhận và lưu qua API kế hoạch. Không tự bịa dữ liệu, không chẩn đoán bệnh. ");
-        profiles.findByUserId(u.getId()).ifPresent(x ->  {
-            s.append("Hồ sơ: giới tính ").append(x.getGender()).append(", chiều cao cm ").append(x.getHeightCm()).append(", cân nặng kg ").append(x.getWeightKg()).append(", vận động ").append(x.getActivityLevel()).append(", mục tiêu ").append(x.getGoal()).append(", TDEE ").append(x.getCalculatedTdee()).append(" kcal. Cân nặng đích chưa được lưu ở hồ sơ này; nếu cần hãy hỏi user. ");
-        });
-        return s.toString();
-    }
-
-    public record RecommendationView(Long id, String type, String title, String content, String status, boolean read, OffsetDateTime createdAt, LocalDate workoutStartDate) {
+    public record RecommendationView(Long id, String type, String title, String content, String status, boolean read,
+            OffsetDateTime createdAt, LocalDate workoutStartDate, long version, LocalDate effectiveUntil,
+            LocalDate overrideDate, Long parentId, String restDays, BigDecimal targetCalories,
+            BigDecimal targetProtein, BigDecimal targetCarbs, BigDecimal targetFat) {
     }
 
     private LocalDate workoutStart(AiRecommendation x) {
@@ -173,7 +89,10 @@ public class AiAssistantService {
     }
 
     private RecommendationView view(AiRecommendation x) {
-        return new RecommendationView(x.getId(), x.getType(), x.getTitle(), x.getContent(), x.getStatus(), x.getReadAt() != null, x.getCreatedAt(), workoutStart(x));
+        return new RecommendationView(x.getId(), x.getType(), x.getTitle(), x.getContent(), x.getStatus(), x.getReadAt() != null,
+                x.getCreatedAt(), "WORKOUT_PLAN".equals(x.getType()) ? workoutStart(x) : null, x.getVersion(),
+                x.getEffectiveUntil(), x.getWorkoutOverrideDate(), x.getParentRecommendationId(), x.getRestDays(),
+                x.getTargetCalories(), x.getTargetProtein(), x.getTargetCarbs(), x.getTargetFat());
     }
 
     @Transactional(readOnly = true)
@@ -181,15 +100,25 @@ public class AiAssistantService {
         return recommendations.findTop100ByProfile_User_IdOrderByIdDesc(own(username).getId()).stream().map(this::view).toList();
     }
 
-    private static final Set<String> TYPES = Set.of("MEAL_PLAN", "WORKOUT_PLAN", "CALORIE_ALERT", "INACTIVITY_ALERT", "STREAK_MILESTONE");
+    private static final Set<String> TYPES = Set.of("MEAL_PLAN", "WORKOUT_PLAN");
 
     public record MealItem(Integer foodId, LocalDate date, vn.id.fitnessai.enums.MealType mealType, BigDecimal grams) {
     }
 
-    public record ExerciseItem(Integer exerciseId, Integer dayOfWeek, Integer sets, Integer reps) {
+    public record ExerciseItem(Integer exerciseId, Integer dayOfWeek, Integer sets, Integer reps, Integer levelId) {
+        public ExerciseItem(Integer exerciseId, Integer dayOfWeek, Integer sets, Integer reps) {
+            this(exerciseId, dayOfWeek, sets, reps, null);
+        }
     }
 
-    public record PlanRequest(String type, String title, String content, Long chatId, Integer mealLogId, BigDecimal targetCalories, List<MealItem> meals, List<ExerciseItem> exercises, LocalDate workoutStartDate) {
+    public record PlanRequest(String type, String title, String content, Long chatId, Integer mealLogId, BigDecimal targetCalories,
+            List<MealItem> meals, List<ExerciseItem> exercises, LocalDate workoutStartDate, List<Integer> restDays,
+            LocalDate overrideDate, Long parentId, BigDecimal targetProtein, BigDecimal targetCarbs, BigDecimal targetFat) {
+        public PlanRequest(String type, String title, String content, Long chatId, Integer mealLogId, BigDecimal targetCalories,
+                List<MealItem> meals, List<ExerciseItem> exercises, LocalDate workoutStartDate) {
+            this(type, title, content, chatId, mealLogId, targetCalories, meals, exercises, workoutStartDate,
+                    null, null, null, null, null, null);
+        }
     }
 
     public record PlanResult(RecommendationView recommendation, BigDecimal calories, BigDecimal protein, BigDecimal carbs, BigDecimal fat, BigDecimal targetCalories) {
@@ -201,9 +130,18 @@ public class AiAssistantService {
 
     @Transactional
     public PlanResult create(String username, PlanRequest r) {
+        return buildPlan(username, r, true);
+    }
+
+    @Transactional(readOnly = true)
+    public PlanResult preview(String username, PlanRequest r) {
+        return buildPlan(username, r, false);
+    }
+
+    private PlanResult buildPlan(String username, PlanRequest r, boolean persist) {
         User u = own(username);
         UserProfile p = profile(u);
-        if (r == null || !TYPES.contains(r.type())) {
+        if (r == null || r.type() == null || !TYPES.contains(r.type())) {
             throw new IllegalArgumentException("Loại khuyến nghị không hợp lệ");
         }
         if (r.title() == null || r.title().isBlank() || r.title().length()>180 || r.content() == null || r.content().isBlank() || r.content().length()>10000) {
@@ -223,6 +161,20 @@ public class AiAssistantService {
         a.setType(r.type());
         a.setTitle(r.title());
         a.setContent(r.content());
+        a.setParentRecommendationId(r.parentId());
+        a.setTargetCalories(r.targetCalories());
+        a.setTargetProtein(r.targetProtein());
+        a.setTargetCarbs(r.targetCarbs());
+        a.setTargetFat(r.targetFat());
+        for (BigDecimal target : Arrays.asList(r.targetProtein(), r.targetCarbs(), r.targetFat())) {
+            if (target != null && (target.signum() < 0 || target.stripTrailingZeros().scale() > 2 || target.compareTo(new BigDecimal("5000")) > 0))
+                throw new IllegalArgumentException("Mục tiêu dinh dưỡng không hợp lệ");
+        }
+        if (r.parentId() != null) {
+            var parent = recommendations.findById(r.parentId()).orElseThrow(() -> new IllegalArgumentException("Kế hoạch gốc không tồn tại"));
+            if (!parent.getProfile().getUser().getId().equals(u.getId()) || !parent.getType().equals(r.type()))
+                throw new SecurityException("Kế hoạch gốc không thuộc bạn hoặc sai loại");
+        }
         if ("WORKOUT_PLAN".equals(r.type())) {
             LocalDate now = LocalDate.now(NutritionLog.VN_ZONE);
             LocalDate start = r.workoutStartDate() == null ? now : r.workoutStartDate();
@@ -230,6 +182,9 @@ public class AiAssistantService {
              throw new IllegalArgumentException("Ngày bắt đầu lịch tập phải từ hôm nay đến 90 ngày tới");
             }
             a.setWorkoutStartDate(start);
+            a.setWorkoutOverrideDate(r.overrideDate());
+            if (r.overrideDate() != null && (!r.overrideDate().equals(start) || r.parentId() == null))
+                throw new IllegalArgumentException("Điều chỉnh ngày cần lịch gốc và ngày bắt đầu tương ứng");
         } else if (r.workoutStartDate() != null) {
             throw new IllegalArgumentException("Chỉ lịch tập mới có ngày bắt đầu");
         }
@@ -240,17 +195,17 @@ public class AiAssistantService {
             }
             a.setChat(m);
         }
-        a = recommendations.save(a);
+        if (persist) a = recommendations.save(a);
         BigDecimal k = BigDecimal.ZERO, pr = k, ca = k, fa = k;
         if ("MEAL_PLAN".equals(r.type())) {
             if (r.meals() == null || r.meals().isEmpty() || r.meals().size()>60) {
                 throw new IllegalArgumentException("Thực đơn cần 1-60 món");
             }
-            if (r.targetCalories() == null || r.targetCalories().signum() <= 0) {
+            if (r.targetCalories() == null || r.targetCalories().signum() <= 0 || r.targetCalories().stripTrailingZeros().scale() > 2 || r.targetCalories().compareTo(new BigDecimal("10000")) > 0) {
                 throw new IllegalArgumentException("Thiếu mục tiêu calo");
             }
             for (MealItem item : r.meals()) {
-                if (item == null || item.foodId() == null || item.date() == null || item.mealType() == null || item.grams() == null || item.grams().signum() <= 0 || item.grams().compareTo(new BigDecimal("5000"))>0 || item.date().isBefore(LocalDate.now(NutritionLog.VN_ZONE))) {
+                if (item == null || item.foodId() == null || item.date() == null || item.mealType() == null || item.grams() == null || item.grams().signum() <= 0 || item.grams().stripTrailingZeros().scale() > 2 || item.grams().compareTo(new BigDecimal("5000"))>0 || item.date().isBefore(LocalDate.now(NutritionLog.VN_ZONE)) || item.date().isAfter(LocalDate.now(NutritionLog.VN_ZONE).plusDays(90))) {
                     throw new IllegalArgumentException("Ngày, bữa hoặc số gram không hợp lệ");
                 }
                 Food food = foods.findById(item.foodId()).orElseThrow(() -> new IllegalArgumentException("Food ID không tồn tại"));
@@ -267,7 +222,7 @@ public class AiAssistantService {
                 i.setProtein(calc(food.getProteinPer100g(), item.grams()));
                 i.setCarbs(calc(food.getCarbsPer100g(), item.grams()));
                 i.setFat(calc(food.getFatPer100g(), item.grams()));
-                mealItems.save(i);
+                if (persist) mealItems.save(i);
                 k = k.add(i.getCalories());
                 pr = pr.add(i.getProtein());
                 ca = ca.add(i.getCarbs());
@@ -275,17 +230,33 @@ public class AiAssistantService {
             }
         }
         if ("WORKOUT_PLAN".equals(r.type())) {
-            if (r.exercises() == null || r.exercises().isEmpty() || r.exercises().size()>80) {
-                throw new IllegalArgumentException("Cần 1-80 bài tập");
+            if (r.exercises() == null || r.exercises().size()>80) {
+                throw new IllegalArgumentException("Danh sách bài tập không hợp lệ");
             }
+            Set<Integer> trainingDays = new HashSet<>();
+            Set<Integer> rest = r.restDays() == null ? new TreeSet<>() : new TreeSet<>(r.restDays());
+            if (rest.stream().anyMatch(d -> d == null || d < 1 || d > 7)) throw new IllegalArgumentException("Ngày nghỉ không hợp lệ");
+            Set<String> seen = new HashSet<>();
             int pos = 0;
             for (ExerciseItem item : r.exercises()) {
-             if (item == null || item.exerciseId() == null || item.dayOfWeek() == null || item.dayOfWeek()<1 || item.dayOfWeek()>7 || item.sets() == null || item.sets()<1 || item.sets()>30 || item.reps() == null || item.reps()<1 || item.reps()>200) {
+             if (item == null || item.exerciseId() == null || item.dayOfWeek() == null || item.dayOfWeek()<1 || item.dayOfWeek()>7) {
                  throw new IllegalArgumentException("Bài tập/ngày/sets/reps không hợp lệ");
              }
              Exercise ex = exercises.findById(item.exerciseId()).orElseThrow(() -> new IllegalArgumentException("Exercise ID không tồn tại"));
              if (!ex.isActive()) {
                  throw new IllegalArgumentException("Bài tập đã ngưng sử dụng");
+             }
+             if (!seen.add(item.dayOfWeek() + ":" + item.exerciseId())) throw new IllegalArgumentException("Bài bị lặp trong cùng ngày");
+             trainingDays.add(item.dayOfWeek());
+             if (item.levelId() != null) {
+                 var level = ex.getLevels().stream().filter(l -> l.isActive() && l.getId().equals(item.levelId()))
+                         .findFirst().orElseThrow(() -> new IllegalArgumentException("Cấp độ không thuộc bài hoặc đã ngừng"));
+                 if (!Objects.equals(item.sets(), level.getSets()) || !Objects.equals(item.reps(), level.getReps()))
+                     throw new IllegalArgumentException("Chỉ tiêu phải khớp cấp độ đã chọn");
+             } else if (!ex.getLevels().isEmpty()) {
+                 throw new IllegalArgumentException("Cần chọn cấp độ cho từng bài");
+             } else if (item.sets() == null || item.sets() < 1 || item.sets() > 30 || item.reps() == null || item.reps() < 1 || item.reps() > 200) {
+                 throw new IllegalArgumentException("Bài thủ công cần số hiệp/lần hợp lệ");
              }
              AiRecommendedExercise i = new AiRecommendedExercise();
              i.setRecommendation(a);
@@ -293,9 +264,24 @@ public class AiAssistantService {
              i.setDayOfWeek(item.dayOfWeek());
              i.setPlannedSets(item.sets());
              i.setPlannedReps(item.reps());
+             i.setLevelId(item.levelId());
              i.setPosition(pos++);
-             exerciseItems.save(i);
+             if (persist) exerciseItems.save(i);
             }
+            if (r.restDays() == null) {
+                for (int day = 1; day <= 7; day++) if (!trainingDays.contains(day)) rest.add(day);
+            }
+            if (!Collections.disjoint(rest, trainingDays)) throw new IllegalArgumentException("Một ngày không thể vừa tập vừa nghỉ");
+            if (r.overrideDate() == null) {
+                if (trainingDays.isEmpty() || trainingDays.size() + rest.size() != 7)
+                    throw new IllegalArgumentException("Lịch tuần phải xác định đủ 7 ngày tập/nghỉ");
+            } else {
+                int day = r.overrideDate().getDayOfWeek().getValue();
+                if (trainingDays.stream().anyMatch(d -> d != day) || rest.stream().anyMatch(d -> d != day)
+                        || (!trainingDays.contains(day) && !rest.contains(day)))
+                    throw new IllegalArgumentException("Điều chỉnh chỉ được chứa ngày đã chọn");
+            }
+            a.setRestDays(rest.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining(",")));
         }
         return new PlanResult(view(a), k, pr, ca, fa, r.targetCalories());
     }
@@ -318,6 +304,23 @@ public class AiAssistantService {
         if (!r.getProfile().getUser().getId().equals(u.getId())) {
             throw new SecurityException("Không có quyền");
         }
-        return Map.of("recommendation", view(r), "meals", mealItems.findByRecommendation_IdOrderByPlanDateAscIdAsc(id).stream().map(i -> Map.of("foodId", i.getFood().getFoodId(), "foodName", i.getFood().getFoodName(), "date", i.getPlanDate().toString(), "mealType", i.getMealType().name(), "grams", i.getGrams(), "calories", i.getCalories(), "protein", i.getProtein(), "carbs", i.getCarbs(), "fat", i.getFat())).toList(), "exercises", exerciseItems.findByRecommendation_IdOrderByDayOfWeekAscPositionAsc(id).stream().map(i -> Map.of("exerciseId", i.getExercise().getExerciseId(), "exerciseName", i.getExercise().getExerciseName(), "dayOfWeek", i.getDayOfWeek(), "sets", i.getPlannedSets(), "reps", i.getPlannedReps())).toList());
+        List<Map<String,Object>> meals = mealItems.findByRecommendation_IdOrderByPlanDateAscIdAsc(id).stream().map(i -> {
+            Map<String,Object> row = new LinkedHashMap<>();
+            row.put("id", i.getId()); row.put("foodId", i.getFood().getFoodId()); row.put("foodName", i.getFood().getFoodName());
+            row.put("date", i.getPlanDate()); row.put("mealType", i.getMealType()); row.put("grams", i.getGrams());
+            row.put("calories", i.getCalories()); row.put("protein", i.getProtein()); row.put("carbs", i.getCarbs()); row.put("fat", i.getFat());
+            row.put("logged", loggedDetails.existsByAiMealPlanItemId(i.getSourceItemId() == null ? i.getId() : i.getSourceItemId()));
+            return row;
+        }).toList();
+        List<Map<String,Object>> entries = exerciseItems.findByRecommendation_IdOrderByDayOfWeekAscPositionAsc(id).stream().map(i -> {
+            Map<String,Object> row = new LinkedHashMap<>();
+            row.put("exerciseId", i.getExercise().getExerciseId()); row.put("exerciseName", i.getExercise().getExerciseName());
+            row.put("dayOfWeek", i.getDayOfWeek()); row.put("sets", i.getPlannedSets()); row.put("reps", i.getPlannedReps()); row.put("levelId", i.getLevelId());
+            i.getExercise().getLevels().stream().filter(l -> Objects.equals(l.getId(), i.getLevelId())).findFirst().ifPresent(l -> {
+                row.put("levelName", l.getName()); row.put("secondsPerSet", l.getSecondsPerSet());
+            });
+            return row;
+        }).toList();
+        return Map.of("recommendation", view(r), "meals", meals, "exercises", entries);
     }
 }

@@ -13,10 +13,12 @@ import java.util.Map;
 @RestController @RequiredArgsConstructor
 public class ExerciseMediaController {
     private final ExerciseMediaService service;
+
     @PostMapping(value = "/admin/exercises/{exerciseId}/media", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ExerciseResponse upload(@PathVariable Integer exerciseId, @RequestParam("file") MultipartFile file) throws IOException {
         return service.attach(exerciseId, file);
     }
+
     @GetMapping("/exercise-media/{name}")
     public ResponseEntity<Resource> media(@PathVariable String name) throws IOException {
         var path = service.read(name);
@@ -30,10 +32,12 @@ public class ExerciseMediaController {
     public ResponseEntity<Map<String, String>> invalid(IllegalArgumentException error) {
         return ResponseEntity.badRequest().body(Map.of("message", error.getMessage()));
     }
+
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, String>> tooLarge() {
         return ResponseEntity.status(413).body(Map.of("message", "Tệp vượt giới hạn tải lên"));
     }
+
     @ExceptionHandler(IOException.class)
     public ResponseEntity<Map<String, String>> storageError() {
         return ResponseEntity.internalServerError().body(Map.of("message", "Không lưu được tệp hướng dẫn. Hãy thử lại."));

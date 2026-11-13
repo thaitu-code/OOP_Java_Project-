@@ -130,6 +130,9 @@
             color: #9b1c1c;
         }
     </style>
+    <meta name="app-base" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
 </head>
 <body class="dash-body">
 
@@ -171,6 +174,7 @@
         <div class="profile-card">
             <h3 style="margin-top: 0; margin-bottom: 20px;">Cập nhật thông tin</h3>
             <form th:action="@{/profile/update}" th:object="${profileForm}" method="post">
+                <input type="hidden" name="expectedVersion" th:value="${profile.version}">
                 <div class="form-group">
                     <label for="displayName">Tên hiển thị</label>
                     <input type="text" id="displayName" th:field="*{displayName}" class="form-control" placeholder="Nhập tên hiển thị">
@@ -237,6 +241,9 @@
         <!-- Cột phải: Chỉ số BMR, TDEE và Thống kê hiện tại -->
         <div class="profile-card">
             <h3 style="margin-top: 0; margin-bottom: 20px;">Chỉ số cơ thể ước tính</h3>
+            <p th:if="${profile.targetWeightKg != null}">Cân nặng đích: <strong th:text="${profile.targetWeightKg + ' kg'}"></strong></p>
+            <p th:if="${profile.trainingPreferences != null}" th:text="${profile.trainingPreferences}"></p>
+            <p><a th:href="@{/ai}">Trao đổi với AI để bổ sung mục tiêu và điều kiện tập luyện</a></p>
             <div th:if="${profile.calculatedBmr != null}">
                 <div class="metric-badge">
                     <div class="metric-title">Tuổi hiện tại (Asia/Ho_Chi_Minh)</div>
@@ -275,5 +282,6 @@
     </div>
 </main>
 
+<script defer th:src="@{/js/ai-notifications.js}"></script>
 </body>
 </html>

@@ -38,6 +38,7 @@ public class NutritionService {
     private final UserRepository userRepository;
     private final Validator validator;
     private final Clock nutritionClock;
+    private final AiNotificationService aiNotifications;
 
     @Transactional(
             readOnly = true,
@@ -76,12 +77,38 @@ public class NutritionService {
         return addFoodInternal(username, request, planItemId);
     }
 
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public NutritionLogResponse addFoodFromAi(String username, LogDetailRequest request, Long planItemId, LocalDate expectedDate) {
+        if (planItemId == null || planItemId <= 0) throw new IllegalArgumentException("Mã món từ lịch không hợp lệ");
+        return addFoodInternal(username, request, planItemId, NutritionEntrySource.AI, expectedDate);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public NutritionLogResponse addFoodByAssistant(String username, LogDetailRequest request) {
+        return addFoodInternal(username, request, null, NutritionEntrySource.AI);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public NutritionLogResponse addFoodByAssistant(String username, LogDetailRequest request, LocalDate expectedDate) {
+        return addFoodInternal(username, request, null, NutritionEntrySource.AI, expectedDate);
+    }
+
     private NutritionLogResponse addFoodInternal(String username, LogDetailRequest request, Long planItemId) {
+        return addFoodInternal(username, request, planItemId, planItemId == null ? NutritionEntrySource.USER : NutritionEntrySource.AI);
+    }
+
+    private NutritionLogResponse addFoodInternal(String username, LogDetailRequest request, Long planItemId, NutritionEntrySource source) {
+        return addFoodInternal(username, request, planItemId, source, null);
+    }
+
+    private NutritionLogResponse addFoodInternal(String username, LogDetailRequest request, Long planItemId, NutritionEntrySource source, LocalDate expectedDate) {
+        lockWriter(username);
         Long userId = requireUserId(username);
         validateRequest(request);
 
         OffsetDateTime startedAt = now();
         LocalDate logDate = startedAt.toLocalDate();
+        if (expectedDate != null && !expectedDate.equals(logDate)) throw new IllegalStateException("Đã sang ngày mới. Hãy xem lại món ăn trước khi xác nhận");
 
         nutritionLogRepository.createIfAbsent(
                 userId,
@@ -143,12 +170,14 @@ public class NutritionService {
                 request.getMealType(),
                 request.getWeightGrams(),
                 request.getNote(),
-                planItemId == null ? NutritionEntrySource.USER : NutritionEntrySource.AI,
+                source,
                 acceptedAt
         );
         if (planItemId != null) detail.linkAiMealPlanItem(planItemId);
 
         logDetailRepository.saveAndFlush(detail);
+
+        aiNotifications.refresh(username);
 
         return buildResponse(log, userId, logDate);
     }
@@ -159,6 +188,16 @@ public class NutritionService {
             Integer detailId,
             LogDetailUpdateRequest request
     ) {
+        return updateDetailInternal(username, detailId, request, NutritionEntrySource.USER);
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public Optional<NutritionLogResponse> updateDetailByAssistant(String username, Integer detailId, LogDetailUpdateRequest request) {
+        return updateDetailInternal(username, detailId, request, NutritionEntrySource.AI);
+    }
+
+    private Optional<NutritionLogResponse> updateDetailInternal(String username, Integer detailId, LogDetailUpdateRequest request, NutritionEntrySource source) {
+        lockWriter(username);
         Long userId = requireUserId(username);
         validateDetailId(detailId);
         validateRequest(request);
@@ -205,11 +244,13 @@ public class NutritionService {
                 request.getMealType(),
                 request.getWeightGrams(),
                 request.getNote(),
-                NutritionEntrySource.USER,
+                source,
                 acceptedAt
         );
 
         logDetailRepository.saveAndFlush(detail);
+
+        aiNotifications.refresh(username);
 
         return Optional.of(
                 buildResponse(log, userId, log.getLogDate())
@@ -222,6 +263,7 @@ public class NutritionService {
             Integer detailId,
             Long expectedVersion
     ) {
+        lockWriter(username);
         Long userId = requireUserId(username);
         validateDetailId(detailId);
 
@@ -259,6 +301,8 @@ public class NutritionService {
 
         logDetailRepository.delete(detail);
         logDetailRepository.flush();
+
+        aiNotifications.refresh(username);
 
         return Optional.of(
                 buildResponse(log, userId, log.getLogDate())
@@ -358,6 +402,11 @@ public class NutritionService {
         }
 
         return user.getId();
+    }
+
+    private void lockWriter(String username) {
+        var user = userRepository.findByUsernameForUpdate(username).orElseThrow(() -> new AccessDeniedException("Không tìm thấy tài khoản"));
+        if (!user.isEnabled() || user.isLocked()) throw new AccessDeniedException("Tài khoản không khả dụng");
     }
 
     private void validateRequest(LogDetailRequest request) {

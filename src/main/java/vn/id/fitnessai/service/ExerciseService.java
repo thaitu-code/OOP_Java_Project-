@@ -204,6 +204,9 @@ public class ExerciseService {
         if (usedInActiveWorkout){
             throw new IllegalStateException("Không thể xóa bài tập đang thuộc buổi tập chưa kết thúc");
         }
+        if (exerciseRepository.isUsedByAiPlans(exerciseId)) {
+            throw new IllegalStateException("Bài tập đang được lịch AI tham chiếu. Hãy ngừng hoạt động để giữ lịch sử và đề xuất bài thay thế.");
+        }
 
         // Hibernate schema update may leave an existing FK without ON DELETE SET NULL.
         // Detach closed history explicitly in this transaction before deleting the master.

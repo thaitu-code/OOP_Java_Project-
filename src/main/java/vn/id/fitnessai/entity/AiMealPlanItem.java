@@ -10,6 +10,8 @@ import vn.id.fitnessai.enums.MealType;
 @Getter
 @Setter
 public class AiMealPlanItem {
+    // Copies of a revised plan retain their origin to prevent logging the same planned meal twice.
+    private Long sourceItemId;
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
