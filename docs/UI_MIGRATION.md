@@ -95,3 +95,21 @@ Biểu mẫu thông tin cá nhân và mục tiêu thuộc cùng một form, gi�
 Các mức BMI tham chiếu được đối chiếu với [CDC](https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html), chỉ hiển thị phân loại người trưởng thành khi tuổi từ 20 trở lên. Các chỉ số hiển thị lấy từ hồ sơ đã lưu; không tự đổi BMR/TDEE khi đang nhập dữ liệu.
 
 Xác minh đợt chỉnh riêng: `UiPageRenderingTest` 8 tests đạt, `node --check` cho profile script/preview đạt, `git diff --check` đạt. Đã kiểm tra desktop, mobile, Sửa/Hủy và xác nhận CSS runtime tại localhost:8081 khớp source. Preview trình duyệt sử dụng dữ liệu mô phỏng, không ghi database. Ảnh: `target/ui-preview/profile-demo-desktop.jpg`, `profile-demo-details.jpg`, `profile-demo-mobile.jpg`.
+
+### 2026-11-13 — Trang Tập luyện theo ảnh được duyệt
+
+- Banner ảnh dụng cụ tập gọn hơn, bốn thẻ thống kê, thẻ tạo buổi tập và hướng dẫn ba bước, liên kết trao đổi với AI. Giữ menu avatar, các tab và vùng điều khiển buổi đang tập. CSS riêng ở `static/css/workout-page.css`, tải sau style dùng chung.
+- Nút tạo duy nhất trong trạng thái chưa có buổi dùng hook `hero-start` hiện có, mở wizard Chọn bài → Thiết lập → Xác nhận. Khi có buổi đang tập, cả thẻ tạo và hướng dẫn được ẩn; màn hình timer và các thao tác giữ nguyên. Tạo buổi chưa bắt đầu bài và chưa cấp check-in/streak.
+- Thời lượng/calo vẫn lấy tổng đã ghi từ backend. Khi không có buổi hiển thị `—` và “Chưa có buổi đang tập”; khi có buổi ghi rõ “Đã ghi trong buổi hiện tại”. Không thêm số liệu mẫu vào trang sản phẩm.
+- Ảnh tạo bằng imagegen tích hợp, lưu tại `src/main/resources/static/images/workout-cover.png` và `workout-ready.png`. Nguồn tham chiếu và prompt đầy đủ: [WORKOUT_UI_ASSETS.md](WORKOUT_UI_ASSETS.md). Không cần gọi provider hoặc tải ảnh từ bên ngoài khi mở trang.
+- Kiểm chứng riêng đợt này: `WorkoutPageControllerTest` **5 tests, 0 failures/errors/skipped**; bộ `check-workout-ui.cjs` đạt; `check-workout-wizard.cjs` **8 tình huống** đạt; cú pháp JS và `git diff --check` đạt. Không chạy lại toàn bộ suite trong đợt chỉnh trình bày này.
+- Chrome: kiểm tra giao diện desktop và màn hình hẹp (CSS width 312/344 px, không tràn ngang toàn trang), thư viện, wizard đủ ba bước, tạo buổi với bài chưa bắt đầu, mở/đóng wizard trên điện thoại, liên kết AI điền sẵn yêu cầu. Dùng server preview dữ liệu RAM, không ghi PostgreSQL hay gọi Gemini thật. CSS/JS runtime localhost:8081 đã đối chiếu khớp source.
+- Ảnh minh chứng: `target/ui-preview/workout-approved-banner.jpg`, `workout-approved-desktop.jpg`, `workout-approved-mobile.jpg`. Nếu template cũ đang được cache, khởi động lại ứng dụng rồi Ctrl+F5.
+
+### 2026-11-13 — Khôi phục banner Tổng quan theo demo
+
+- Đối chiếu `GymAI/src/main/resources/static/components/dashboard.html` trong ZIP. Dùng đúng ảnh `photo-1476480862126-209bfaa8edc8` được component tham chiếu, lưu tại `static/images/dashboard-cover.jpg` (Unsplash, tải cục bộ).
+- Khôi phục khung bo góc 24 px, cao tối thiểu 240 px, lớp phủ xanh nhạt, lời chào theo tên người dùng màu xanh, chữ viết tay Better / Stronger / Everyday và nét gạch dưới. Nút “Tiếp tục hành trình” dẫn tới `/workout` như demo. Khách có lời chào riêng, không hiển thị dữ liệu cá nhân.
+- Giữ nguyên dashboard API, số liệu thật, biểu đồ, mục tiêu và huy hiệu. Chỉ sửa banner trong `home.html` và `home-ui.css`; không đưa số liệu mẫu của demo vào sản phẩm.
+- `UiPageRenderingTest`: 8 tests, không fail/error/skip. Đã kiểm tra desktop/mobile và nút liên kết trên Chrome bằng dữ liệu RAM; không gọi Gemini hay ghi database thật. HTML, CSS và ảnh tại localhost:8081 đã xác minh phục vụ bản mới.
+- Ảnh minh chứng: `target/ui-preview/dashboard-demo-banner.jpg`, `dashboard-demo-banner-mobile.jpg`. Nguồn ảnh: https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?q=80&w=1600&auto=format&fit=crop

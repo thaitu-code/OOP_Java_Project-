@@ -45,7 +45,7 @@ class WorkoutPageControllerTest {
                 .andExpect(status().isOk()).andExpect(view().name("workout"))
                 .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
         assertThat(html).contains("data-admin=\"false\"", "data-base=\"/\"", "/js/workout.js",
-                        "name=\"_csrf\"", "Bắt đầu buổi tập")
+                        "name=\"_csrf\"", "Tạo buổi tập")
                 .doesNotContain("id=\"panel-manage\"", "data-tab=\"manage\"", "th:attr=", "content=\"\"");
         savePreview("user.html", html);
     }

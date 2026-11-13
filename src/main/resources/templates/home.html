@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tổng quan · FitnessAI</title>
+<head>
+    <link rel="icon" type="image/svg+xml" sizes="any" href="../static/images/fitnessai-mark.svg" th:href="@{/images/fitnessai-mark.svg}"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tổng quan · FitnessAI</title>
 <meta name="app-base" th:content="@{/}"><meta name="_csrf" th:content="${_csrf.token}"><meta name="_csrf_header" th:content="${_csrf.headerName}">
 <link rel="stylesheet" th:href="@{/css/app-ui.css}"><link rel="stylesheet" th:href="@{/css/home-ui.css}"><script defer th:src="@{/js/app-shell.js}"></script><script defer th:src="@{/js/dashboard.js}"></script></head>
 <body class="fitness-app"><header th:replace="~{fragments/app :: header}"></header>
 <main class="page-wrap">
-  <section class="dashboard-hero"><div><span class="eyebrow">MỖI NGÀY LÀ MỘT KHỞI ĐẦU MỚI</span><h1>Xin chào<span th:if="${uiIdentity.authenticated}" th:text="${', ' + uiIdentity.displayName}"></span> <span aria-hidden="true">☀</span></h1><p>Một bước nhỏ hôm nay. Một phiên bản khỏe hơn ngày mai.</p><a class="ui-button" th:href="@{/ai}">Cùng AI lên kế hoạch <span aria-hidden="true">✧</span></a></div><div class="hero-handwriting" aria-hidden="true">Better.<br>Stronger.<br><span>Everyday.</span></div></section>
+  <section class="dashboard-hero" aria-labelledby="dashboard-welcome">
+    <div class="dashboard-hero-copy"><span class="eyebrow">FITNESS AI</span>
+      <h1 id="dashboard-welcome">Chào mừng<span th:if="${uiIdentity.authenticated}"> trở lại, <span class="dashboard-welcome-name" th:text="${uiIdentity.displayName}"></span></span><span th:unless="${uiIdentity.authenticated}"> đến với <span class="dashboard-welcome-name">FitnessAI</span></span><span class="dashboard-welcome-name">!</span></h1>
+      <p>Hôm nay là một ngày tuyệt vời để tiến gần hơn<br class="dashboard-hero-break"> đến phiên bản tốt hơn của chính bạn. Cùng cố gắng nhé!</p>
+      <a class="ui-button" th:href="@{/workout}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 3.5 16 10 6 16.5Z"/></svg>Tiếp tục hành trình <span aria-hidden="true">→</span></a>
+    </div>
+    <div class="hero-handwriting" aria-hidden="true">Better<br>Stronger<br>Everyday<svg viewBox="0 0 100 20" fill="none"><path d="M5 15Q40-5 95 10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg></div>
+  </section>
   <div th:unless="${uiIdentity.authenticated}" class="ui-card guest-card"><h2>Hành trình của bạn bắt đầu ở đây</h2><p>Đăng nhập để xem tiến độ, theo dõi bữa ăn và xây dựng kế hoạch cùng AI.</p><a class="ui-button" th:href="@{/login}">Đăng nhập</a> <a class="ui-button secondary" th:href="@{/register}">Tạo tài khoản</a></div>
   <div th:if="${uiIdentity.authenticated}" id="dashboard-app">
     <p class="profile-reminder" th:if="${profile.calculatedBmr == null}">Bắt đầu bằng việc <a th:href="@{/profile}">hoàn thiện hồ sơ</a> để có kế hoạch phù hợp với bạn.</p>

@@ -259,12 +259,14 @@
   function renderSession() {
     const workout = state.workout;
     $("hero-start").disabled = !state.ready;
-    setText("hero-start", workout ? "Về buổi đang tập →" : "Bắt đầu buổi tập");
+    setText("hero-start", workout ? "Về buổi đang tập →" : "Tạo buổi tập");
     $("empty-session").hidden = Boolean(workout);
     $("live-session").hidden = !workout;
-    setText("session-caption", workout ? `Buổi #${workout.workoutId} · Bắt đầu ${date(workout.startTime)} · Giờ Việt Nam` : "Một buổi tập mới, một bước gần hơn tới mục tiêu.");
+    setText("session-caption", workout ? `Buổi #${workout.workoutId} · Bắt đầu ${date(workout.startTime)} · Giờ Việt Nam` : "Bắt đầu một buổi mới khi bạn sẵn sàng.");
     setText("stat-duration", workout ? `${fmt(workout.totalDurationMinutes)} phút` : "—");
     setText("stat-calories", workout ? `${fmt(workout.totalCaloriesBurned)} kcal` : "—");
+    setText("stat-duration-note", workout ? "Đã ghi trong buổi hiện tại" : "Chưa có buổi đang tập");
+    setText("stat-calories-note", workout ? "Đã ghi trong buổi hiện tại" : "Chưa có buổi đang tập");
     setText("detail-count", state.details.length);
     renderDetails();
     renderTimer();

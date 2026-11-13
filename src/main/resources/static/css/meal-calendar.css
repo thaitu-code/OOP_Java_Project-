@@ -1,5 +1,5 @@
-/* Approved nutrition mockup: shared compact banner and the meal-plan workspace. */
-.fitness-app .nutrition-banner { min-height: 114px; padding: 23px 36px; background: linear-gradient(90deg,#edf4fff9 0%,#edf4fff0 29%,#edf4ff90 53%,#edf4ff20 82%),url('../images/nutrition-cover.jpg') center 48%/cover; border: 1px solid #dfE9fa; border-radius: 21px; box-shadow: none; position: relative; overflow: hidden; }
+/* Nutrition banner matches workout-page.css sizing; meal-plan workspace below. */
+.fitness-app .nutrition-banner { min-height: 212px; padding: 26px 42px; background: linear-gradient(90deg,#edf4fff9 0%,#edf4fff0 29%,#edf4ff90 53%,#edf4ff20 82%),url('../images/nutrition-cover.jpg') center 48%/cover; border: 1px solid #dfE9fa; border-radius: 22px; box-shadow: none; position: relative; overflow: hidden; }
 .fitness-app .nutrition-banner h1 { font-size: 30px; line-height: 1.3; letter-spacing: -.04em; margin: 0 0 4px; color: #162d52; }
 .fitness-app .nutrition-banner p { font-size: 14px; line-height: 1.5; margin: 0; color: #60789e; }
 .nutrition-banner-script { color: #204f98; font: italic 23px/1.05 'Brush Script MT','Segoe Print',cursive; padding-right: 1px; transform: rotate(-3deg); text-shadow: 0 1px 3px #fff8; }
@@ -108,7 +108,8 @@
     .mp-layout { grid-template-columns: minmax(0,1fr) 285px; gap: 16px; }.mp-meal-grid { grid-template-columns: 1fr; }.mp-food-row { grid-template-columns: 37px minmax(0,1fr) 90px 18px; }.meal-plan-page input.mp-grams { width: 90px; }
 }
 @media(max-width:800px) {
-    .fitness-app .nutrition-banner { min-height: 112px; padding: 23px 24px; }.fitness-app .nutrition-banner h1 { font-size: 25px; }.fitness-app .nutrition-banner p { font-size: 12px; max-width: 290px; }.nutrition-banner-script { font-size: 18px; }
+    .fitness-app .nutrition-wrap { padding: 0 20px; }
+    .fitness-app .nutrition-banner { min-height: 190px; padding: 24px 28px; }.fitness-app .nutrition-banner h1 { font-size: 25px; }.fitness-app .nutrition-banner p { font-size: 12px; max-width: 290px; }.nutrition-banner-script { font-size: 18px; }
     .mp-heading { align-items: flex-start; }.mp-heading h2 { font-size: 23px; }.mp-heading p { font-size: 11px; }.meal-plan-page .mp-ai-link { font-size: 11px; padding: 9px 12px; min-height: 37px; }
     .mp-toolbar { gap: 10px; flex-wrap: wrap; padding: 15px; }.mp-toolbar>label { width: 100%; }.meal-plan-page .mp-toolbar select { flex-basis: 100%; }.mp-status { font-size: 10px; }.mp-refresh { border: 0; font-size: 11px; }
     .mp-targets { flex-wrap: wrap; padding: 13px; }.mp-targets>h3 { width: 100%; }.mp-target-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }.mp-target { padding: 11px; }
@@ -119,4 +120,8 @@
     .fitness-app .nutrition-banner { padding: 22px; background-position: center; }.fitness-app .nutrition-banner h1 { font-size: 23px; }.fitness-app .nutrition-banner p { font-size: 11px; max-width: 190px; }.nutrition-banner-script { display: none; }
     .mp-heading { flex-wrap: wrap; gap: 12px; }.mp-week { padding: 10px; }.mp-week-range { gap: 8px; }.mp-week-range>strong { font-size: 12px; }.mp-week-days { gap: 4px; }.mp-day-button { font-size: 9px; padding: 5px 2px; min-height: 45px; }.mp-day-button strong { font-size: 12px; }
     .mp-meal-grid { grid-template-columns: 1fr; }.mp-meal { padding: 15px; }.mp-food-row { grid-template-columns: 36px minmax(0,1fr) 70px 18px; gap: 8px; }.mp-food-name { font-size: 12px; }.meal-plan-page input.mp-grams { width: 70px; }.mp-day-heading h3 { font-size: 19px; }.mp-target strong { font-size: 16px; }.mp-target-icon { height: 27px; width: 27px; }.mp-target .mp-unit { font-size: 11px; }.mp-summary { padding: 20px; }
+}
+@media(max-width:520px) {
+    .fitness-app .nutrition-wrap { padding: 0 16px; }
+    .fitness-app .nutrition-banner { min-height: 218px; padding: 23px; }
 }
