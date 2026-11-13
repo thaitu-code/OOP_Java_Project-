@@ -299,6 +299,16 @@ public class AiAssistantService {
 
     @Transactional(readOnly = true)
     public Map<String, Object> detail(String username, Long id) {
+        return detail(username, id, false);
+    }
+
+    /** Display-only metadata stays out of the provider-facing context projection. */
+    @Transactional(readOnly = true)
+    public Map<String, Object> detailForDisplay(String username, Long id) {
+        return detail(username, id, true);
+    }
+
+    private Map<String, Object> detail(String username, Long id, boolean displayMetadata) {
         User u = own(username);
         AiRecommendation r = recommendations.findById(id).orElseThrow();
         if (!r.getProfile().getUser().getId().equals(u.getId())) {
@@ -307,9 +317,18 @@ public class AiAssistantService {
         List<Map<String,Object>> meals = mealItems.findByRecommendation_IdOrderByPlanDateAscIdAsc(id).stream().map(i -> {
             Map<String,Object> row = new LinkedHashMap<>();
             row.put("id", i.getId()); row.put("foodId", i.getFood().getFoodId()); row.put("foodName", i.getFood().getFoodName());
+            if (displayMetadata) row.put("imageUrl", i.getFood().getImageUrl());
             row.put("date", i.getPlanDate()); row.put("mealType", i.getMealType()); row.put("grams", i.getGrams());
             row.put("calories", i.getCalories()); row.put("protein", i.getProtein()); row.put("carbs", i.getCarbs()); row.put("fat", i.getFat());
-            row.put("logged", loggedDetails.existsByAiMealPlanItemId(i.getSourceItemId() == null ? i.getId() : i.getSourceItemId()));
+            Long origin = i.getSourceItemId() == null ? i.getId() : i.getSourceItemId();
+            if (displayMetadata) {
+                var logged = loggedDetails.findByAiMealPlanItemIdAndNutritionLog_User_Id(origin, u.getId());
+                row.put("logged", logged.isPresent());
+                logged.ifPresent(entry -> {
+                    row.put("loggedGrams", entry.getWeightGrams());
+                    row.put("loggedCalories", entry.getCalculatedCalories());
+                });
+            } else row.put("logged", loggedDetails.existsByAiMealPlanItemId(origin));
             return row;
         }).toList();
         List<Map<String,Object>> entries = exerciseItems.findByRecommendation_IdOrderByDayOfWeekAscPositionAsc(id).stream().map(i -> {
@@ -321,6 +340,9 @@ public class AiAssistantService {
             });
             return row;
         }).toList();
-        return Map.of("recommendation", view(r), "meals", meals, "exercises", entries);
+        Map<String,Object> result = new LinkedHashMap<>();
+        result.put("recommendation", view(r)); result.put("meals", meals); result.put("exercises", entries);
+        if (displayMetadata) result.put("confirmed", r.getSourceDraftId() != null);
+        return result;
     }
 }

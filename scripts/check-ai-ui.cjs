@@ -23,7 +23,7 @@ function environment(handler,{hash='',prefix=''}={}){
     if(selector.includes('_csrf'))return {content:'csrf-fixture'};
     return new Element();
   }};
-  const ctx={document,Date,Intl,Map,Set,URLSearchParams,crypto:{randomUUID:()=>crypto.randomUUID()},location:{hash,search:''},
+  const ctx={document,Date,Intl,Map,Set,URL,URLSearchParams,AbortController,clearTimeout,crypto:{randomUUID:()=>crypto.randomUUID()},location:{hash,search:''},
     sessionStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
     setInterval:()=>0,setTimeout:fn=>setImmediate(fn),confirm:()=>true,
     Option:function(text,value){this.textContent=text;this.value=String(value);},

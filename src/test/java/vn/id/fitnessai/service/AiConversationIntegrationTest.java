@@ -149,6 +149,36 @@ class AiConversationIntegrationTest {
         assertEquals(NutritionEntrySource.AI,app.getBean(NutritionService.class).getDailyLog(name,null).getMeals().stream().flatMap(m->m.getItems().stream()).findFirst().orElseThrow().getLastModifiedSource());
     }
 
+    @Test void mealDisplayImagesDoNotEnterProviderContext(){
+        String name=user(),other=user();String image="https://example.test/private-meal-image.jpg";
+        Integer foodId=inTx(()->{
+            var now=OffsetDateTime.now(NutritionLog.VN_ZONE);
+            var category=app.getBean(FoodCategoryRepository.class).save(new FoodCategory("Image "+UUID.randomUUID(),null,now));
+            return app.getBean(FoodRepository.class).saveAndFlush(new Food(category,"Image food",null,null,image,
+                    new BigDecimal("100"),new BigDecimal("3"),new BigDecimal("20"),BigDecimal.ONE,now)).getFoodId();
+        });
+        var plans=app.getBean(AiAssistantService.class);
+        var plan=plans.create(name,new AiAssistantService.PlanRequest("MEAL_PLAN","Display test","Test only",null,null,
+                new BigDecimal("2200"),List.of(new AiAssistantService.MealItem(foodId,LocalDate.now(NutritionLog.VN_ZONE),MealType.LUNCH,new BigDecimal("150"))),null,null));
+        Long id=plan.recommendation().id();
+        inTx(()->{var rec=app.getBean(AiRecommendationRepository.class).findById(id).orElseThrow();rec.setSourceDraftId(UUID.randomUUID());return rec;});
+        var display=plans.detailForDisplay(name,id);assertEquals(true,display.get("confirmed"));assertTrue(display.toString().contains(image));
+        Long itemId=(Long)((Map<?,?>)((List<?>)display.get("meals")).get(0)).get("id");
+        inTx(()->{
+            var now=OffsetDateTime.now(NutritionLog.VN_ZONE);var log=app.getBean(NutritionLogRepository.class).save(new NutritionLog(app.getBean(UserRepository.class).findByUsername(name).orElseThrow(),now));
+            var entry=new LogDetail(log,app.getBean(FoodRepository.class).getReferenceById(foodId),MealType.LUNCH,new BigDecimal("75"),null,NutritionEntrySource.AI,now);
+            entry.linkAiMealPlanItem(itemId);return app.getBean(LogDetailRepository.class).saveAndFlush(entry);
+        });
+        var loggedRow=(Map<?,?>)((List<?>)plans.detailForDisplay(name,id).get("meals")).get(0);
+        assertEquals(0,new BigDecimal("75").compareTo((BigDecimal)loggedRow.get("loggedGrams")));
+        assertEquals(0,new BigDecimal("75").compareTo((BigDecimal)loggedRow.get("loggedCalories")));
+        assertFalse(plans.detail(name,id).toString().contains("loggedGrams"));
+        assertFalse(plans.detail(name,id).toString().contains(image));assertThrows(SecurityException.class,()->plans.detailForDisplay(other,id));
+        answer("{\"type\":\"ANSWER\",\"reply\":\"Bạn có một thực đơn đã lưu.\",\"actions\":[]}");
+        app.getBean(AiConversationService.class).send(name,"session123","Tôi có thực đơn nào?",UUID.randomUUID());
+        verify(app.getBean(GeminiAiClient.class)).generateJson(anyString(),argThat(input->!input.toString().contains(image)));
+    }
+
     @Test void acceptedRestDayPreservesStreakWithoutCreatingACheckIn(){
         String name=user();LocalDate today=LocalDate.now(NutritionLog.VN_ZONE),yesterday=today.minusDays(1);
         inTx(()->{

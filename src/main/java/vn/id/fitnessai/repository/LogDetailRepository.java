@@ -14,6 +14,7 @@ public interface LogDetailRepository
         extends JpaRepository<LogDetail, Integer> {
 
     boolean existsByAiMealPlanItemId(Long aiMealPlanItemId);
+    Optional<LogDetail> findByAiMealPlanItemIdAndNutritionLog_User_Id(Long aiMealPlanItemId, Long userId);
 
     List<LogDetail> findAllByNutritionLog_LogIdAndNutritionLog_User_IdOrderByDetailIdAsc(
             Integer logId,

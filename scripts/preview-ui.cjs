@@ -6,6 +6,12 @@ const receipts=new Map(),messages=[],proposals=new Map();let nextMessage=1;
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Ho_Chi_Minh'}).format(new Date());
 for(const [foodId,mealType,weightGrams] of [[1,'BREAKFAST',150],[2,'LUNCH',120],[4,'LUNCH',200]])nutrition.route('POST','/nutrition-logs/today/details',{foodId,mealType,weightGrams});
 const notifications=[{id:1,content:'Bản kiểm thử giao diện sử dụng dữ liệu mô phỏng trong bộ nhớ.',link:'/home',applicable:true,read:false}];
+// Only this QA server supplies sample plans/images; product code always reads the real APIs.
+const qaPlan={id:201,type:'MEAL_PLAN',title:'Tăng cơ · 3 bữa chính, 1 bữa phụ',status:'PROPOSED',createdAt:new Date().toISOString(),targetCalories:2200,targetProtein:130,targetCarbs:250,targetFat:65};
+const qaFoods=[[7,'Yến mạch',60,383.33,'BREAKFAST','oats'],[5,'Chuối',100,90,'BREAKFAST','banana'],[1,'Cơm trắng',150,130,'LUNCH','rice'],[2,'Ức gà',120,165,'LUNCH','chicken'],[6,'Sữa chua',100,66,'AFTERNOON','yogurt'],[8,'Hạnh nhân',20,580,'AFTERNOON','almonds'],[9,'Cá hồi',120,208.33,'DINNER','salmon'],[4,'Rau xanh',200,35,'DINNER','greens']];
+for(const [id,name,,kcal] of qaFoods){const food=nutrition.foods.find(f=>f.foodId===id);food.foodName=name;food.caloriesPer100g=kcal;}
+const qaMeals=[];const qaMonday=new Date(today()+'T12:00:00Z');qaMonday.setUTCDate(qaMonday.getUTCDate()-((qaMonday.getUTCDay()+6)%7));
+for(let day=0;day<7;day++){const date=new Date(qaMonday);date.setUTCDate(date.getUTCDate()+day);for(const [foodId,foodName,grams,calories,mealType,photo] of qaFoods)qaMeals.push({id:1000+qaMeals.length,foodId,foodName,date:date.toISOString().slice(0,10),mealType,grams,calories:Math.round(calories*grams)/100,protein:10,carbs:20,fat:5,logged:false,imageUrl:fs.existsSync(path.join(root,'target/meal-preview-assets','preview-food-'+photo+'.jpg'))?'/images/preview-food-'+photo+'.jpg':null});}
 function api(method,p,body){
   if(p.startsWith('/api/ai/notifications')){if(method==='PATCH')notifications[0].read=true;return {status:200,data:notifications};}
   if(p==='/api/dashboard/summary'){
@@ -14,7 +20,14 @@ function api(method,p,body){
   }
   if(p==='/api/ai/chat/session')return {status:200,data:{sessionId:'ui-preview-session'}};
   if(p.startsWith('/api/ai/proposals?'))return {status:200,data:[...proposals.values()].filter(p=>p.status==='PENDING')};
-  if(p==='/api/ai/recommendations')return {status:200,data:[]};
+  if(p==='/api/ai/recommendations')return {status:200,data:[qaPlan]};
+  if(p==='/api/ai/recommendations/201')return {status:200,data:{recommendation:qaPlan,confirmed:true,meals:qaMeals,exercises:[]}};
+  if(p==='/api/ai/recommendations/201/log-meals'){
+    const items=body.items?.map(s=>({selection:s,item:qaMeals.find(i=>i.id===s.id)}));
+    if(!items?.length||items.some(({selection:s,item:i})=>!i||i.date!==today()||!(s.grams>0&&s.grams<=5000)))return {status:400,data:{error:'Chọn các món hợp lệ của hôm nay'}};
+    let count=0;for(const {selection:s,item:i} of items){if(i.logged)continue;const result=nutrition.route('POST','/nutrition-logs/today/details',{foodId:i.foodId,mealType:i.mealType,weightGrams:s.grams});if(result.status>=400)return result;i.logged=true;i.loggedGrams=s.grams;i.loggedCalories=Math.round(i.calories*s.grams/i.grams*100)/100;count++;}
+    return {status:200,data:{message:`Đã ghi ${count} món vào nhật ký mô phỏng.`,count}};
+  }
   if(p.startsWith('/api/ai/chat')&&method==='GET')return {status:200,data:{messages,nextCursor:null}};
   if(p==='/api/ai/chat'&&method==='POST'){
     const old=messages.find(m=>m.requestId===body.requestId);if(old)return {status:200,data:{status:'COMPLETE',userMessage:old,aiMessage:messages.find(m=>m.id===old.id+1),proposals:[...proposals.values()]}};
@@ -40,6 +53,7 @@ http.createServer(async(req,res)=>{
   try{
     const u=new URL(req.url,'http://localhost');let file;
     if(req.method==='GET'&&pages[u.pathname])file=path.join(root,'target',pages[u.pathname]+'.html');
+    else if(req.method==='GET'&&/^\/images\/preview-food-[a-z]+\.jpg$/.test(u.pathname))file=path.join(root,'target/meal-preview-assets',path.basename(u.pathname));
     else if(req.method==='GET'&&/^\/(css|js|images)\/[\w.-]+$/.test(u.pathname))file=path.join(root,'src/main/resources/static',u.pathname);
     if(file){let data=fs.readFileSync(file);if(file.endsWith('.html'))data=data.toString('utf8').replace(/(<body[^>]*>)/,'$1<div style="position:fixed;top:0;left:0;right:0;z-index:100;background:#fff3cf;color:#735819;padding:5px;text-align:center;font:11px Segoe UI">BẢN KIỂM THỬ · Dữ liệu mô phỏng · Không kết nối database hoặc Gemini</div>');const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});res.end(data);return;}
     let text='';for await(const chunk of req)text+=chunk;const result=api(req.method,req.url,text?JSON.parse(text):{});res.writeHead(result.status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(result.data==null?'':JSON.stringify(result.data));

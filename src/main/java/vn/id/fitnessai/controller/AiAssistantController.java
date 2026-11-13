@@ -114,7 +114,7 @@ public class AiAssistantController {
         }
         @GetMapping("/recommendations/{id}")
         public Map<String,Object> detail(Principal p,@PathVariable Long id){
-            return service.detail(p.getName(),id);
+            return service.detailForDisplay(p.getName(),id);
         }
         @PatchMapping("/recommendations/{id}/read")
         public AiAssistantService.RecommendationView read(Principal p,@PathVariable Long id){
