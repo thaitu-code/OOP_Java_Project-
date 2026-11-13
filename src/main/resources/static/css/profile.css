@@ -1,0 +1,137 @@
+/* The demo's four-card profile composition, scoped to this page. */
+.profile-page { max-width: 1280px; margin: 30px auto 64px; padding: 0 32px; }
+.profile-icons { position: absolute; width: 0; height: 0; overflow: hidden; }
+.profile-page svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+.profile-layout { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: 24px; align-items: stretch; }
+.profile-panel { min-width: 0; background: #fff; border: 1px solid #edf0f5; border-radius: 24px; box-shadow: 0 2px 5px #162f5204; }
+.profile-summary { overflow: hidden; display: flex; flex-direction: column; }
+.profile-banner { height: 144px; flex-shrink: 0; position: relative; background: #dbeafe url('../images/profile-cover.jpg') center 52% / cover; }
+.profile-banner:after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg,transparent 35%,#e6f0ff65); }
+.profile-banner>span { position: absolute; z-index: 1; top: 17px; right: 20px; font: bold italic 25px/1.08 'Brush Script MT','Segoe Print',cursive; color: #173b72; text-shadow: 0 1px 4px #fff9; }
+.profile-portrait { width: 112px; height: 112px; margin: -56px auto 0; display: grid; place-items: center; z-index: 1; position: relative; border: 5px solid #fff; border-radius: 50%; box-shadow: 0 5px 10px #1f365c12; background: linear-gradient(135deg,#dbeafe,#cad7fa); color: #5c7cc2; font-size: 34px; font-weight: 650; }
+.profile-summary-content { padding: 16px 24px 26px; text-align: center; flex: 1; }
+.profile-summary-content h1 { font-size: 22px; font-weight: 750; line-height: 1.4; color: #263347; margin: 0; overflow-wrap: anywhere; }
+.profile-email { color: #8a93a2; font-size: 13px; margin: 4px 0 17px; overflow-wrap: anywhere; }
+.profile-membership { display: inline-flex; align-items: center; gap: 8px; padding: 8px 21px; color: #fff; background: #2563eb; border-radius: 30px; font-size: 12px; font-weight: 600; box-shadow: 0 2px 4px #2563eb15; }
+.profile-membership svg { width: 15px; height: 15px; }
+.profile-mini-stats { margin-top: 28px; display: flex; flex-direction: column; gap: 12px; }
+.profile-bmi-quick { display: flex; align-items: center; gap: 13px; padding: 16px; text-decoration: none; text-align: left; border: 1px solid #edf0f5; border-radius: 17px; transition: background .15s; }
+.profile-bmi-quick:hover { background: #fafbfe; }
+.profile-heart { display: grid; place-items: center; width: 40px; height: 40px; background: #e7f8ee; border-radius: 50%; color: #39a974; flex-shrink: 0; }
+.profile-heart svg { width: 21px; height: 21px; }
+.profile-bmi-quick-text { min-width: 0; }
+.profile-bmi-quick-text>small { display: block; color: #9299a5; font-size: 11px; }
+.profile-bmi-quick-text>span { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 3px; }
+.profile-bmi-quick-text strong { color: #273447; font-size: 23px; line-height: 1.3; }
+.profile-chevron { color: #9ca3af; font-size: 22px; margin-left: auto; }
+.bmi-category { display: inline-flex; align-items: center; background: #e8f7ef; color: #278a59; border-radius: 24px; font-size: 10px; line-height: 1.5; font-weight: 650; padding: 4px 10px; white-space: nowrap; }
+.bmi-category.under { background: #e9f2ff; color: #5089c7; }
+.bmi-category.over { background: #fff7dc; color: #ab841e; }
+.bmi-category.high { background: #ffedf0; color: #c45b6b; }
+.profile-energy-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.profile-energy { display: flex; align-items: center; gap: 8px; border: 1px solid #edf0f5; border-radius: 16px; padding: 14px 10px; text-align: left; min-width: 0; }
+.profile-energy.bmr { background: #f6f7ff; color: #ec7975; }
+.profile-energy.tdee { background: #fff9f2; color: #f1a14b; }
+.profile-energy>svg { width: 25px; height: 28px; }
+.profile-energy>div { min-width: 0; }
+.profile-energy h2 { margin: 0 0 5px; color: #7483bd; font-size: 10px; font-weight: 650; letter-spacing: 0; white-space: nowrap; }
+.profile-energy.tdee h2 { color: #c48b4d; }
+.profile-energy h2>span { font-size: 9px; }
+.profile-energy p { margin: 0; line-height: 1.4; }
+.profile-energy strong { color: #29374b; font-size: 19px; font-weight: 750; }
+.profile-energy small { color: #99a1b1; font-size: 8px; white-space: nowrap; }
+.profile-personal,.profile-goals { padding: 28px 30px; }
+.profile-section-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 28px; }
+.profile-section-heading h2 { display: flex; align-items: center; gap: 10px; font-size: 19px; line-height: 1.5; font-weight: 700; color: #29374b; margin: 0; letter-spacing: -.02em; }
+.profile-section-heading h2 svg { color: #4e83e8; width: 20px; height: 20px; }
+.profile-section-heading p { color: #929aaa; font-size: 11px; margin: 7px 0 0; max-width: 430px; }
+.profile-edit-actions { display: flex; gap: 7px; flex-shrink: 0; align-items: center; }
+.profile-page .profile-edit-button,.profile-page .profile-save-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1.5px solid #2563eb; border-radius: 12px; background: #fff; color: #2563eb; padding: 10px 16px; font-size: 12px; font-weight: 650; min-height: 42px; white-space: nowrap; }
+.profile-page .profile-save-button { color: #fff; background: #2563eb; }
+.profile-edit-button svg { width: 14px; height: 14px; }
+.profile-cancel-button { background: transparent; border: 0; color: #8290a5; padding: 8px; font-size: 12px; }
+.profile-form-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 22px 24px; }
+.profile-field { min-width: 0; }
+.profile-field.full { grid-column: 1 / -1; }
+.profile-field>label,.profile-field-label { display: block; color: #566174; font-size: 12px; font-weight: 600; margin-bottom: 7px; }
+.profile-age { font-weight: 400; color: #9ba4b4; }
+.profile-input { position: relative; }
+.profile-input>svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #a9b1bf; width: 16px; height: 16px; pointer-events: none; }
+.fitness-app .profile-page .profile-input input,.fitness-app .profile-page .profile-input select { width: 100%; padding: 12px 14px 12px 42px; border: 1px solid #e6e9ef; border-radius: 12px; background: #f9fafc; color: #4c596d; font-size: 13px; line-height: 1.5; min-height: 47px; box-shadow: none; }
+.fitness-app .profile-page fieldset:disabled .profile-input input,.fitness-app .profile-page fieldset:disabled .profile-input select { color: #7c889c; border-color: #edf0f4; background: #f9fafb; opacity: 1; cursor: default; }
+.profile-field-hint { font-size: 10px; line-height: 1.65; color: #a2aaba; margin: 8px 1px 0; }
+.profile-field-error { display: block; font-size: 11px; color: #bd4a59; margin-top: 5px; }
+.profile-field-error:empty { display: none; }
+.profile-bmi-detail { padding: 24px; align-self: start; scroll-margin-top: 105px; }
+.profile-bmi-detail .profile-section-heading { align-items: center; gap: 8px; margin-bottom: 20px; }
+.profile-bmi-detail h2 { font-size: 16px; gap: 8px; }
+.profile-bmi-detail .profile-section-heading>a { text-decoration: none; white-space: nowrap; font-size: 10px; }
+.profile-bmi-reading { display: flex; align-items: center; gap: 12px; margin-bottom: 25px; }
+.profile-bmi-reading>strong { font-size: 36px; line-height: 1.3; color: #2b3749; font-weight: 800; letter-spacing: -1.5px; }
+.profile-bmi-reading>.bmi-category { font-size: 11px; padding: 5px 12px; }
+.profile-bmi-scale { height: 12px; display: flex; position: relative; border-radius: 20px; background: #eef2f8; }
+.profile-bmi-scale>span { width: 25%; background: #9fc8fb; }
+.profile-bmi-scale>span:first-child { border-radius: 20px 0 0 20px; }
+.profile-bmi-scale>span:nth-child(2) { background: #64d3a0; }
+.profile-bmi-scale>span:nth-child(3) { background: #f4cc58; }
+.profile-bmi-scale>span:nth-child(4) { background: #f68c97; border-radius: 0 20px 20px 0; }
+.profile-bmi-scale>i { position: absolute; top: 50%; transform: translate(-50%,-50%); width: 17px; height: 17px; border: 3px solid #3974ef; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px #2c548b25; }
+.profile-bmi-labels { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); text-align: center; font-size: 9px; color: #8490a3; gap: 3px; margin-top: 13px; }
+.profile-bmi-labels small { display: block; font-size: 9px; margin-top: 3px; }
+.profile-bmi-reference { font-size: 9px; color: #a5adbb; margin: 17px 0 0; }
+.profile-bmi-tip { display: flex; gap: 10px; padding: 15px; margin-top: 13px; background: #f9fafc; border: 1px solid #edf0f5; border-radius: 15px; }
+.profile-bmi-tip>span { display: grid; place-items: center; height: 17px; width: 17px; flex-shrink: 0; border-radius: 50%; background: #a5afc0; color: #fff; font-size: 10px; font-weight: 700; margin-top: 2px; }
+.profile-bmi-tip p { font-size: 11px; color: #8190a4; margin: 0; }
+.profile-read-value { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #edf0f4; border-radius: 12px; color: #7c889c; background: #f9fafb; min-height: 47px; font-size: 13px; }
+.profile-read-value svg { width: 16px; height: 16px; color: #a9b1bf; }
+.profile-read-value span { min-width: 0; overflow-wrap: anywhere; }
+.training-preferences { align-items: flex-start; }
+.training-preferences svg { margin-top: 2px; }
+.profile-schedule-link { display: inline-block; font-size: 10px; margin-top: 9px; text-decoration: none; }
+.profile-ai-tip { display: flex; align-items: flex-start; gap: 14px; padding: 17px; border: 1px solid #dbe8ff; border-radius: 16px; background: #f5f8ff; margin-top: 24px; }
+.profile-ai-icon { display: grid; place-items: center; width: 33px; height: 33px; border-radius: 50%; flex-shrink: 0; color: #5389ed; background: #e3edff; }
+.profile-ai-icon svg { width: 18px; height: 18px; }
+.profile-ai-tip h3 { color: #4e72b6; font-size: 12px; margin: 0; letter-spacing: 0; }
+.profile-ai-tip p { color: #8299bd; font-size: 11px; margin: 6px 0; }
+.profile-ai-tip a { text-decoration: none; font-size: 11px; font-weight: 600; }
+.profile-last-updated { color: #a7afbd; font-size: 10px; text-align: right; margin: 15px 0 0; }
+.profile-alert { padding: 14px 20px; margin-bottom: 20px; border: 1px solid #dce7fb; border-radius: 14px; font-size: 13px; background: #eff6ff; color: #466b9d; }
+.profile-alert.success { color: #3b8a64; background: #effaf4; border-color: #d5eee1; }
+.profile-alert.error { color: #b45262; background: #fff1f3; border-color: #f8dce2; }
+@media (max-width: 1100px) {
+    .profile-layout { grid-template-columns: minmax(0, 4.5fr) minmax(0, 7.5fr); gap: 20px; }
+    .profile-personal,.profile-goals { padding: 25px; }
+    .profile-summary-content { padding-left: 18px; padding-right: 18px; }
+    .profile-energy-stats { gap: 8px; }
+    .profile-energy { padding: 12px 9px; gap: 6px; }
+    .profile-energy>svg { width: 19px; }
+    .profile-energy h2>span { display: none; }
+    .profile-section-heading { gap: 12px; }
+}
+@media (max-width: 800px) {
+    .profile-page { padding: 0 18px; margin-top: 22px; }
+    .profile-layout { grid-template-columns: minmax(0,1fr); gap: 20px; }
+    .profile-summary { grid-row: 1; }
+    .profile-personal { grid-row: 2; }
+    .profile-bmi-detail { grid-row: 3; }
+    .profile-goals { grid-row: 4; }
+    .profile-summary-content { padding-left: 24px; padding-right: 24px; }
+    .profile-energy h2>span { display: inline; }
+    .profile-energy { padding: 14px; }
+    .profile-mini-stats { max-width: 440px; margin-left: auto; margin-right: auto; }
+    .profile-banner { height: 150px; }
+    .profile-bmi-labels { font-size: 10px; }
+}
+@media (max-width: 500px) {
+    .profile-personal,.profile-goals,.profile-bmi-detail { padding: 22px; }
+    .profile-personal .profile-section-heading { flex-wrap: wrap; margin-bottom: 24px; }
+    .profile-section-heading h2 { font-size: 18px; }
+    .profile-form-grid { gap: 19px 14px; }
+    .profile-field { grid-column: 1 / -1; }
+    .profile-summary-content { padding-left: 20px; padding-right: 20px; }
+    .profile-membership { font-size: 11px; }
+    .profile-bmi-labels,.profile-bmi-labels small { font-size: 8px; }
+    .profile-bmi-quick { padding: 14px 12px; gap: 10px; }
+    .profile-bmi-detail h2 { font-size: 16px; }
+    .profile-banner>span { font-size: 23px; }
+}

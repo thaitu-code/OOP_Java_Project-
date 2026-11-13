@@ -85,3 +85,13 @@ Chưa triển khai: avatar upload, VI–EN, micro, nhận diện ảnh, RPE/temp
 - `git diff --check` đạt.
 - Ảnh kiểm tra bằng dữ liệu mô phỏng: `target/ui-preview/chat-desktop.jpg`, `target/ui-preview/chat-mobile.jpg`.
 - Sau khi cập nhật source, chạy lại ứng dụng trong IntelliJ và tải lại trình duyệt bằng Ctrl+F5.
+
+### 2026-11-13 — Đối chiếu riêng trang hồ sơ với demo
+
+Trang hồ sơ đã được dựng lại theo cấu trúc bốn thẻ của component demo: hàng trên là thẻ hồ sơ có ảnh bìa/avatar/BMI/BMR/TDEE (1/3) và thông tin cá nhân (2/3); hàng dưới là thang BMI và mục tiêu tập luyện. Ảnh bìa dùng đúng ảnh Unsplash được demo tham chiếu, tải về `static/images/profile-cover.jpg` để phục vụ cục bộ. Style riêng ở `static/css/profile.css`.
+
+Biểu mẫu thông tin cá nhân và mục tiêu thuộc cùng một form, giữ ngày sinh ISO, CSRF và expectedVersion. Sửa/Hủy bật/tắt và khôi phục cả hai fieldset; lỗi validation giữ cả hai phần ở chế độ chỉnh sửa. Mục tiêu đích và điều kiện tập luyện vẫn đọc dữ liệu thực tế; chỉnh các thông tin này tiếp tục qua đề xuất AI. Không đưa tần suất/địa điểm mẫu hoặc nút tải avatar chưa hoạt động từ demo vào bản chính.
+
+Các mức BMI tham chiếu được đối chiếu với [CDC](https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html), chỉ hiển thị phân loại người trưởng thành khi tuổi từ 20 trở lên. Các chỉ số hiển thị lấy từ hồ sơ đã lưu; không tự đổi BMR/TDEE khi đang nhập dữ liệu.
+
+Xác minh đợt chỉnh riêng: `UiPageRenderingTest` 8 tests đạt, `node --check` cho profile script/preview đạt, `git diff --check` đạt. Đã kiểm tra desktop, mobile, Sửa/Hủy và xác nhận CSS runtime tại localhost:8081 khớp source. Preview trình duyệt sử dụng dữ liệu mô phỏng, không ghi database. Ảnh: `target/ui-preview/profile-demo-desktop.jpg`, `profile-demo-details.jpg`, `profile-demo-mobile.jpg`.

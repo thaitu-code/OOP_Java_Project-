@@ -40,8 +40,8 @@ http.createServer(async(req,res)=>{
   try{
     const u=new URL(req.url,'http://localhost');let file;
     if(req.method==='GET'&&pages[u.pathname])file=path.join(root,'target',pages[u.pathname]+'.html');
-    else if(req.method==='GET'&&/^\/(css|js)\/[\w.-]+$/.test(u.pathname))file=path.join(root,'src/main/resources/static',u.pathname);
-    if(file){let data=fs.readFileSync(file,'utf8');if(file.endsWith('.html'))data=data.replace(/(<body[^>]*>)/,'$1<div style="position:fixed;top:0;left:0;right:0;z-index:100;background:#fff3cf;color:#735819;padding:5px;text-align:center;font:11px Segoe UI">BẢN KIỂM THỬ · Dữ liệu mô phỏng · Không kết nối database hoặc Gemini</div>');res.writeHead(200,{'Content-Type':(file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':'text/javascript')+'; charset=utf-8','Cache-Control':'no-store'});res.end(data);return;}
+    else if(req.method==='GET'&&/^\/(css|js|images)\/[\w.-]+$/.test(u.pathname))file=path.join(root,'src/main/resources/static',u.pathname);
+    if(file){let data=fs.readFileSync(file);if(file.endsWith('.html'))data=data.toString('utf8').replace(/(<body[^>]*>)/,'$1<div style="position:fixed;top:0;left:0;right:0;z-index:100;background:#fff3cf;color:#735819;padding:5px;text-align:center;font:11px Segoe UI">BẢN KIỂM THỬ · Dữ liệu mô phỏng · Không kết nối database hoặc Gemini</div>');const types={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.jpg':'image/jpeg','.png':'image/png','.svg':'image/svg+xml'};res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store'});res.end(data);return;}
     let text='';for await(const chunk of req)text+=chunk;const result=api(req.method,req.url,text?JSON.parse(text):{});res.writeHead(result.status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(result.data==null?'':JSON.stringify(result.data));
   }catch(e){res.writeHead(500,{'Content-Type':'application/json'});res.end(JSON.stringify({message:e.message}));}
 }).listen(8773,'127.0.0.1',()=>console.log('UI QA only: http://127.0.0.1:8773/home'));

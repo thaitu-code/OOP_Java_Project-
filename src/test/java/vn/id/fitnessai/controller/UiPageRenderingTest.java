@@ -59,7 +59,7 @@ class UiPageRenderingTest {
         String html=render("/home","home",true);assertThat(html).contains("dashboard-app","app-account","Nhịp sống 7 ngày","3 ngày","/js/dashboard.js").doesNotContain("1920","500 kcal","data-tab=\"manage\"");
     }
     @Test void profileStartsReadOnlyAndPreservesVersionAndDomainFields()throws Exception{
-        String html=render("/profile","profile",true);assertThat(html).contains("profile-fields\" disabled", "name=\"expectedVersion\"", "birthDate", "value=\"2000-01-01\"", "INCREASE_HEIGHT", "65", "profile-edit");
+        String html=render("/profile","profile",true);assertThat(html).contains("profile-fields\" disabled", "profile-goal-fields\" disabled", "name=\"expectedVersion\"", "birthDate", "value=\"2000-01-01\"", "INCREASE_HEIGHT", "65", "profile-edit", "profile-summary", "profile-personal", "profile-bmi-detail", "profile-goals", "/css/profile.css");
     }
     @Test void chatHasOneComposerAndWorkingSuggestionsWithoutUnsupportedControls()throws Exception{
         String html=render("/ai","ai",true);assertThat(html).contains("id=\"chat-text\"","id=\"send\"","data-prompt=","id=\"proposals\"").doesNotContain("ai-execute","type=\"file\"");
@@ -86,5 +86,15 @@ class UiPageRenderingTest {
                 .param("weightKg","65").param("activityLevel","MODERATE").param("goal","MAINTAIN").param("expectedVersion","0"))
                 .andExpect(status().is3xxRedirection());
         verify(profiles).updateUserProfile(eq("preview-user"),argThat(r->r.getBirthDate().equals(LocalDate.of(2000,1,1))&&r.getExpectedVersion()==0L));
+    }
+    @Test void profileValidationErrorsKeepBothSectionsEditable()throws Exception{
+        String html=mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/profile/update").with(user("preview-user"))
+                .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
+                .param("displayName","Test").param("birthDate","2000-01-01").param("gender","MALE").param("heightCm","170")
+                .param("weightKg","1").param("activityLevel","MODERATE").param("goal","GAIN_MUSCLE").param("expectedVersion","0"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+        assertThat(html).doesNotContain("profile-fields\" disabled", "profile-goal-fields\" disabled")
+                .contains("Cân nặng tối thiểu", "value=\"GAIN_MUSCLE\" selected");
+        verify(profiles,never()).updateUserProfile(anyString(),any());
     }
 }

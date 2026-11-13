@@ -1,278 +1,97 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
-<script defer th:src="@{/js/app-shell.js}"></script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hồ sơ & Chỉ số cơ thể - FitnessAI</title>
-    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
-    <style>
-        .profile-container {
-            max-width: 1040px;
-            margin: 24px auto 40px;
-            padding: 0 20px;
-        }
-        .profile-header-bar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-        }
-        .btn-back-home {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            text-decoration: none;
-            color: #475569;
-            background: #ffffff;
-            border: 1px solid #cbd5e1;
-            padding: 8px 14px;
-            border-radius: 8px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        .btn-back-home:hover {
-            background-color: #f1f5f9;
-            color: #0f172a;
-        }
-        .grid-layout {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-        @media (max-width: 768px) {
-            .grid-layout {
-                grid-template-columns: 1fr;
-            }
-        }
-        .profile-card {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-            border: 1px solid #e2e8f0;
-        }
-        .metric-badge {
-            background-color: #f8fafc;
-            border-left: 4px solid #2563eb;
-            padding: 12px 16px;
-            margin-bottom: 12px;
-            border-radius: 6px;
-        }
-        .metric-title {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #64748b;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-        .metric-val {
-            font-size: 1.45rem;
-            font-weight: 700;
-            color: #0f172a;
-            margin-top: 4px;
-        }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: #334155;
-        }
-        .form-control {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            font-size: 0.95rem;
-            box-sizing: border-box;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-        .form-control:focus {
-            border-color: #2563eb;
-        }
-        .btn-submit {
-            background-color: #2563eb;
-            color: #fff;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            width: 100%;
-            transition: background-color 0.2s;
-        }
-        .btn-submit:hover {
-            background-color: #1d4ed8;
-        }
-        .text-danger {
-            color: #dc2626;
-            font-size: 0.82rem;
-            margin-top: 4px;
-            display: block;
-        }
-        .alert {
-            padding: 12px 16px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-        }
-        .alert-success {
-            background-color: #def7ec;
-            color: #03543f;
-        }
-        .alert-danger {
-            background-color: #fde8e8;
-            color: #9b1c1c;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hồ sơ cá nhân · FitnessAI</title>
     <meta name="app-base" th:content="@{/}">
     <meta name="_csrf" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:content="${_csrf.headerName}">
-  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
+    <link rel="stylesheet" th:href="@{/css/app-ui.css}">
+    <link rel="stylesheet" th:href="@{/css/profile.css}">
+    <script defer th:src="@{/js/app-shell.js}"></script>
+    <script defer th:src="@{/js/profile-ui.js}"></script>
 </head>
-<body class="fitness-app dash-body">
-
-<!-- Header Topbar chuẩn điều hướng -->
+<body class="fitness-app">
 <header th:replace="~{fragments/app :: header}"></header>
+<svg class="profile-icons" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="p-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a7 7 0 0 1 14 0v2"/></symbol>
+    <symbol id="p-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/></symbol>
+    <symbol id="p-gender" viewBox="0 0 24 24"><circle cx="9" cy="15" r="6"/><path d="m13 11 8-8m-6 0h6v6"/></symbol>
+    <symbol id="p-ruler" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M7 6h5m-5 4h3m-3 4h5m-5 4h3"/></symbol>
+    <symbol id="p-weight" viewBox="0 0 24 24"><path d="M8 7a4 4 0 0 1 8 0m-11 0h14l3 14H2L5 7Z"/><path d="M12 7V5"/></symbol>
+    <symbol id="p-activity" viewBox="0 0 24 24"><path d="M2 12h5l3-8 4 16 3-8h5"/></symbol>
+    <symbol id="p-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></symbol>
+    <symbol id="p-flag" viewBox="0 0 24 24"><path d="M5 22V3c5-5 9 5 14 0v11c-5 5-9-5-14 0"/></symbol>
+    <symbol id="p-clipboard" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="18" rx="2"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M9 11h6m-6 5h6"/></symbol>
+    <symbol id="p-chart" viewBox="0 0 24 24"><path d="M4 20V10m8 10V4m8 16V8"/></symbol>
+    <symbol id="p-heart" viewBox="0 0 24 24"><path d="M12 22S2 16 2 9a5 5 0 0 1 10-2 5 5 0 0 1 10 2c0 7-10 13-10 13Z"/><path d="M3 12h5l2-4 4 8 2-4h5"/></symbol>
+    <symbol id="p-fire" viewBox="0 0 24 24"><path d="M13 2c2 8 7 8 7 14a8 8 0 0 1-16 0c0-4 3-6 4-9 0 4 2 4 3 5 2-3 2-6 2-10Z"/></symbol>
+    <symbol id="p-meal" viewBox="0 0 24 24"><path d="M4 2v7m4-7v7m4-7v7M4 7a4 4 0 0 0 8 0m-4 4v11M20 2v20m0-20c-5 3-6 10 0 10"/></symbol>
+    <symbol id="p-crown" viewBox="0 0 24 24"><path d="m3 5 5 5 4-7 4 7 5-5-2 14H5L3 5Zm2 17h14"/></symbol>
+    <symbol id="p-edit" viewBox="0 0 24 24"><path d="m4 16 12-12a3 3 0 0 1 4 4L8 20l-6 2 2-6Zm10-10 4 4"/></symbol>
+    <symbol id="p-bulb" viewBox="0 0 24 24"><path d="M8 17c0-3-4-4-4-9a8 8 0 0 1 16 0c0 5-4 6-4 9H8Zm1 3h6m-5 3h4"/></symbol>
+</defs></svg>
+<main class="profile-page" id="profile-page" th:attr="data-bmi=${profile.calculatedBmi},data-age=${profile.age}">
+    <div th:if="${successMessage}" class="profile-alert success" role="status" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="profile-alert error" role="alert" th:text="${errorMessage}"></div>
 
-<main class="profile-container">
-<section class="profile-cover" aria-label="Hồ sơ cá nhân"></section><section class="profile-identity"><span class="app-avatar" th:text="${uiIdentity.initials}"></span><div><h1 th:text="${uiIdentity.displayName}"></h1><p th:text="${uiIdentity.email}"></p></div><a class="ui-button secondary" th:href="@{/ai}">Cùng AI xem lại mục tiêu ✧</a></section>
-    <div class="profile-header-bar">
-        <h2>Hồ sơ & Chỉ số cơ thể</h2>
-        <a class="btn-back-home" href="home.html" th:href="@{/home}">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            Quay lại trang chủ
-        </a>
-    </div>
+    <form id="profile-form" class="profile-layout" th:action="@{/profile/update}" th:object="${profileForm}" method="post"
+          th:with="viewOnly=${profile.calculatedBmr != null and !#fields.hasAnyErrors() and errorMessage == null}">
+        <aside class="profile-panel profile-summary" aria-label="Tóm tắt hồ sơ">
+            <div class="profile-banner"><span>Better<br>Stronger<br>Everyday</span></div>
+            <div class="profile-portrait" role="img" th:attr="aria-label=${'Ảnh đại diện viết tắt của ' + uiIdentity.displayName}"><span th:text="${uiIdentity.initials}"></span></div>
+            <div class="profile-summary-content">
+                <h1 th:text="${profile.displayName != null ? profile.displayName : uiIdentity.displayName}"></h1>
+                <p class="profile-email" th:text="${uiIdentity.email}"></p>
+                <span class="profile-membership"><svg><use href="#p-crown"/></svg> Thành viên Fitness AI</span>
+                <div class="profile-mini-stats">
+                    <a href="#profile-bmi" class="profile-bmi-quick"><span class="profile-heart"><svg><use href="#p-heart"/></svg></span><span class="profile-bmi-quick-text"><small>Chỉ số BMI hiện tại</small><span><strong th:text="${profile.calculatedBmi != null ? #numbers.formatDecimal(profile.calculatedBmi,1,1) : '—'}"></strong><span class="bmi-category" data-bmi-category hidden></span></span></span><span class="profile-chevron" aria-hidden="true">›</span></a>
+                    <div class="profile-energy-stats">
+                        <article class="profile-energy bmr"><svg><use href="#p-fire"/></svg><div><h2>BMR <span>(Trao đổi chất)</span></h2><p><strong th:text="${profile.calculatedBmr != null ? #numbers.formatDecimal(profile.calculatedBmr,1,0) : '—'}"></strong> <small>kcal/ngày</small></p></div></article>
+                        <article class="profile-energy tdee"><svg><use href="#p-meal"/></svg><div><h2>TDEE <span>(Tiêu hao)</span></h2><p><strong th:text="${profile.calculatedTdee != null ? #numbers.formatDecimal(profile.calculatedTdee,1,0) : '—'}"></strong> <small>kcal/ngày</small></p></div></article>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
-    <!-- Thông báo kết quả -->
-    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-    <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
-
-    <div class="grid-layout">
-        <!-- Cột trái: Form cập nhật thông tin -->
-        <div class="profile-card">
-            <h3 style="margin-top: 0; margin-bottom: 20px;">Cập nhật thông tin</h3>
-            <form id="profile-form" th:action="@{/profile/update}" th:object="${profileForm}" method="post">
-<div class="profile-actions"><span class="muted">Thông tin cá nhân</span><button id="profile-edit" class="text-button" type="button">Chỉnh sửa ✎</button><button id="profile-cancel" class="text-button" type="button" hidden>Hủy chỉnh sửa</button></div>
-<fieldset id="profile-fields" th:disabled="${profile.calculatedBmr != null and !#fields.hasAnyErrors() and errorMessage == null}">
+        <section class="profile-panel profile-personal" aria-labelledby="personal-heading">
+            <div class="profile-section-heading"><div><h2 id="personal-heading"><svg><use href="#p-user"/></svg> Thông tin cá nhân</h2><p>Cập nhật thông tin để cá nhân hóa kế hoạch tập luyện và dinh dưỡng phù hợp với bạn.</p></div><div class="profile-edit-actions"><button id="profile-edit" class="profile-edit-button" type="button"><svg><use href="#p-edit"/></svg> Sửa hồ sơ</button><button id="profile-save" class="profile-save-button" type="submit">Lưu hồ sơ</button><button id="profile-cancel" class="profile-cancel-button" type="button" hidden>Hủy</button></div></div>
+            <fieldset id="profile-fields" th:disabled="${viewOnly}">
                 <input type="hidden" name="expectedVersion" th:value="${profile.version}">
-                <div class="form-group">
-                    <label for="displayName">Tên hiển thị</label>
-                    <input type="text" id="displayName" th:field="*{displayName}" class="form-control" placeholder="Nhập tên hiển thị">
-                    <span class="text-danger" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></span>
+                <div class="profile-form-grid">
+                    <div class="profile-field full"><label for="displayName">Họ và tên</label><div class="profile-input"><svg><use href="#p-user"/></svg><input id="displayName" th:field="*{displayName}" required maxlength="255" autocomplete="name" placeholder="Nhập tên hiển thị"></div><span class="profile-field-error" th:errors="*{displayName}"></span></div>
+                    <div class="profile-field"><label for="birthDate">Ngày sinh <span class="profile-age" th:if="${profile.age != null}" th:text="${'· ' + profile.age + ' tuổi'}"></span></label><div class="profile-input"><svg><use href="#p-calendar"/></svg><input type="date" id="birthDate" th:field="*{birthDate}" required autocomplete="bday"></div><span class="profile-field-error" th:errors="*{birthDate}"></span></div>
+                    <div class="profile-field"><label for="gender">Giới tính</label><div class="profile-input"><svg><use href="#p-gender"/></svg><select id="gender" th:field="*{gender}" required><option value="">Chọn giới tính</option><option th:each="g : ${genders}" th:value="${g}" th:text="${g == T(vn.id.fitnessai.enums.Gender).MALE ? 'Nam' : 'Nữ'}"></option></select></div><span class="profile-field-error" th:errors="*{gender}"></span></div>
+                    <div class="profile-field"><label for="heightCm">Chiều cao (cm)</label><div class="profile-input"><svg><use href="#p-ruler"/></svg><input type="number" step="0.01" min="50" max="260" id="heightCm" th:field="*{heightCm}" required placeholder="Nhập chiều cao"></div><span class="profile-field-error" th:errors="*{heightCm}"></span></div>
+                    <div class="profile-field"><label for="weightKg">Cân nặng hiện tại (kg)</label><div class="profile-input"><svg><use href="#p-weight"/></svg><input type="number" step="0.01" min="20" max="400" id="weightKg" th:field="*{weightKg}" required placeholder="Nhập cân nặng"></div><span class="profile-field-error" th:errors="*{weightKg}"></span></div>
+                    <div class="profile-field full"><label for="activityLevel">Mức độ vận động</label><div class="profile-input"><svg><use href="#p-activity"/></svg><select id="activityLevel" th:field="*{activityLevel}" required><option value="">Chọn mức độ vận động</option><option value="SEDENTARY">Ít vận động</option><option value="LIGHT">Vận động nhẹ</option><option value="MODERATE">Vận động vừa</option><option value="ACTIVE">Vận động nhiều</option><option value="VERY_ACTIVE">Vận động rất nhiều</option></select></div><p id="activity-description" class="profile-field-hint"></p><span class="profile-field-error" th:errors="*{activityLevel}"></span></div>
                 </div>
+            </fieldset>
+        </section>
 
-                <div class="form-group">
-                    <label for="gender">Giới tính</label>
-                    <select id="gender" th:field="*{gender}" class="form-control">
-                        <option value="">-- Chọn giới tính --</option>
-                        <option th:each="g : ${genders}" th:value="${g}" th:text="${g == T(vn.id.fitnessai.enums.Gender).MALE ? 'Nam' : 'Nữ'}"></option>
-                    </select>
-                    <span class="text-danger" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}"></span>
+        <section class="profile-panel profile-bmi-detail" id="profile-bmi" tabindex="-1" aria-labelledby="bmi-heading">
+            <div class="profile-section-heading"><h2 id="bmi-heading"><svg><use href="#p-chart"/></svg> Chỉ số BMI</h2><a href="https://www.cdc.gov/bmi/adult-calculator/bmi-categories.html" target="_blank" rel="noopener noreferrer">Tìm hiểu thêm →</a></div>
+            <div class="profile-bmi-reading"><strong th:text="${profile.calculatedBmi != null ? #numbers.formatDecimal(profile.calculatedBmi,1,1) : '—'}"></strong><span class="bmi-category" data-bmi-category hidden></span></div>
+            <div class="profile-bmi-scale" aria-hidden="true"><span></span><span></span><span></span><span></span><i id="bmi-pointer" hidden></i></div>
+            <div class="profile-bmi-labels"><span>&lt; 18.5<small>Thiếu cân</small></span><span>18.5 – &lt; 25<small>Bình thường</small></span><span>25 – &lt; 30<small>Thừa cân</small></span><span>≥ 30<small>Béo phì</small></span></div>
+            <p class="profile-bmi-reference">Thang tham chiếu dành cho người từ 20 tuổi.</p>
+            <div class="profile-bmi-tip"><span aria-hidden="true">i</span><p id="profile-bmi-note">Chỉ số được tính từ chiều cao và cân nặng trong hồ sơ đã lưu.</p></div>
+        </section>
+
+        <section class="profile-panel profile-goals" aria-labelledby="goals-heading">
+            <div class="profile-section-heading"><h2 id="goals-heading"><svg><use href="#p-target"/></svg> Mục tiêu tập luyện</h2></div>
+            <fieldset id="profile-goal-fields" th:disabled="${viewOnly}">
+                <div class="profile-form-grid">
+                    <div class="profile-field"><label for="goal">Mục tiêu</label><div class="profile-input"><svg><use href="#p-flag"/></svg><select id="goal" th:field="*{goal}" required><option value="">Chọn mục tiêu</option><option value="LOSE_WEIGHT">Giảm cân</option><option value="GAIN_MUSCLE">Tăng cơ</option><option value="MAINTAIN">Giữ dáng</option><option value="GAIN_WEIGHT">Tăng cân</option><option value="INCREASE_HEIGHT">Tăng chiều cao / Tư thế</option></select></div><span class="profile-field-error" th:errors="*{goal}"></span></div>
+                    <div class="profile-field"><span class="profile-field-label">Cân nặng đích</span><div class="profile-read-value"><svg><use href="#p-weight"/></svg><span th:text="${profile.targetWeightKg != null ? profile.targetWeightKg + ' kg' : 'Chưa thiết lập'}"></span></div><p class="profile-field-hint">Trao đổi với AI để xem trước thay đổi mục tiêu.</p></div>
+                    <div class="profile-field full"><span class="profile-field-label">Điều kiện và kế hoạch tập luyện</span><div class="profile-read-value training-preferences"><svg><use href="#p-clipboard"/></svg><span th:text="${profile.trainingPreferences != null and !profile.trainingPreferences.isBlank() ? profile.trainingPreferences : 'Chưa bổ sung thời gian, địa điểm và dụng cụ tập luyện.'}"></span></div><a class="profile-schedule-link" th:href="@{/workout#ai-calendar}">Xem lịch tập đã chấp nhận →</a></div>
                 </div>
-
-                <div class="form-group">
-                    <label for="birthDate">Ngày sinh</label>
-                    <input type="date" id="birthDate" th:field="*{birthDate}" class="form-control">
-                    <span class="text-danger" th:if="${#fields.hasErrors('birthDate')}" th:errors="*{birthDate}"></span>
-                </div>
-
-                <div class="form-group">
-                    <label for="heightCm">Chiều cao (cm)</label>
-                    <input type="number" step="0.1" id="heightCm" th:field="*{heightCm}" class="form-control" placeholder="Ví dụ: 168.00">
-                    <span class="text-danger" th:if="${#fields.hasErrors('heightCm')}" th:errors="*{heightCm}"></span>
-                </div>
-
-                <div class="form-group">
-                    <label for="weightKg">Cân nặng cơ thể (kg)</label>
-                    <input type="number" step="0.1" id="weightKg" th:field="*{weightKg}" class="form-control" placeholder="Ví dụ: 50.00">
-                    <span class="text-danger" th:if="${#fields.hasErrors('weightKg')}" th:errors="*{weightKg}"></span>
-                </div>
-
-                <div class="form-group">
-                    <label for="activityLevel">Mức vận động</label>
-                    <select id="activityLevel" th:field="*{activityLevel}" class="form-control">
-                        <option value="">-- Chọn mức độ vận động --</option>
-                        <option th:value="SEDENTARY">Ít vận động (1.20)</option>
-                        <option th:value="LIGHT">Vận động nhẹ (1.375)</option>
-                        <option th:value="MODERATE">Vận động vừa (1.55)</option>
-                        <option th:value="ACTIVE">Vận động nhiều (1.725)</option>
-                        <option th:value="VERY_ACTIVE">Vận động rất nhiều (1.90)</option>
-                    </select>
-                    <span class="text-danger" th:if="${#fields.hasErrors('activityLevel')}" th:errors="*{activityLevel}"></span>
-                </div>
-
-                <div class="form-group">
-                    <label for="goal">Mục tiêu thể hình</label>
-                    <select id="goal" th:field="*{goal}" class="form-control">
-                        <option value="">-- Chọn mục tiêu --</option>
-                        <option th:value="LOSE_WEIGHT">Giảm cân</option>
-                        <option th:value="GAIN_MUSCLE">Tăng cơ</option>
-                        <option th:value="MAINTAIN">Duy trì vóc dáng</option>
-                        <option th:value="GAIN_WEIGHT">Tăng cân</option>
-                        <option th:value="INCREASE_HEIGHT">Tăng chiều cao / Tư thế</option>
-                    </select>
-                    <span class="text-danger" th:if="${#fields.hasErrors('goal')}" th:errors="*{goal}"></span>
-                </div>
-
-                </fieldset><button id="profile-save" type="submit" class="btn-submit">Lưu & Tính toán chỉ số</button>
-            </form>
-        </div>
-
-        <!-- Cột phải: Chỉ số BMR, TDEE và Thống kê hiện tại -->
-        <div class="profile-card">
-            <h3 style="margin-top: 0; margin-bottom: 20px;">Chỉ số cơ thể ước tính</h3>
-            <p th:if="${profile.targetWeightKg != null}">Cân nặng đích: <strong th:text="${profile.targetWeightKg + ' kg'}"></strong></p>
-            <p th:if="${profile.trainingPreferences != null}" th:text="${profile.trainingPreferences}"></p>
-            <p><a th:href="@{/ai}">Trao đổi với AI để bổ sung mục tiêu và điều kiện tập luyện</a></p>
-            <div th:if="${profile.calculatedBmr != null}">
-                <div class="metric-badge">
-                    <div class="metric-title">Tuổi hiện tại (Asia/Ho_Chi_Minh)</div>
-                    <div class="metric-val" th:text="${profile.age + ' tuổi'}">—</div>
-                </div>
-
-                <div class="metric-badge">
-                    <div class="metric-title">Chỉ số khối cơ thể (BMI)</div>
-                    <div class="metric-val" th:text="${profile.calculatedBmi + ' kg/m2'}">--</div>
-                </div>
-
-                <div class="metric-badge">
-                    <div class="metric-title">Chuyển hóa cơ bản (BMR – Mifflin–St Jeor)</div>
-                    <div class="metric-val" th:text="${profile.calculatedBmr + ' kcal/ngày'}">—</div>
-                </div>
-
-                <div class="metric-badge">
-                    <div class="metric-title">Tổng năng lượng tiêu hao (TDEE)</div>
-                    <div class="metric-val" th:text="${profile.calculatedTdee + ' kcal/ngày'}">—</div>
-                </div>
-
-                <div class="metric-badge" style="border-left-color: #10b981;">
-                    <div class="metric-title">Mục tiêu hiện tại</div>
-                    <div class="metric-val" style="font-size: 1.15rem;" th:switch="${#strings.toString(profile.goal)}"><span th:case="'LOSE_WEIGHT'">Giảm cân</span><span th:case="'GAIN_MUSCLE'">Tăng cơ</span><span th:case="'MAINTAIN'">Duy trì vóc dáng</span><span th:case="'GAIN_WEIGHT'">Tăng cân</span><span th:case="'INCREASE_HEIGHT'">Tăng chiều cao / Tư thế</span><span th:case="*">Chưa thiết lập</span></div>
-                </div>
-
-                <p style="font-size: 0.85rem; color: #64748b; margin-top: 20px;">
-                    Cập nhật lần cuối: <span th:text="${#temporals.format(profile.profileCalculatedAt, 'dd/MM/yyyy HH:mm')}">--</span>
-                </p>
-            </div>
-
-            <div th:unless="${profile.calculatedBmr != null}" style="color: #64748b; margin-top: 20px;">
-                <p>Bạn chưa thiết lập hồ sơ chỉ số cơ thể. Vui lòng điền form bên cạnh để hệ thống tính toán BMR & TDEE.</p>
-            </div>
-        </div>
-    </div>
+            </fieldset>
+            <div class="profile-ai-tip"><span class="profile-ai-icon"><svg><use href="#p-bulb"/></svg></span><div><h3>Gợi ý từ Fitness AI</h3><p>Chia sẻ mục tiêu, lịch rảnh và điều kiện tập luyện. AI sẽ chuẩn bị kế hoạch để bạn xem trước và xác nhận.</p><a th:href="@{/ai(prompt='Hãy xem hồ sơ hiện tại và giúp tôi điều chỉnh mục tiêu, thời gian và điều kiện tập luyện phù hợp.')}">Trao đổi cùng AI →</a></div></div>
+            <p class="profile-last-updated" th:if="${profile.profileCalculatedAt != null}">Cập nhật lần cuối: <time th:text="${#temporals.format(profile.profileCalculatedAt,'dd/MM/yyyy HH:mm')}"></time></p>
+        </section>
+    </form>
+    <noscript><p class="profile-alert">Để chỉnh sửa hồ sơ, vui lòng bật JavaScript.</p></noscript>
 </main>
-
-
-<script defer th:src="@{/js/profile-ui.js}"></script>
-</body>
-</html>
+</body></html>
