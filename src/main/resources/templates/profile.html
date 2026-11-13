@@ -2,6 +2,7 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
+<script defer th:src="@{/js/app-shell.js}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hồ sơ & Chỉ số cơ thể - FitnessAI</title>
@@ -133,28 +134,15 @@
     <meta name="app-base" th:content="@{/}">
     <meta name="_csrf" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:content="${_csrf.headerName}">
+  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
 </head>
-<body class="dash-body">
+<body class="fitness-app dash-body">
 
 <!-- Header Topbar chuẩn điều hướng -->
-<header class="topbar">
-    <a class="brand" href="home.html" th:href="@{/home}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
-        </svg>
-        <span>FitnessAI</span>
-    </a>
-    <div class="topbar-right">
-        <a class="nav-link" href="home.html" th:href="@{/home}">Trang chủ</a>
-        <a class="nav-link" href="workout.html" th:href="@{/workout}">Tập luyện</a>
-        <a class="nav-link" href="admin_dashboard.html" th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Quản trị hệ thống</a>
-        <form action="#" th:action="@{/perform_logout}" method="post">
-            <button type="submit" class="btn btn-primary btn-sm">ĐĂNG XUẤT</button>
-        </form>
-    </div>
-</header>
+<header th:replace="~{fragments/app :: header}"></header>
 
 <main class="profile-container">
+<section class="profile-cover" aria-label="Hồ sơ cá nhân"></section><section class="profile-identity"><span class="app-avatar" th:text="${uiIdentity.initials}"></span><div><h1 th:text="${uiIdentity.displayName}"></h1><p th:text="${uiIdentity.email}"></p></div><a class="ui-button secondary" th:href="@{/ai}">Cùng AI xem lại mục tiêu ✧</a></section>
     <div class="profile-header-bar">
         <h2>Hồ sơ & Chỉ số cơ thể</h2>
         <a class="btn-back-home" href="home.html" th:href="@{/home}">
@@ -173,7 +161,9 @@
         <!-- Cột trái: Form cập nhật thông tin -->
         <div class="profile-card">
             <h3 style="margin-top: 0; margin-bottom: 20px;">Cập nhật thông tin</h3>
-            <form th:action="@{/profile/update}" th:object="${profileForm}" method="post">
+            <form id="profile-form" th:action="@{/profile/update}" th:object="${profileForm}" method="post">
+<div class="profile-actions"><span class="muted">Thông tin cá nhân</span><button id="profile-edit" class="text-button" type="button">Chỉnh sửa ✎</button><button id="profile-cancel" class="text-button" type="button" hidden>Hủy chỉnh sửa</button></div>
+<fieldset id="profile-fields" th:disabled="${profile.calculatedBmr != null and !#fields.hasAnyErrors() and errorMessage == null}">
                 <input type="hidden" name="expectedVersion" th:value="${profile.version}">
                 <div class="form-group">
                     <label for="displayName">Tên hiển thị</label>
@@ -234,7 +224,7 @@
                     <span class="text-danger" th:if="${#fields.hasErrors('goal')}" th:errors="*{goal}"></span>
                 </div>
 
-                <button type="submit" class="btn-submit">Lưu & Tính toán chỉ số</button>
+                </fieldset><button id="profile-save" type="submit" class="btn-submit">Lưu & Tính toán chỉ số</button>
             </form>
         </div>
 
@@ -247,7 +237,7 @@
             <div th:if="${profile.calculatedBmr != null}">
                 <div class="metric-badge">
                     <div class="metric-title">Tuổi hiện tại (Asia/Ho_Chi_Minh)</div>
-                    <div class="metric-val" th:text="${profile.age + ' tuổi'}">20 tuổi</div>
+                    <div class="metric-val" th:text="${profile.age + ' tuổi'}">—</div>
                 </div>
 
                 <div class="metric-badge">
@@ -257,17 +247,17 @@
 
                 <div class="metric-badge">
                     <div class="metric-title">Chuyển hóa cơ bản (BMR – Mifflin–St Jeor)</div>
-                    <div class="metric-val" th:text="${profile.calculatedBmr + ' kcal/ngày'}">1455.00 kcal/ngày</div>
+                    <div class="metric-val" th:text="${profile.calculatedBmr + ' kcal/ngày'}">—</div>
                 </div>
 
                 <div class="metric-badge">
                     <div class="metric-title">Tổng năng lượng tiêu hao (TDEE)</div>
-                    <div class="metric-val" th:text="${profile.calculatedTdee + ' kcal/ngày'}">2000.63 kcal/ngày</div>
+                    <div class="metric-val" th:text="${profile.calculatedTdee + ' kcal/ngày'}">—</div>
                 </div>
 
                 <div class="metric-badge" style="border-left-color: #10b981;">
                     <div class="metric-title">Mục tiêu hiện tại</div>
-                    <div class="metric-val" style="font-size: 1.15rem;" th:text="${profile.goal}">GAIN_MUSCLE</div>
+                    <div class="metric-val" style="font-size: 1.15rem;" th:switch="${#strings.toString(profile.goal)}"><span th:case="'LOSE_WEIGHT'">Giảm cân</span><span th:case="'GAIN_MUSCLE'">Tăng cơ</span><span th:case="'MAINTAIN'">Duy trì vóc dáng</span><span th:case="'GAIN_WEIGHT'">Tăng cân</span><span th:case="'INCREASE_HEIGHT'">Tăng chiều cao / Tư thế</span><span th:case="*">Chưa thiết lập</span></div>
                 </div>
 
                 <p style="font-size: 0.85rem; color: #64748b; margin-top: 20px;">
@@ -282,6 +272,7 @@
     </div>
 </main>
 
-<script defer th:src="@{/js/ai-notifications.js}"></script>
+
+<script defer th:src="@{/js/profile-ui.js}"></script>
 </body>
 </html>

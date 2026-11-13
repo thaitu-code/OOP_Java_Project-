@@ -6,8 +6,9 @@
     <title>Đăng nhập - FitnessAI</title>
     <!-- Mở trực tiếp file: dùng đường dẫn ../static/...  |  Chạy qua Spring Boot: Thymeleaf tự đổi sang @{/css/style.css} -->
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
+  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
 </head>
-<body>
+<body class="fitness-auth">
 <main class="container has-intro" id="authContainer">
 
     <!-- ===== PHẦN TRÁI: Form đăng nhập  <->  Giới thiệu ===== -->
@@ -30,14 +31,14 @@
                 <div class="form-group">
                     <label class="field">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
-                        <input type="text" id="username" name="username" placeholder="Tên đăng nhập" required autocomplete="username">
+                        <input aria-label="Tên đăng nhập" type="text" id="username" name="username" placeholder="Tên đăng nhập" required autocomplete="username">
 
                     </label>
                 </div>
                 <div class="form-group">
                     <label class="field">
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
-                        <input type="password" id="password" name="password" placeholder="Mật khẩu" required autocomplete="current-password">
+                        <input aria-label="Mật khẩu" type="password" id="password" name="password" placeholder="Mật khẩu" required autocomplete="current-password">
                         <button type="button" class="eye" data-toggle-password aria-label="Hiện mật khẩu"><svg class="" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
                     </label>
                 </div>

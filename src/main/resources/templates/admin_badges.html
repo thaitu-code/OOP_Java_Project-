@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
+<script defer th:src="@{/js/app-shell.js}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Quản lý huy hiệu - FitnessAI</title>
@@ -17,12 +18,12 @@
         .notice{padding:10px;background:#eff6ff;border-radius:8px;margin-bottom:12px}
         @media(max-width:650px){.badge-form{grid-template-columns:1fr}.badge-panel{overflow:auto}}
     </style>
+  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
+<meta name="app-base" th:content="@{/}">
+<meta name="_csrf" th:content="${_csrf.token}"><meta name="_csrf_header" th:content="${_csrf.headerName}">
 </head>
-<body>
-<header class="topbar">
-    <a class="brand" th:href="@{/home}"><span>FitnessAI</span></a>
-    <a class="nav-link" th:href="@{/admin/dashboard}">Quay lại quản trị</a>
-</header>
+<body class="fitness-app">
+<header th:replace="~{fragments/app :: header}"></header>
 <main class="badge-admin-wrap">
     <h1>Quản lý huy hiệu</h1>
     <div class="notice" th:if="${param.created}">Đã tạo huy hiệu. Hệ thống đã xét cấp bù cho người dùng đủ điều kiện.</div>

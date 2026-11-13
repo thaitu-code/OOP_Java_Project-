@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<header th:fragment="header" class="app-header">
+  <a class="app-brand" th:href="@{/home}" aria-label="FitnessAI · Trang chủ"><span class="brand-symbol" aria-hidden="true">f<span>.</span></span>Fitness<span>AI</span></a>
+  <span class="app-header-caption">Better. Stronger. Everyday.</span>
+  <div class="app-header-actions" th:if="${uiIdentity.authenticated}">
+    <details id="app-notifications" class="app-popover">
+      <summary aria-label="Thông báo" class="app-icon-button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="app-unread" class="unread-dot" hidden></span></summary>
+      <section class="app-popover-panel notifications-panel" aria-label="Danh sách thông báo"><div class="popover-heading"><strong>Thông báo</strong><button id="app-notifications-refresh" type="button" class="text-button">Làm mới</button></div><div id="app-notification-list" aria-live="polite"><p class="muted">Đang tải thông báo…</p></div></section>
+    </details>
+    <details id="app-account" class="app-popover">
+      <summary class="account-trigger" aria-label="Mở menu tài khoản"><span class="app-avatar" th:text="${uiIdentity.initials}">F</span><span class="account-label" th:text="${uiIdentity.displayName}">Tài khoản</span><span aria-hidden="true">⌄</span></summary>
+      <nav class="app-popover-panel account-menu" aria-label="Điều hướng chính">
+        <div class="account-info"><strong th:text="${uiIdentity.displayName}"></strong><small th:text="${uiIdentity.email}"></small></div>
+        <a th:href="@{/home}"><span aria-hidden="true">▦</span> Tổng quan</a>
+        <a th:href="@{/workout}"><span aria-hidden="true">↗</span> Tập luyện</a>
+        <a th:href="@{/nutrition}"><span aria-hidden="true">◉</span> Dinh dưỡng</a>
+        <a th:href="@{/ai}"><span aria-hidden="true">✧</span> Chat với AI</a>
+        <a th:href="@{/profile}"><span aria-hidden="true">◎</span> Hồ sơ của tôi</a>
+        <a th:if="${uiIdentity.admin}" th:href="@{/admin/dashboard}"><span aria-hidden="true">⚙</span> Quản trị hệ thống</a>
+        <form th:action="@{/perform_logout}" method="post"><button type="submit">Đăng xuất <span aria-hidden="true">↪</span></button></form>
+      </nav>
+    </details>
+  </div>
+  <a th:unless="${uiIdentity.authenticated}" th:href="@{/login}" class="ui-button">Đăng nhập</a>
+</header>
+</body></html>

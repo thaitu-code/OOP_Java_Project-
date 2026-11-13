@@ -541,9 +541,10 @@
 
   const actions = {
     refresh: async () => { await refreshAll(); state.ready = true; renderSession(); notice("Đã đồng bộ dữ liệu mới nhất.", "success"); },
-    create: async () => { await createWorkout(); setTab("library"); notice("Đã tạo buổi tập. Chọn các bài bạn muốn tập.", "success"); },
+    create: async () => { if(window.FitnessWizard){await window.FitnessWizard.open();return;} await createWorkout(); setTab("library"); notice("Đã tạo buổi tập. Chọn các bài bạn muốn tập.", "success"); },
     browse: () => setTab("library"),
     add: async id => {
+      if(!state.workout&&window.FitnessWizard){await window.FitnessWizard.open(id);return;}
       const e = state.exercises.find(item => item.exerciseId === id);
       if (e.levels?.length) {
         const levels = e.levels.filter(l => l.active);

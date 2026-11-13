@@ -1,241 +1,31 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trang chủ - FitnessAI</title>
-    <!-- Mở trực tiếp file: dùng đường dẫn ../static/... | Chạy qua Spring Boot: Thymeleaf tự đổi sang @{/css/style.css} -->
-    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
-    <style>
-        .card-clickable {
-            text-decoration: none;
-            color: inherit;
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .card-clickable:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-        }
-        .tag-active {
-            display: inline-block;
-            margin-top: auto;
-            padding: 4px 10px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: #2563eb;
-            background-color: #eff6ff;
-            border-radius: 999px;
-            align-self: flex-start;
-        }
-        .profile-summary-box {
-            margin-top: 16px;
-            padding: 12px 16px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 16px;
-            align-items: center;
-        }
-        .profile-metric-item {
-            font-size: 0.9rem;
-            color: #475569;
-        }
-        .profile-metric-item strong {
-            color: #0f172a;
-            font-weight: 700;
-        }
-        .profile-reminder {
-            margin-top: 14px;
-            font-size: 0.9rem;
-            color: #b45309;
-            background-color: #fef3c7;
-            padding: 8px 12px;
-            border-radius: 6px;
-            display: inline-block;
-        }
-        .profile-reminder a {
-            color: #92400e;
-            font-weight: 600;
-            text-decoration: underline;
-        }
-        .fitness-progress { margin: 24px 0; }
-        .fitness-progress h2 { margin: 0 0 14px; color: #0f172a; }
-        .streak-grid, .badge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-        .streak-card, .badge-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; }
-        .streak-number { font-size: 2rem; font-weight: 800; color: #2563eb; margin: 8px 0; }
-        .status-pill { display: inline-block; padding: 5px 10px; border-radius: 999px; font-size: .82rem; font-weight: 700; background: #f1f5f9; color: #475569; }
-        .status-pill.done { background: #dcfce7; color: #166534; }
-        .badge-icon { font-size: 1.8rem; }
-        .badge-title { font-weight: 750; margin: 8px 0 4px; }
-        .badge-description { color: #64748b; font-size: .9rem; min-height: 38px; }
-        .progress-track { height: 8px; background: #e2e8f0; border-radius: 999px; overflow: hidden; margin: 12px 0 6px; }
-        .progress-fill { height: 100%; background: #2563eb; border-radius: 999px; }
-        .badge-card.earned { border-color: #86efac; background: #f0fdf4; }
-        .fitness-note { color: #64748b; font-size: .9rem; margin-top: 10px; }
-    </style>
-    <meta name="app-base" th:content="@{/}">
-    <meta name="_csrf" th:content="${_csrf.token}">
-    <meta name="_csrf_header" th:content="${_csrf.headerName}">
-</head>
-<body class="dash-body">
-
-<header class="topbar">
-    <a class="brand" href="home.html" th:href="@{/home}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
-        </svg>
-        <span>FitnessAI</span>
-    </a>
-    <div class="topbar-right">
-        <!-- Đã bỏ mục "Hồ sơ của tôi" ở đây -->
-        <a class="nav-link" href="admin_dashboard.html" th:href="@{/admin/dashboard}" sec:authorize="hasRole('ADMIN')">Quản trị hệ thống</a>
-        <form action="#" th:action="@{/perform_logout}" method="post">
-            <button type="submit" class="btn btn-primary btn-sm">ĐĂNG XUẤT</button>
-        </form>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tổng quan · FitnessAI</title>
+<meta name="app-base" th:content="@{/}"><meta name="_csrf" th:content="${_csrf.token}"><meta name="_csrf_header" th:content="${_csrf.headerName}">
+<link rel="stylesheet" th:href="@{/css/app-ui.css}"><link rel="stylesheet" th:href="@{/css/home-ui.css}"><script defer th:src="@{/js/app-shell.js}"></script><script defer th:src="@{/js/dashboard.js}"></script></head>
+<body class="fitness-app"><header th:replace="~{fragments/app :: header}"></header>
+<main class="page-wrap">
+  <section class="dashboard-hero"><div><span class="eyebrow">MỖI NGÀY LÀ MỘT KHỞI ĐẦU MỚI</span><h1>Xin chào<span th:if="${uiIdentity.authenticated}" th:text="${', ' + uiIdentity.displayName}"></span> <span aria-hidden="true">☀</span></h1><p>Một bước nhỏ hôm nay. Một phiên bản khỏe hơn ngày mai.</p><a class="ui-button" th:href="@{/ai}">Cùng AI lên kế hoạch <span aria-hidden="true">✧</span></a></div><div class="hero-handwriting" aria-hidden="true">Better.<br>Stronger.<br><span>Everyday.</span></div></section>
+  <div th:unless="${uiIdentity.authenticated}" class="ui-card guest-card"><h2>Hành trình của bạn bắt đầu ở đây</h2><p>Đăng nhập để xem tiến độ, theo dõi bữa ăn và xây dựng kế hoạch cùng AI.</p><a class="ui-button" th:href="@{/login}">Đăng nhập</a> <a class="ui-button secondary" th:href="@{/register}">Tạo tài khoản</a></div>
+  <div th:if="${uiIdentity.authenticated}" id="dashboard-app">
+    <p class="profile-reminder" th:if="${profile.calculatedBmr == null}">Bắt đầu bằng việc <a th:href="@{/profile}">hoàn thiện hồ sơ</a> để có kế hoạch phù hợp với bạn.</p>
+    <div id="dashboard-notice" role="status" class="ui-error" hidden></div>
+    <div class="dashboard-toolbar"><span id="dashboard-date" class="muted">Đang tải tổng quan…</span><button id="dashboard-refresh" class="text-button" type="button">↻ Làm mới</button></div>
+    <section class="dashboard-kpis" aria-label="Tổng quan hôm nay">
+      <article class="ui-card kpi"><span class="kpi-icon orange">↗</span><span>Chuỗi hiện tại</span><strong th:text="${streakSummary.currentStreak() + ' ngày'}"></strong><small id="dash-streak-note" th:attr="data-checked=${streakSummary.checkedInToday()}" th:text="${streakSummary.checkedInToday() ? 'Đã check-in hôm nay' : 'Chưa check-in hôm nay'}"></small></article>
+      <article class="ui-card kpi"><span class="kpi-icon blue">ϟ</span><span>Năng lượng đã ăn</span><strong id="dash-intake">—</strong><small>Từ nhật ký hôm nay</small></article>
+      <article class="ui-card kpi"><span class="kpi-icon rose">♨</span><span>Năng lượng đã đốt</span><strong id="dash-burned">—</strong><small>Từ các bài đã hoàn thành</small></article>
+      <article class="ui-card kpi"><span class="kpi-icon green">P</span><span>Đạm đã nạp</span><strong id="dash-protein">—</strong><small>Từ nhật ký hôm nay</small></article>
+    </section>
+    <div class="dashboard-columns">
+      <section class="ui-card chart-card"><div class="section-title"><div><h2>Nhịp sống 7 ngày</h2><small class="muted">Năng lượng nạp và tiêu hao đã ghi nhận · kcal</small></div><label class="sr-only" for="chart-metric">Chỉ số biểu đồ</label><select id="chart-metric"><option value="both">Nạp & tiêu hao</option><option value="intake">Năng lượng nạp</option><option value="burned">Năng lượng tiêu hao</option></select></div><div id="weekly-chart" class="weekly-chart" aria-busy="true"></div><div class="chart-legend"><span><i class="intake"></i>Đã ăn</span><span><i class="burned"></i>Đã đốt</span></div><details class="chart-data"><summary>Xem số liệu từng ngày</summary><div id="weekly-table"></div></details></section>
+      <section class="ui-card"><div class="section-title"><h2>Mục tiêu hôm nay</h2><a th:href="@{/nutrition#meal-plan}">Chi tiết ↗</a></div><div id="daily-goals" class="daily-goals"><p class="muted">Đang tải mục tiêu…</p></div><p class="goal-footnote">Mục tiêu lấy từ thực đơn đã xác nhận có hiệu lực hôm nay.</p></section>
     </div>
-</header>
-
-<main class="dash-wrap">
-    <section class="welcome-card">
-        <h1>
-            Xin chào,
-            <span th:text="${profile != null
-        and profile.displayName != null
-        and !profile.displayName.isEmpty()
-        ? profile.displayName : username}">User</span>!
-        </h1>
-        <p>Chúc bạn có một buổi tập thật hiệu quả hôm nay.</p>
-        <span class="role-badge">Quyền hạn: <span sec:authentication="principal.authorities">[ROLE_USER]</span></span>
-
-        <!-- Tóm tắt chỉ số sinh học -->
-        <div th:if="${profile != null and profile.calculatedBmr != null}" class="profile-summary-box">
-            <div class="profile-metric-item">Tuổi: <strong th:text="${profile.age}">--</strong></div>
-            <div class="profile-metric-item">Chiều cao: <strong th:text="${profile.heightCm + ' cm'}">--</strong></div>
-            <div class="profile-metric-item">Cân nặng: <strong th:text="${profile.weightKg + ' kg'}">--</strong></div>
-            <div class="profile-metric-item">BMI: <strong th:text="${profile.calculatedBmi + ' kg/m2'}">--</strong></div>
-            <div class="profile-metric-item">BMR: <strong th:text="${profile.calculatedBmr + ' kcal'}">--</strong></div>
-            <div class="profile-metric-item">TDEE: <strong th:text="${profile.calculatedTdee + ' kcal'}">--</strong></div>
-        </div>
-
-        <div th:if="${profile == null or profile.calculatedBmr == null}" class="profile-reminder">
-            Bạn chưa cập nhật chỉ số cơ thể. <a th:href="@{/profile}">Thiết lập ngay</a> để nhận ước tính calo & lộ trình phù hợp!
-        </div>
-    </section>
-
-    <p style="margin:12px 0"><a class="btn btn-primary" th:href="@{/ai}">Chat với AI & khuyến nghị</a></p>
-    <!-- Check-in, streak và huy hiệu -->
-    <section class="fitness-progress" th:if="${streakSummary != null}">
-        <h2>Check-in & chuỗi luyện tập</h2>
-        <div class="streak-grid">
-            <article class="streak-card">
-                <div>📅 Check-in hôm nay</div>
-                <div class="streak-number" style="font-size:1.35rem"
-                     th:text="${streakSummary.checkedInToday() ? 'Đã check-in' : 'Chưa check-in'}">Chưa check-in</div>
-                <span class="status-pill" th:classappend="${streakSummary.checkedInToday()} ? ' done' : ''"
-                      th:text="${streakSummary.checkedInToday() ? 'Hoàn thành' : 'Hoàn thành một bài để check-in'}">Trạng thái</span>
-                <p class="fitness-note">Check-in được ghi nhận tự động khi bạn hoàn thành ít nhất một bài tập hợp lệ. Mỗi ngày chỉ tính một lần.</p>
-            </article>
-            <article class="streak-card">
-                <div>🔥 Streak hiện tại</div>
-                <div class="streak-number" th:text="${streakSummary.currentStreak()}">0</div>
-                <div>ngày liên tiếp</div>
-                <p class="fitness-note">Chuỗi cao nhất: <strong th:text="${streakSummary.highestStreak()}">0</strong> ngày</p>
-            </article>
-            <article class="streak-card">
-                <div>🎯 Mục tiêu tiếp theo</div>
-                <div class="streak-number" style="font-size:1.35rem"
-                     th:text="${nextStreakBadge != null ? nextStreakBadge.thresholdValue + ' ngày' : 'Đã đạt tất cả mốc!'}">3 ngày</div>
-                <p class="fitness-note" th:if="${nextStreakBadge != null}" th:text="${nextStreakBadge.name}">Huy hiệu tiếp theo</p>
-                <p class="fitness-note" th:if="${nextStreakBadge != null}" th:text="${'Còn ' + (nextStreakBadge.thresholdValue - streakSummary.highestStreak()) + ' ngày nữa'}">Còn 3 ngày nữa</p>
-            </article>
-        </div>
-
-        <h2 style="margin-top:24px">Huy hiệu của bạn</h2>
-        <p class="fitness-note">Các mốc streak mặc định: 3, 7, 14, 30, 60 và 100 ngày. Huy hiệu được trao tự động khi bạn đạt ngưỡng.</p>
-        <div class="badge-grid">
-            <article class="badge-card" th:each="badge : ${activeBadges}"
-                     th:classappend="${earnedBadgeIds.contains(badge.id)} ? ' earned' : ''">
-                <div class="badge-icon" th:text="${badge.icon != null and !badge.icon.isBlank() ? badge.icon : '🏅'}">🏅</div>
-                <div class="badge-title" th:text="${badge.name}">Tên huy hiệu</div>
-                <div class="badge-description" th:text="${badge.description}">Mô tả huy hiệu</div>
-                <span class="status-pill done" th:if="${earnedBadgeIds.contains(badge.id)}">Đã đạt</span>
-                <span class="status-pill" th:unless="${earnedBadgeIds.contains(badge.id)}">Chưa đạt</span>
-                <div class="progress-track">
-                    <div class="progress-fill" th:style="|width: ${T(java.lang.Math).min(100.0, streakSummary.highestStreak() * 100.0 / badge.thresholdValue)}%|"></div>
-                </div>
-                <small th:text="${streakSummary.highestStreak() >= badge.thresholdValue ? 'Đã hoàn thành mốc ' + badge.thresholdValue + ' ngày' : streakSummary.highestStreak() + '/' + badge.thresholdValue + ' ngày'}">0/3 ngày</small>
-            </article>
-        </div>
-        <p class="fitness-note" th:if="${#lists.isEmpty(activeBadges)}">Chưa có huy hiệu nào được cấu hình.</p>
-    </section>
-
-    <section class="card-grid">
-        <!-- Thẻ điều hướng sang Hồ sơ & Chỉ số ở đây -->
-        <a class="card card-clickable" href="profile.html" th:href="@{/profile}">
-            <span class="f-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                </svg>
-            </span>
-            <h3>Hồ sơ & Chỉ số</h3>
-            <p>Theo dõi chiều cao, cân nặng, BMR, TDEE và mục tiêu luyện tập.</p>
-            <span class="tag-active">Xem chi tiết &rarr;</span>
-        </a>
-
-        <a class="card card-clickable" href="workout.html#library" th:href="@{/workout#library}">
-            <span class="f-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/>
-                </svg>
-            </span>
-            <h3>Thư viện bài tập</h3>
-            <p>Tra cứu bài tập theo nhóm cơ và mức độ.</p>
-            <span class="tag-active">Khám phá bài tập &rarr;</span>
-        </a>
-
-        <a class="card card-clickable" href="workout.html#session" th:href="@{/workout#session}">
-            <span class="f-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="3" y="5" width="18" height="16" rx="2"/>
-                    <path d="M3 10h18M8 3v4M16 3v4"/>
-                </svg>
-            </span>
-            <h3>Buổi tập của tôi</h3>
-            <p>Tạo buổi tập và theo dõi trạng thái hoàn thành.</p>
-            <span class="tag-active">Bắt đầu tập luyện &rarr;</span>
-        </a>
-
-        <a class="card card-clickable" href="nutrition.html" th:href="@{/nutrition}">
-            <span class="f-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <circle cx="12" cy="12" r="8"/>
-                    <path d="M10 15q-3-7 5-9 1 7-5 9Zm0 0 4-5"/>
-                </svg>
-            </span>
-            <h3>Nhật ký dinh dưỡng</h3>
-            <p>Ghi món ăn, theo dõi calo, đạm, tinh bột và chất béo mỗi ngày.</p>
-            <span class="tag-active">Theo dõi bữa ăn &rarr;</span>
-        </a>
-
-        <a class="card card-clickable" href="workout.html#history" th:href="@{/workout#history}">
-            <span class="f-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>
-                </svg>
-            </span>
-            <h3>Tiến độ</h3>
-            <p>Xem lại quá trình luyện tập theo thời gian.</p>
-            <span class="tag-active">Xem lịch sử &rarr;</span>
-        </a>
-    </section>
-</main>
-
-<script defer th:if="${profile != null}" th:src="@{/js/ai-notifications.js}"></script>
-</body>
-</html>
+    <div class="dashboard-columns lower-columns">
+      <section class="ui-card next-session"><span class="eyebrow">DÀNH THỜI GIAN CHO BẠN</span><h2 id="next-workout-title">Buổi tập tiếp theo</h2><p id="next-workout-description" class="muted">Đang kiểm tra lịch tập…</p><a id="next-workout-link" class="ui-button" th:href="@{/workout}">Xem tập luyện →</a><span class="next-session-art" aria-hidden="true">↗</span></section>
+      <section class="ui-card"><div class="section-title"><h2>Dấu mốc của bạn</h2><button type="button" id="show-badges" class="text-button">Xem tất cả ↗</button></div><div class="badge-strip"><article class="badge-tile" th:each="badge, iter : ${activeBadges}" th:if="${iter.index &lt; 5}" th:classappend="${earnedBadgeIds.contains(badge.id)} ? 'earned' : ''"><span class="badge-hex" th:text="${badge.icon != null and !badge.icon.isBlank() ? badge.icon : '✦'}"></span><strong th:text="${badge.name}"></strong><small th:text="${earnedBadgeIds.contains(badge.id) ? 'Đã đạt' : badge.thresholdValue + ' ngày'}"></small></article><p th:if="${#lists.isEmpty(activeBadges)}" class="muted">Chưa có huy hiệu được cấu hình.</p></div><p class="goal-footnote" th:text="${'Kỷ lục của bạn: ' + streakSummary.highestStreak() + ' ngày. Huy hiệu được trao theo kết quả thực tế.'}"></p></section>
+    </div>
+    <a class="dashboard-ai-link" th:href="@{/ai}"><span class="kpi-icon blue">✧</span><div><strong>Cần một người đồng hành?</strong><p>Hỏi FitnessAI về kế hoạch, dinh dưỡng hoặc tiến độ của bạn.</p></div><span aria-hidden="true">↗</span></a>
+    <dialog id="badges-dialog" aria-labelledby="badges-title"><div class="section-title"><h2 id="badges-title">Những dấu mốc trên hành trình</h2><button id="close-badges" class="text-button" type="button" aria-label="Đóng huy hiệu">✕</button></div><div class="all-badges"><article class="badge-tile" th:each="badge : ${activeBadges}" th:classappend="${earnedBadgeIds.contains(badge.id)} ? 'earned' : ''"><span class="badge-hex" th:text="${badge.icon != null and !badge.icon.isBlank() ? badge.icon : '✦'}"></span><strong th:text="${badge.name}"></strong><p th:text="${badge.description}"></p><small th:text="${earnedBadgeIds.contains(badge.id) ? 'Đã đạt' : streakSummary.highestStreak() + '/' + badge.thresholdValue + ' ngày'}"></small></article></div></dialog>
+  </div>
+</main></body></html>

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
+<script defer th:src="@{/js/app-shell.js}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="_csrf" th:content="${_csrf.token}" content="">
@@ -11,21 +12,11 @@
     <script defer src="../static/js/weekly-ai.js" th:src="@{/js/weekly-ai.js}"></script>
     <script defer src="../static/js/workout.js" th:src="@{/js/workout.js}"></script>
     <meta name="app-base" th:content="@{/}">
+  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
+<script defer th:src="@{/js/workout-wizard.js}"></script>
 </head>
-<body class="dash-body workout-body">
-<header class="topbar">
-    <a class="brand" href="home.html" th:href="@{/home}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
-        <span>FitnessAI</span>
-    </a>
-    <nav class="topbar-right" aria-label="Điều hướng chính">
-        <a class="nav-link" th:href="@{/home}" href="home.html">Trang chủ</a>
-        <a class="nav-link" th:href="@{/nutrition}" href="nutrition.html">Dinh dưỡng</a>
-        <a class="nav-link" th:href="@{/profile}" href="profile.html">Hồ sơ</a>
-        <a class="nav-link" th:if="${isWorkoutAdmin}" th:href="@{/admin/dashboard}">Quản trị</a>
-        <form th:action="@{/perform_logout}" method="post"><button class="btn btn-primary btn-sm" type="submit">Đăng xuất</button></form>
-    </nav>
-</header>
+<body class="fitness-app dash-body workout-body">
+<header th:replace="~{fragments/app :: header}"></header>
 <main id="workout-app" class="workout-wrap" data-base="/" data-manage="false" data-admin="false"
       data-heartbeat="10" data-timeout="30"
       th:attr="data-base=@{/},data-manage=${manageLibrary},data-admin=${isWorkoutAdmin},data-heartbeat=${heartbeatIntervalSeconds},data-timeout=${heartbeatTimeoutSeconds}">
@@ -132,6 +123,15 @@
     <noscript><p class="w-notice warning">Vui lòng bật JavaScript để sử dụng phần tập luyện.</p></noscript>
 </main>
 <dialog id="workout-dialog" class="workout-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><h2 id="dialog-title"></h2><button type="button" class="icon-button" id="dialog-close" aria-label="Đóng">×</button></div><div id="dialog-content"></div></dialog>
-<script defer th:src="@{/js/ai-notifications.js}"></script>
+
+<dialog id="workout-wizard" class="workout-wizard" aria-labelledby="wizard-title" th:attr="data-owner=${uiIdentity.email}">
+  <div class="wizard-heading"><div><span class="eyebrow">BUILD YOUR SESSION</span><h2 id="wizard-title" tabindex="-1">Buổi tập theo nhịp của bạn</h2></div><button id="wizard-close" type="button" class="text-button" aria-label="Đóng trình tạo buổi tập">✕</button></div>
+  <ol class="wizard-steps"><li id="wizard-marker-1" class="active" aria-current="step"><span>1</span> Chọn bài tập</li><li id="wizard-marker-2"><span>2</span> Thiết lập</li><li id="wizard-marker-3"><span>3</span> Xác nhận</li></ol>
+  <p id="wizard-notice" class="wizard-notice" role="status" aria-live="polite"></p>
+  <section id="wizard-step-1"><div class="wizard-filters"><label>Tìm bài tập<input id="wizard-search" type="search" placeholder="Tên bài hoặc nhóm bài tập…"></label><label>Nhóm bài tập<select id="wizard-category"><option value="">Tất cả nhóm</option></select></label></div><div id="wizard-exercises" class="wizard-exercises"></div></section>
+  <section id="wizard-step-2" hidden><p class="muted">Chọn cấp độ cho từng bài. Thông số tập và nghỉ được lưu theo cấu hình đã chọn.</p><form id="wizard-settings" class="wizard-settings" onsubmit="return false"></form></section>
+  <section id="wizard-step-3" hidden><h3>Sẵn sàng cho buổi tập?</h3><p class="muted">Kiểm tra các bài và chỉ tiêu. Tạo buổi tập chưa ghi nhận bạn đã tập.</p><div id="wizard-preview"></div></section>
+  <div class="wizard-footer"><span id="wizard-counter">0 bài đã chọn</span><div><button id="wizard-back" class="ui-button secondary" type="button" hidden>Quay lại</button><button id="wizard-next" class="ui-button" type="button">Tiếp tục →</button><button id="wizard-confirm" class="ui-button" type="button" hidden>Xác nhận tạo buổi tập</button></div></div>
+</dialog>
 </body>
 </html>

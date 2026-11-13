@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
+<script defer th:src="@{/js/app-shell.js}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="_csrf" th:content="${_csrf.token}" content="">
@@ -10,23 +11,10 @@
     <link rel="stylesheet" href="../static/css/nutrition.css" th:href="@{/css/nutrition.css}">
     <script defer src="../static/js/nutrition.js" th:src="@{/js/nutrition.js}"></script>
     <meta name="app-base" th:content="@{/}">
+  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
 </head>
-<body class="dash-body nutrition-body">
-<header class="topbar">
-    <a class="brand" href="home.html" th:href="@{/home}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
-        <span>FitnessAI</span>
-    </a>
-    <nav class="topbar-right" aria-label="Điều hướng chính">
-        <a class="nav-link" href="home.html" th:href="@{/home}">Trang chủ</a>
-        <a class="nav-link" href="workout.html" th:href="@{/workout}">Tập luyện</a>
-        <a class="nav-link" href="profile.html" th:href="@{/profile}">Hồ sơ</a>
-        <a class="nav-link" th:if="${isNutritionAdmin}" th:href="@{/admin/dashboard}">Quản trị</a>
-        <form th:action="@{/perform_logout}" method="post">
-            <button class="btn btn-primary btn-sm" type="submit">Đăng xuất</button>
-        </form>
-    </nav>
-</header>
+<body class="fitness-app dash-body nutrition-body">
+<header th:replace="~{fragments/app :: header}"></header>
 
 <main id="nutrition-app" class="nutrition-wrap" data-base="/" data-admin="false" data-manage="false"
       th:attr="data-base=@{/},data-admin=${isNutritionAdmin},data-manage=${manageNutritionLibrary}">
@@ -71,12 +59,12 @@
         </div>
         <div id="diary-readonly" class="n-notice" hidden>Đây là nhật ký của ngày khác. Bạn có thể xem lại; thêm, sửa và xóa món chỉ áp dụng cho hôm nay.</div>
         <div class="n-stats" aria-label="Tổng dinh dưỡng của ngày đang xem">
-            <article class="n-stat"><span class="n-stat-icon energy" aria-hidden="true">ϟ</span><div><span>Năng lượng</span><strong id="total-calories">—</strong><small>kcal</small></div></article>
-            <article class="n-stat"><span class="n-stat-icon protein" aria-hidden="true">P</span><div><span>Đạm</span><strong id="total-protein">—</strong><small>g</small></div></article>
-            <article class="n-stat"><span class="n-stat-icon carbs" aria-hidden="true">C</span><div><span>Tinh bột</span><strong id="total-carbs">—</strong><small>g</small></div></article>
-            <article class="n-stat"><span class="n-stat-icon fat" aria-hidden="true">F</span><div><span>Chất béo</span><strong id="total-fat">—</strong><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon energy" aria-hidden="true">ϟ</span><div><span>Năng lượng</span><strong id="total-calories">—</strong><small id="target-calories" class="nutrient-target"></small><small>kcal</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon protein" aria-hidden="true">P</span><div><span>Đạm</span><strong id="total-protein">—</strong><small id="target-protein" class="nutrient-target"></small><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon carbs" aria-hidden="true">C</span><div><span>Tinh bột</span><strong id="total-carbs">—</strong><small id="target-carbs" class="nutrient-target"></small><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon fat" aria-hidden="true">F</span><div><span>Chất béo</span><strong id="total-fat">—</strong><small id="target-fat" class="nutrient-target"></small><small>g</small></div></article>
         </div>
-        <div id="diary-meals" class="n-meals" aria-busy="true"><p class="n-loading">Đang tải các bữa ăn…</p></div>
+        <div class="diary-layout"><div id="diary-meals" class="n-meals" aria-busy="true"><p class="n-loading">Đang tải các bữa ăn…</p></div><aside class="nutrition-insights n-card"><span class="n-eyebrow">YOUR DAILY BALANCE</span><h3>Cân bằng dinh dưỡng</h3><div id="macro-chart" class="macro-chart" role="img" aria-label="Dinh dưỡng đã ghi nhận"><span id="macro-chart-value">—</span></div><div id="macro-legend"></div><p class="n-note">Tỷ trọng theo gram của đạm, tinh bột và chất béo đã ghi nhận.</p><hr><p id="nutrition-target-note" class="n-note">Mục tiêu lấy từ thực đơn đã xác nhận.</p><a class="n-btn secondary" th:href="@{/ai}">Trao đổi cùng AI ✧</a></aside></div>
         <p class="n-note n-bottom-note">Dinh dưỡng được ghi nhận theo khối lượng thực phẩm. Thông tin món đã lưu được giữ lại khi thư viện thay đổi.</p>
     </section>
 
@@ -137,6 +125,7 @@
     <div id="nutrition-dialog-content"></div>
 </dialog>
 <script defer th:src="@{/js/meal-calendar.js}" src="../static/js/meal-calendar.js"></script>
-<script defer th:src="@{/js/ai-notifications.js}"></script>
+
+<script defer th:src="@{/js/nutrition-insights.js}"></script>
 </body>
 </html>
