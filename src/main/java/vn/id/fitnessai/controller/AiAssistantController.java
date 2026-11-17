@@ -59,28 +59,44 @@ public class AiAssistantController {
             return ResponseEntity.status(HttpStatus.GONE).body(Map.of("error", "Tạo lịch qua hội thoại AI để có đủ ngữ cảnh và bản xem trước."));
         }
         public record ChatRequest(String sessionId,String content,UUID requestId) {}
+        public record ChatSession(String sessionId, vn.id.fitnessai.service.AiConversationStore.Reply activeTurn) {}
+
+        private String currentSession(jakarta.servlet.http.HttpSession session) {
+            synchronized (session) {
+                if (session.getAttribute("fitness-ai-context") == null) session.setAttribute("fitness-ai-context", UUID.randomUUID().toString().replace("-", ""));
+                return session.getAttribute("fitness-ai-context").toString();
+            }
+        }
+        private void requireCurrentSession(jakarta.servlet.http.HttpSession session, String supplied) {
+            if (!currentSession(session).equals(supplied)) throw new SecurityException("Phiên chat đã thay đổi. Hãy tải lại trang trước khi tiếp tục.");
+        }
 
         @GetMapping("/chat/session")
-        public Map<String,String> session(jakarta.servlet.http.HttpSession session) {
-            if (session.getAttribute("fitness-ai-context") == null) session.setAttribute("fitness-ai-context", UUID.randomUUID().toString().replace("-", ""));
-            return Map.of("sessionId", session.getAttribute("fitness-ai-context").toString());
+        public ChatSession session(Principal p, jakarta.servlet.http.HttpSession session) {
+            String id = currentSession(session);
+            return new ChatSession(id, conversationStore.activeTurn(p.getName(), id));
         }
 
         @GetMapping("/chat")
-        public AiAssistantService.ChatPage history(Principal p,@RequestParam(required=false) Long before){
-            return service.history(p.getName(),before);
+        public AiAssistantService.ChatPage history(Principal p, jakarta.servlet.http.HttpSession session, @RequestParam(required=false) Long before){
+            return service.history(p.getName(), currentSession(session), before);
         }
         @PostMapping("/chat")
-        public vn.id.fitnessai.service.AiConversationStore.Reply send(Principal p,@RequestBody ChatRequest req){
+        public vn.id.fitnessai.service.AiConversationStore.Reply send(Principal p, jakarta.servlet.http.HttpSession session, @RequestBody ChatRequest req){
+            requireCurrentSession(session, req.sessionId());
             return conversation.send(p.getName(),req.sessionId(),req.content(),req.requestId());
         }
 
         @GetMapping("/chat/turns/{requestId}")
-        public vn.id.fitnessai.service.AiConversationStore.Reply turn(Principal p, @PathVariable UUID requestId) {
-            return conversationStore.reply(p.getName(), requestId);
+        public vn.id.fitnessai.service.AiConversationStore.Reply turn(Principal p, jakarta.servlet.http.HttpSession session, @PathVariable UUID requestId) {
+            var result = conversationStore.reply(p.getName(), requestId);
+            if (result.userMessage() == null) throw new SecurityException("Lượt chat không còn khả dụng");
+            requireCurrentSession(session, result.userMessage().sessionId());
+            return result;
         }
         @GetMapping("/proposals")
-        public List<vn.id.fitnessai.service.AiConversationStore.Proposal> pending(Principal p, @RequestParam String sessionId) {
+        public List<vn.id.fitnessai.service.AiConversationStore.Proposal> pending(Principal p, jakarta.servlet.http.HttpSession session, @RequestParam String sessionId) {
+            requireCurrentSession(session, sessionId);
             return conversationStore.pending(p.getName(), sessionId);
         }
         @PostMapping("/proposals/{id}/confirm")

@@ -1,8 +1,8 @@
 // Executes the real browser scripts with disposable DOM/HTTP fixtures. No server or user data is touched.
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict'),crypto=require('node:crypto');
 const settle=async()=>{for(let i=0;i<25;i++)await new Promise(resolve=>setImmediate(resolve));};
-function environment(handler,{hash='',prefix=''}={}){
-  const nodes=new Map(),all=[],calls=[],events=[],storage=new Map();
+function environment(handler,{hash='',prefix='',storage=new Map()}={}){
+  const nodes=new Map(),all=[],calls=[],events=[];
   class Element{
     constructor(tag='div'){this.tag=tag;this.children=[];this.handlers={};this.dataset={};this.disabled=false;this.hidden=false;this.value='';this.style={};this.textContent='';all.push(this);}
     append(...children){this.children.push(...children);for(const c of children)if(c&&typeof c==='object')c.parent=this;}
@@ -58,6 +58,88 @@ let passed=0;async function test(name,work){await work();passed++;console.log('P
   await test('Known provider failure preserves input for a same-turn retry',async()=>{const e=environment(chatHandler({handle:(path,options)=>path==='/api/ai/chat'&&options.method==='POST'?{status:'FAILED',error:'Timeout',userMessage:{...pair[0],status:'FAILED'},proposals:[],retryable:true}:undefined}));e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);assert.equal(e.get('chat-text').value,pair[0].content);assert.ok(e.storage.get('fitness-ai-pending').includes('requestId'));});
   await test('All API calls honor an application context prefix',async()=>{const e=environment(chatHandler(),{prefix:'/fitness'});e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);assert.ok(e.calls.every(c=>c.path.startsWith('/fitness/api/ai/')));});
   await test('Model text is displayed as text, never executable HTML',async()=>{const evil='<img src=x onerror=alert(1)>';const e=environment(chatHandler({handle:(path,options)=>path==='/api/ai/chat'&&options.method==='POST'?{status:'COMPLETE',userMessage:pair[0],aiMessage:{...pair[1],content:evil},proposals:[]}:undefined}));e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,'Hello');assert.equal(e.get('messages').children[1].children[0].textContent,evil);assert.equal(e.all.filter(n=>n.tag==='img').length,0);});
+  await test('User bubble and typing indicator appear before the chat request resolves',async()=>{
+    let release;const gate=new Promise(r=>release=r);
+    const e=environment(chatHandler({handle:async(path,options)=>{if(path==='/api/ai/chat'&&!options.method)return {messages:[],nextCursor:null};if(path==='/api/ai/chat'&&options.method==='POST'){await gate;}}}));
+    e.run('src/main/resources/static/js/ai.js');await settle();assert.equal(e.get('chat-typing').hidden,true);
+    const sent=submit(e,pair[0].content);await settle();
+    assert.equal(e.get('messages').children.length,1);assert.equal(e.get('messages').children[0].children[0].textContent,pair[0].content);
+    assert.equal(e.get('chat-text').value,'');assert.equal(e.get('chat-typing').hidden,false);assert.equal(e.get('chat-welcome').hidden,true);
+    release();await sent;assert.equal(e.get('messages').children.length,2);assert.equal(e.get('chat-typing').hidden,true);
+  });
+  await test('Reload automatically loads every history page and deduplicates overlapping IDs',async()=>{
+    const history=Array.from({length:74},(_,i)=>({...pair[i%2],id:i+1,content:'Tin '+(i+1)}));
+    const e=environment(chatHandler({handle:(path,options)=>{if(path==='/api/ai/chat'&&!options.method)return {messages:history.slice(24),nextCursor:25};if(path==='/api/ai/chat?before=25')return {messages:history.slice(0,25),nextCursor:null};}}));
+    e.run('src/main/resources/static/js/ai.js');await settle();assert.equal(e.get('messages').children.length,74);assert.equal(e.get('more').hidden,true);
+    assert.equal(e.get('messages').children[0].children[0].textContent,'Tin 1');assert.equal(e.get('messages').children[73].children[0].textContent,'Tin 74');
+  });
+  await test('Reload reconnects to the pending server turn without another POST',async()=>{
+    let release;const gate=new Promise(r=>release=r),requestId=crypto.randomUUID();
+    const pending={requestId,status:'PENDING',userMessage:{...pair[0],status:'PENDING'},proposals:[]};
+    const e=environment(chatHandler({handle:async(path,options)=>{
+      if(path==='/api/ai/chat/session')return {sessionId:'session123',activeTurn:pending};
+      if(path==='/api/ai/chat'&&!options.method)return {messages:[pending.userMessage],nextCursor:null};
+      if(path==='/api/ai/chat/turns/'+requestId){await gate;return {...pending,status:'COMPLETE',userMessage:pair[0],aiMessage:pair[1]};}
+    }}));
+    e.run('src/main/resources/static/js/ai.js');await settle();assert.equal(e.get('messages').children.length,1);assert.equal(e.get('chat-typing').hidden,false);
+    assert.equal(e.calls.filter(c=>c.options.method==='POST').length,0);
+    release();await settle();assert.equal(e.get('messages').children.length,2);assert.equal(e.get('chat-typing').hidden,true);assert.equal(e.get('send').disabled,false);
+  });
+  await test('Lost response followed by reload restores the saved pair without resending',async()=>{
+    const storage=new Map();let saved=false,requestId;
+    const handler=chatHandler({handle:(path,options)=>{
+      if(path==='/api/ai/chat'&&options.method==='POST'){requestId=JSON.parse(options.body).requestId;saved=true;throw Error('Response lost');}
+      if(path==='/api/ai/chat'&&!options.method)return {messages:saved?pair:[],nextCursor:null};
+      if(path.startsWith('/api/ai/chat/turns/'))return {requestId,status:'COMPLETE',userMessage:pair[0],aiMessage:pair[1],proposals:[]};
+    }});
+    const a=environment(handler,{storage});a.run('src/main/resources/static/js/ai.js');await settle();await submit(a,pair[0].content);
+    const b=environment(handler,{storage});b.run('src/main/resources/static/js/ai.js');await settle();
+    assert.equal(b.get('messages').children.length,2);assert.equal(b.calls.filter(c=>c.options.method==='POST').length,0);assert.equal(storage.has('fitness-ai-pending'),false);
+  });
+  await test('Retrying a failed persisted turn does not insert a second user bubble',async()=>{
+    let attempt=0,release;const gate=new Promise(r=>release=r);
+    const e=environment(chatHandler({handle:async(path,options)=>{
+      if(path==='/api/ai/chat'&&!options.method)return {messages:[],nextCursor:null};
+      if(path==='/api/ai/chat'&&options.method==='POST'){attempt++;if(attempt===1)return {status:'FAILED',userMessage:{...pair[0],status:'FAILED'},proposals:[],retryable:true,error:'Timeout'};await gate;}
+    }}));
+    e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);assert.equal(e.get('messages').children.length,1);
+    const retry=submit(e,pair[0].content);await settle();assert.equal(e.get('messages').children.length,1);release();await retry;assert.equal(e.get('messages').children.length,2);
+  });
+  await test('A different login discards the old outbox and does not poll the old request',async()=>{
+    const oldRequest=crypto.randomUUID(),storage=new Map([['fitness-ai-session','previous123'],['fitness-ai-pending',JSON.stringify({sessionId:'previous123',requestId:oldRequest,content:'PRIVATE_PREVIOUS_LOGIN'})]]);
+    const e=environment(chatHandler({handle:path=>path==='/api/ai/chat'?{messages:[],nextCursor:null}:undefined}),{storage});e.run('src/main/resources/static/js/ai.js');await settle();
+    assert.equal(e.get('messages').children.length,0);assert.equal(e.get('chat-text').value,'');assert.ok(!e.calls.some(c=>c.path.includes(oldRequest)));assert.equal(storage.has('fitness-ai-pending'),false);
+  });
+  await test('Corrupt browser storage cannot prevent loading the server conversation',async()=>{
+    const e=environment(chatHandler(),{storage:new Map([['fitness-ai-session','session123'],['fitness-ai-pending','{broken']])});e.run('src/main/resources/static/js/ai.js');await settle();
+    assert.equal(e.get('messages').children.length,2);assert.equal(e.get('send').disabled,false);
+  });
+  await test('Failed history page can resume from its cursor without losing earlier messages',async()=>{
+    let failed=true;const e=environment(chatHandler({handle:path=>{
+      if(path==='/api/ai/chat')return {messages:[pair[1]],nextCursor:2};
+      if(path==='/api/ai/chat?before=2'){if(failed){failed=false;throw Error('offline');}return {messages:[pair[0]],nextCursor:null};}
+    }}));e.run('src/main/resources/static/js/ai.js');await settle();assert.equal(e.get('more').hidden,false);assert.equal(e.get('messages').children.length,1);
+    await e.get('more').onclick();assert.equal(e.get('messages').children.length,2);assert.equal(e.get('more').hidden,true);
+  });
+  await test('Reload of a failed server turn restores a retryable message without calling the model',async()=>{
+    const requestId=crypto.randomUUID();const e=environment(chatHandler({handle:path=>{
+      if(path==='/api/ai/chat/session')return {sessionId:'session123',activeTurn:{requestId,status:'FAILED',userMessage:{...pair[0],status:'FAILED'},proposals:[],error:'Timeout',retryable:true}};
+      if(path==='/api/ai/chat')return {messages:[{...pair[0],status:'FAILED'}],nextCursor:null};
+    }}));e.run('src/main/resources/static/js/ai.js');await settle();assert.equal(e.get('messages').children.length,1);assert.equal(e.get('chat-text').value,pair[0].content);
+    assert.equal(e.get('chat-typing').hidden,true);assert.equal(e.calls.filter(c=>c.options.method==='POST').length,0);assert.equal(e.get('send').disabled,false);
+  });
+  await test('Proposal confirmation does not show the model typing indicator',async()=>{
+    let release;const gate=new Promise(r=>release=r);const e=environment(chatHandler({pending:[proposal],handle:async path=>{if(path.endsWith('/confirm'))await gate;}}));
+    e.run('src/main/resources/static/js/ai.js');await settle();const confirmation=e.get('proposals').querySelectorAll('button').find(b=>b.textContent==='Xác nhận').onclick();await settle();
+    assert.equal(e.get('chat-typing').hidden,true);release();await confirmation;
+  });
+  await test('Typing stops as soon as the reply arrives even when saved plans load slowly',async()=>{
+    let sent=false,release;const gate=new Promise(r=>release=r);const e=environment(chatHandler({handle:async(path,options)=>{
+      if(path==='/api/ai/chat'&&options.method==='POST')sent=true;
+      if(path==='/api/ai/recommendations'&&sent){await gate;return [];}
+    }}));e.run('src/main/resources/static/js/ai.js');await settle();const sending=submit(e,pair[0].content);await settle();
+    assert.equal(e.get('messages').children.length,2);assert.equal(e.get('chat-typing').hidden,true);release();await sending;
+  });
   await test('Plan approval does not automatically add or start a workout',async()=>{
     const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Ho_Chi_Minh',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());const v=k=>parts.find(p=>p.type===k).value;const day=`${v('year')}-${v('month')}-${v('day')}`;let applied=false;
     const plan={id:1,title:'Fixture',content:'test',type:'WORKOUT_PLAN',status:'PROPOSED',workoutStartDate:day,restDays:''};const exercises=[{dayOfWeek:new Date(day+'T12:00:00Z').getUTCDay()||7,exerciseName:'Bài fixture',sets:3,reps:10}];

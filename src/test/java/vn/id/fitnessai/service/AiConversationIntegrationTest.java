@@ -21,6 +21,8 @@ import java.math.BigDecimal;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -96,6 +98,62 @@ class AiConversationIntegrationTest {
         answer("{\"type\":\"ANSWER\",\"reply\":\"TDEE là năng lượng ước tính.\",\"actions\":[]}");
         var reply=service.send(name,"session123","TDEE là gì?",request);assertEquals("COMPLETE",reply.status(),reply.error());
         long count=inTx(()->app.getBean(AiChatMessageRepository.class).findByUser_IdAndTurnIdOrderByIdAsc(profile(name).getUser().getId(),reply.userMessage().turnId()).size());assertEquals(2,count);
+    }
+    @Test void userMessageIsCommittedAndReloadableWhileTheProviderIsStillWorking() throws Exception {
+        String name=user();UUID request=UUID.randomUUID();var entered=new CountDownLatch(1);var release=new CountDownLatch(1);
+        when(app.getBean(GeminiAiClient.class).generateJson(anyString(),anyList())).thenAnswer(a->{
+            assertFalse(TransactionSynchronizationManager.isActualTransactionActive());entered.countDown();
+            if(!release.await(10,TimeUnit.SECONDS))throw new IllegalStateException("Test timed out");
+            return "{\"type\":\"ANSWER\",\"reply\":\"Đã nhận được câu hỏi.\",\"actions\":[]}";
+        });
+        var sent=CompletableFuture.supplyAsync(()->app.getBean(AiConversationService.class).send(name,"session123","TDEE là gì?",request));
+        try {
+            assertTrue(entered.await(10,TimeUnit.SECONDS));
+            var saved=app.getBean(AiAssistantService.class).history(name,"session123",null);
+            assertEquals(1,saved.messages().size());assertEquals("PENDING",saved.messages().get(0).status());
+            assertEquals("TDEE là gì?",saved.messages().get(0).content());
+            var pending=app.getBean(AiConversationStore.class).activeTurn(name,"session123");
+            assertEquals(request,pending.requestId());assertEquals("PENDING",pending.status());
+            assertNull(app.getBean(AiConversationStore.class).activeTurn(name,"other-session"));
+        } finally { release.countDown(); }
+        assertEquals("COMPLETE",sent.get(10,TimeUnit.SECONDS).status());
+        assertEquals(2,app.getBean(AiAssistantService.class).history(name,"session123",null).messages().size());
+        assertNull(app.getBean(AiConversationStore.class).activeTurn(name,"session123"));
+    }
+    @Test void sessionHistoryPaginatesWithoutMixingLoginsAndKeepsMoreThanTenTurnsOfContext() {
+        String name=user(),other=user();
+        inTx(()->{
+            var owner=app.getBean(UserRepository.class).findByUsername(name).orElseThrow();
+            var stranger=app.getBean(UserRepository.class).findByUsername(other).orElseThrow();
+            var repository=app.getBean(AiChatMessageRepository.class);
+            for(int i=0;i<35;i++) {
+                UUID turn=UUID.randomUUID();
+                for(String sender:List.of("USER","AI")) {
+                    var m=new AiChatMessage();m.setUser(owner);m.setSessionId("session123");m.setTurnId(turn);m.setSender(sender);m.setContent(sender+" lượt "+i);repository.save(m);
+                }
+            }
+            for(var u:List.of(owner,stranger)) {
+                var m=new AiChatMessage();m.setUser(u);m.setSessionId(u==owner?"previous123":"session123");m.setTurnId(UUID.randomUUID());m.setSender("USER");m.setContent("PRIVATE_OTHER_LOGIN");repository.save(m);
+            }
+            var failed=new AiChatMessage();failed.setUser(owner);failed.setSessionId("session123");failed.setTurnId(UUID.randomUUID());failed.setSender("USER");failed.setContent("FAILED_QUESTION");failed.setStatus("FAILED");repository.save(failed);
+            return null;
+        });
+        var service=app.getBean(AiAssistantService.class);
+        var first=service.history(name,"session123",null);assertEquals(50,first.messages().size());assertNotNull(first.nextCursor());
+        var older=service.history(name,"session123",first.nextCursor());assertEquals(21,older.messages().size());assertNull(older.nextCursor());
+        assertEquals("USER lượt 0",older.messages().get(0).content());
+        assertFalse(first.toString().contains("PRIVATE_OTHER_LOGIN"));assertFalse(older.toString().contains("PRIVATE_OTHER_LOGIN"));
+        var context=app.getBean(AiConversationStore.class).history(name,"session123",UUID.randomUUID());
+        assertEquals(70,context.size());assertEquals("USER lượt 0",context.get(0).get("text"));
+        assertFalse(context.toString().contains("FAILED_QUESTION"));assertFalse(context.toString().contains("PRIVATE_OTHER_LOGIN"));
+    }
+    @Test void deletingAFailedMessageDoesNotResurrectItAsAnActiveTurnOnReload() {
+        String name=user();when(app.getBean(GeminiAiClient.class).generateJson(anyString(),anyList())).thenThrow(new IllegalStateException("Timeout"));
+        var failed=app.getBean(AiConversationService.class).send(name,"session123","TDEE là gì?",UUID.randomUUID());
+        assertEquals("FAILED",failed.status());assertNotNull(app.getBean(AiConversationStore.class).activeTurn(name,"session123"));
+        app.getBean(AiAssistantService.class).delete(name,failed.userMessage().id());
+        assertNull(app.getBean(AiConversationStore.class).activeTurn(name,"session123"));
+        assertTrue(app.getBean(AiAssistantService.class).history(name,"session123",null).messages().isEmpty());
     }
     @Test void contextDoesNotSendAccountIdentityOrSecretsToProvider(){
         String name=user();answer("{\"type\":\"ANSWER\",\"reply\":\"Bạn chưa ghi nhật ký hôm nay.\",\"actions\":[]}");

@@ -24,6 +24,12 @@ public class Badge {
     @Column(length=500)
     private String icon;
 
+    // Older databases still require this column; new badges use the current streak rule.
+    @Setter(lombok.AccessLevel.NONE)
+    @Column(name="metric_type",nullable=false,length=40)
+    @org.hibernate.annotations.ColumnDefault("'STREAK_DAYS'")
+    private String metricType = "STREAK_DAYS";
+
     @Column(name="threshold_value",nullable=false)
     private long thresholdValue;
 

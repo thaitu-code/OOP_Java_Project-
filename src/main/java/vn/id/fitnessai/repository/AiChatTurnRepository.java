@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 public interface AiChatTurnRepository extends JpaRepository<AiChatTurn, UUID> {
     Optional<AiChatTurn> findByUser_IdAndRequestId(Long userId, UUID requestId);
+    Optional<AiChatTurn> findFirstByUser_IdAndSessionIdOrderByCreatedAtDesc(Long userId, String sessionId);
     boolean existsByUser_IdAndStatusAndCreatedAtAfter(Long userId, String status, OffsetDateTime cutoff);
     long countByUser_IdAndCreatedAtAfter(Long userId, OffsetDateTime cutoff);
 }

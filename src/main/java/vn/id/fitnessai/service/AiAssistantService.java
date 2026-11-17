@@ -50,12 +50,12 @@ public class AiAssistantService {
     }
 
     @Transactional(readOnly = true)
-    public ChatPage history(String username, Long before) {
+    public ChatPage history(String username, String session, Long before) {
         User u = own(username);
         long cursor = before == null ? Long.MAX_VALUE : before;
-        List<AiChatMessage> list = chats.findByUser_IdAndDeletedAtIsNullAndIdLessThanOrderByIdDesc(u.getId(), cursor, PageRequest.of(0, 11));
-        boolean more = list.size()>10;
-        List<AiChatMessage> slice = list.subList(0, Math.min(10, list.size()));
+        List<AiChatMessage> list = chats.findByUser_IdAndSessionIdAndDeletedAtIsNullAndIdLessThanOrderByIdDesc(u.getId(), session, cursor, PageRequest.of(0, 51));
+        boolean more = list.size()>50;
+        List<AiChatMessage> slice = list.subList(0, Math.min(50, list.size()));
         Long next = more ? slice.get(slice.size()-1).getId() : null;
         List<Message> out = new ArrayList<>(slice.stream().map(this::map).toList());
         Collections.reverse(out);

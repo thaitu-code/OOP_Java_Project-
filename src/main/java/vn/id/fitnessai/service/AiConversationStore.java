@@ -63,9 +63,28 @@ public class AiConversationStore {
         for (var m : recent) if (m.getStatus().equals("COMPLETE") && !m.getTurnId().equals(currentTurn)) pairs.computeIfAbsent(m.getTurnId(), k -> new ArrayList<>()).add(m);
         var completed = pairs.values().stream().filter(p -> p.size() == 2 && p.get(0).getSender().equals("USER") && p.get(1).getSender().equals("AI")).toList();
         List<Map<String,Object>> prompt = new ArrayList<>();
-        for (var pair : completed.subList(Math.max(0, completed.size()-10), completed.size())) for (var m : pair)
+        // Preserve whole turns, with a bounded provider payload; UI history is not truncated.
+        int characters = 0;
+        var selected = new ArrayDeque<List<AiChatMessage>>();
+        for (int i = completed.size()-1; i >= 0; i--) {
+            var pair = completed.get(i);
+            int size = pair.stream().mapToInt(m -> m.getContent().length()).sum();
+            if (characters + size > 100_000) break;
+            selected.addFirst(pair); characters += size;
+        }
+        for (var pair : selected) for (var m : pair)
             prompt.add(Map.of("role", m.getSender().equals("USER") ? "user" : "model", "text", m.getContent()));
         return prompt;
+    }
+
+    @Transactional(readOnly = true)
+    public Reply activeTurn(String username, String session) {
+        var user = access.require(username);
+        return turns.findFirstByUser_IdAndSessionIdOrderByCreatedAtDesc(user.getId(), session)
+                .filter(t -> Set.of("PENDING", "FAILED").contains(t.getStatus()))
+                .filter(t -> messages.findByUser_IdAndTurnIdOrderByIdAsc(user.getId(), t.getId()).stream()
+                        .anyMatch(m -> m.getSender().equals("USER") && m.getDeletedAt() == null))
+                .map(t -> reply(username, t.getRequestId())).orElse(null);
     }
 
     @Transactional

@@ -5,8 +5,8 @@
   const base = document.querySelector('meta[name="app-base"]')?.content || '/';
   const csrf = document.querySelector('meta[name="_csrf"]')?.content;
   const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
-  const messages = new Map(), proposals = new Map();
-  let session = null, cursor = null, loaded = false, busy = false, uncertain = null;
+  const messages = new Map(), proposals = new Map(), sentRequests = new Map();
+  let session = null, cursor = null, loaded = false, busy = false, uncertain = null, historyLoading = false;
   const statusText = {PENDING:'Đang chờ xác nhận',CONFIRMED:'Đã thực hiện',CANCELLED:'Đã hủy',STALE:'Dữ liệu đã thay đổi',EXPIRED:'Đã hết hạn',SUPERSEDED:'Đã có bản thay thế'};
   const node = (tag, text, className) => { const el = document.createElement(tag); if (text != null) el.textContent = text; if (className) el.className = className; return el; };
   async function api(path, options = {}) {
@@ -16,21 +16,32 @@
     catch { throw Error('Mất kết nối. Gửi lại cùng tin nhắn để kiểm tra kết quả; hệ thống sẽ không thực hiện trùng.'); }
     if (response.redirected || response.headers.get('content-type')?.includes('text/html')) throw Error('Phiên đăng nhập hết hạn. Hãy đăng nhập lại.');
     const body = response.status === 204 ? null : await response.json().catch(() => null);
-    if (!response.ok) throw Error(body?.error || `Không thực hiện được yêu cầu (HTTP ${response.status}).`);
+    if (!response.ok) { const error=Error(body?.error || `Không thực hiện được yêu cầu (HTTP ${response.status}).`);error.status=response.status;throw error; }
     if (body === null && response.status !== 204) throw Error('Phản hồi máy chủ không hợp lệ.');
     return body;
   }
-  function setBusy(value) { busy = value; $('send').disabled = value || !session; $('chat-text').disabled = value; if($('chat-typing'))$('chat-typing').hidden=!value; $('proposals').querySelectorAll('button').forEach(b => { b.disabled = value || b.dataset.closed === 'true'; }); }
+  function setBusy(value) { busy = value; $('send').disabled = value || !session; $('chat-text').disabled = value; $('proposals').querySelectorAll('button').forEach(b => { b.disabled = value || b.dataset.closed === 'true'; }); }
+  function scrollThread() { const thread=$('messages').parentElement;thread?.scrollTo?.({top:thread.scrollHeight,behavior:'smooth'}); }
+  function setTyping(value) { $('chat-typing').hidden=!value;if(value)scrollThread(); }
+  function optimistic(status='SENDING') {
+    if (!uncertain) return;
+    const sentId=sentRequests.get(uncertain.requestId);
+    if(sentId&&messages.has(sentId)){if(status==='SENDING')messages.get(sentId).status='PENDING';renderMessages();scrollThread();return;}
+    const key='outbox:'+uncertain.requestId, old=messages.get(key);
+    messages.set(key,{id:key,local:true,sender:'USER',content:uncertain.content,status,createdAt:old?.createdAt||new Date().toISOString()});
+    renderMessages();scrollThread();
+  }
   function renderMessages() {
     $('messages').replaceChildren();
-    for (const m of [...messages.values()].sort((a,b) => a.id-b.id)) {
+    for (const m of [...messages.values()].sort((a,b) => a.local ? (b.local?0:1) : b.local ? -1 : a.id-b.id)) {
       const bubble = node('article', null, 'bubble '+(m.sender==='USER'?'user':''));
       const content=node('div',m.content);formatText(content,m.content);bubble.append(content);
-      const footer = node('small',`${m.sender==='USER'?'Bạn':'AI'} · ${new Date(m.createdAt).toLocaleString('vi-VN')} · ${m.status==='FAILED'?'Chưa nhận được phản hồi':m.status==='PENDING'?'Đang xử lý':'Đã lưu'}`);
+      const state=m.local?(m.status==='FAILED'?'Chưa xác nhận gửi — hãy thử lại':'Đang gửi…'):m.status==='FAILED'?'AI chưa phản hồi':m.status==='PENDING'?'Đã gửi · Chờ AI':'Đã lưu';
+      const footer = node('small',`${m.sender==='USER'?'Bạn':'AI'} · ${new Date(m.createdAt).toLocaleString('vi-VN')} · ${state}`);
       const copy=node('button','Sao chép');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText(m.content);copy.textContent='Đã sao chép';}catch{$('notice').textContent='Trình duyệt chưa cho phép sao chép. Bạn có thể chọn nội dung để sao chép.';}};footer.append(copy);
       const del = node('button','Xóa'); del.type='button';
-      del.onclick=async()=>{try{await api('/api/ai/chat/'+m.id,{method:'DELETE'});messages.delete(m.id);renderMessages();await loadPending();}catch(e){$('notice').textContent=e.message;}};
-      footer.append(del);bubble.append(footer);$('messages').append(bubble);
+      del.onclick=async()=>{try{await api('/api/ai/chat/'+m.id,{method:'DELETE'});if(uncertain&&sentRequests.get(uncertain.requestId)===m.id){uncertain=null;remember();$('chat-text').value='';}messages.delete(m.id);renderMessages();await loadPending();}catch(e){$('notice').textContent=e.message;}};
+      if(!m.local&&m.status!=='PENDING')footer.append(del);bubble.append(footer);$('messages').append(bubble);
     }
     if($('chat-welcome'))$('chat-welcome').hidden=messages.size>0;
   }
@@ -83,31 +94,63 @@
     }catch(e){$('notice').textContent=e.message;}
     finally{setBusy(false);}
   }
-  function remember() { sessionStorage.setItem('fitness-ai-pending',JSON.stringify(uncertain)); }
+  function remember() { try { if(uncertain)sessionStorage.setItem('fitness-ai-pending',JSON.stringify(uncertain));else sessionStorage.removeItem('fitness-ai-pending'); } catch { /* The server remains the source of saved conversation history. */ } }
   function accept(result) {
-    if(result.userMessage)messages.set(result.userMessage.id,result.userMessage);
+    if(result.userMessage){const requestId=result.requestId||uncertain?.requestId;messages.delete('outbox:'+requestId);if(requestId)sentRequests.set(requestId,result.userMessage.id);messages.set(result.userMessage.id,result.userMessage);}
     if(result.aiMessage)messages.set(result.aiMessage.id,result.aiMessage);
     for(const p of result.proposals||[])proposals.set(p.id,p);
     renderMessages();renderProposals();
   }
-  $('more').onclick=async()=>{
+  async function loadHistory() {
+    if(historyLoading)return;historyLoading=true;
     $('more').disabled=true;
-    try{const page=await api('/api/ai/chat'+(loaded&&cursor?'?before='+cursor:''));for(const m of page.messages)messages.set(m.id,m);cursor=page.nextCursor;loaded=true;$('more').hidden=!cursor;renderMessages();}
-    catch(e){$('notice').textContent=e.message;}finally{$('more').disabled=false;}
-  };
+    try{
+      const cursors=new Set();
+      do{
+        const page=await api('/api/ai/chat'+(loaded&&cursor?'?before='+cursor:''));
+        if(!Array.isArray(page.messages))throw Error('Chưa tải được lịch sử hội thoại.');
+        for(const m of page.messages)messages.set(m.id,m);
+        cursor=page.nextCursor;loaded=true;renderMessages();
+        if(cursor&&cursors.has(cursor))throw Error('Lịch sử chưa tải đủ. Hãy thử tải lại.');
+        if(cursor)cursors.add(cursor);
+      }while(cursor);
+      $('more').hidden=true;
+    }catch(e){$('more').hidden=false;$('more').textContent='Thử tải lại lịch sử';$('notice').textContent=e.message;}
+    finally{historyLoading=false;$('more').disabled=false;}
+  }
+  $('more').onclick=loadHistory;
+  async function pollTurn(result) {
+    for(let i=0;result.status==='PENDING'&&i<75;i++){
+      setTyping(true);await new Promise(resolve=>setTimeout(resolve,1000));
+      result=await api('/api/ai/chat/turns/'+uncertain.requestId);accept(result);
+    }
+    if(result.status==='PENDING')throw Error('AI vẫn đang xử lý. Bấm Gửi để kiểm tra lại cùng lượt; tin nhắn của bạn đã được giữ.');
+    return result;
+  }
+  async function finishReply(result) {
+    if(!['COMPLETE','FAILED'].includes(result.status))throw Error('Chưa xác định được kết quả lượt chat.');
+    setTyping(false);
+    if(result.status==='FAILED'){
+      $('notice').textContent=result.error||'AI chưa trả được phản hồi. Bấm Gửi để thử lại cùng lượt.';
+      $('chat-text').value=uncertain?.content||'';
+      if(result.retryable===false){uncertain=null;remember();}
+    }else{
+      uncertain=null;remember();$('notice').textContent='';
+      const updates=await Promise.allSettled([loadPending(),refreshSaved()]);
+      if(updates.some(r=>r.status==='rejected'))$('notice').textContent='Hội thoại đã được lưu. Chưa tải lại được một số kế hoạch; bạn có thể tải lại trang để xem.';
+    }
+    scrollThread();
+  }
   $('chat-form').onsubmit=async event=>{
     event.preventDefault();const content=$('chat-text').value.trim();if(!content||busy||!session)return;
     if(uncertain&&uncertain.content!==content){$('notice').textContent='Tin trước chưa có kết quả chắc chắn. Gửi lại nội dung cũ để kiểm tra trước khi gửi tin khác.';$('chat-text').value=uncertain.content;return;}
-    uncertain=uncertain||{sessionId:session,content,requestId:crypto.randomUUID()};remember();setBusy(true);$('notice').textContent='AI đang đọc yêu cầu…';
+    uncertain=uncertain||{sessionId:session,content,requestId:crypto.randomUUID()};remember();
+    setBusy(true);$('chat-text').value='';$('notice').textContent='';optimistic();setTyping(true);
     try {
       let result=await api('/api/ai/chat',{method:'POST',body:JSON.stringify(uncertain)});accept(result);
-      for(let i=0;result.status==='PENDING'&&i<35;i++){await new Promise(resolve=>setTimeout(resolve,1000));result=await api('/api/ai/chat/turns/'+uncertain.requestId);accept(result);}
-      if(result.status==='PENDING')throw Error('Yêu cầu vẫn đang xử lý. Gửi lại cùng nội dung để kiểm tra kết quả.');
-      if(result.status==='FAILED'){$('notice').textContent=result.error||'AI chưa trả được phản hồi. Bấm Gửi để thử lại cùng lượt.';if(result.retryable===false){uncertain=null;remember();}}
-      else{uncertain=null;remember();$('chat-text').value='';$('notice').textContent='';await loadPending();await refreshSaved();}
-      $('messages').scrollTop=$('messages').scrollHeight;const thread=$('messages').parentElement;thread?.scrollTo?.({top:thread.scrollHeight,behavior:'smooth'});
-    }catch(e){$('notice').textContent=e.message;}
-    finally{setBusy(false);}
+      result=await pollTurn(result);await finishReply(result);
+    }catch(e){if(uncertain){if(messages.has('outbox:'+uncertain.requestId))optimistic('FAILED');$('chat-text').value=uncertain.content;}$('notice').textContent=e.message;}
+    finally{setTyping(false);setBusy(false);}
   };
   async function refreshSaved() {
     const list=await api('/api/ai/recommendations');$('recs').replaceChildren();
@@ -123,15 +166,26 @@
     setBusy(true);
     try {
       const data=await api('/api/ai/chat/session');session=data.sessionId;
-      const old=sessionStorage.getItem('fitness-ai-session');
-      if(old!==session)sessionStorage.removeItem('fitness-ai-pending');
-      sessionStorage.setItem('fitness-ai-session',session);
-      uncertain=JSON.parse(sessionStorage.getItem('fitness-ai-pending')||'null');
-      if(uncertain){$('chat-text').value=uncertain.content;$('notice').textContent='Tin trước chưa nhận đủ kết quả. Bấm Gửi để kiểm tra hoặc thử lại.';}
-      else { const prefill=new URLSearchParams(location.search).get('prompt'); if(prefill)$('chat-text').value=prefill.slice(0,3000); }
-      await $('more').onclick();await loadPending();await refreshSaved();await loadNotifications();
-    }catch(e){$('notice').textContent=e.message;}
-    finally{setBusy(false);}
+      try {
+        if(sessionStorage.getItem('fitness-ai-session')===session){
+          const saved=JSON.parse(sessionStorage.getItem('fitness-ai-pending')||'null');
+          if(saved?.sessionId===session&&typeof saved.content==='string'&&saved.content.length<=3000&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(saved.requestId||''))uncertain=saved;
+        }
+        sessionStorage.setItem('fitness-ai-session',session);remember();
+      }catch { uncertain=null; }
+      let active=data.activeTurn;
+      if(active?.userMessage){
+        uncertain={sessionId:session,content:active.userMessage.content,requestId:active.requestId};remember();accept(active);
+      }
+      await loadHistory();
+      if(uncertain){
+        // Reconnect by reading the persisted turn; never automatically POST again on reload.
+        if(!active){active=await api('/api/ai/chat/turns/'+uncertain.requestId);accept(active);}
+        setTyping(active.status==='PENDING');active=await pollTurn(active);await finishReply(active);
+      }else{const prefill=new URLSearchParams(location.search).get('prompt');if(prefill)$('chat-text').value=prefill.slice(0,3000);}
+      await Promise.allSettled([loadPending(),refreshSaved(),loadNotifications()]);scrollThread();
+    }catch(e){if(uncertain&&!sentRequests.has(uncertain.requestId))optimistic('FAILED');$('notice').textContent=e.message;}
+    finally{if(uncertain){$('chat-text').value=uncertain.content;if(messages.has('outbox:'+uncertain.requestId))optimistic('FAILED');}setTyping(false);setBusy(false);}
   }
   initialize();
   document.querySelectorAll?.('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{if(busy)return;$('chat-text').value=b.dataset.prompt;$('chat-text').focus();}));
