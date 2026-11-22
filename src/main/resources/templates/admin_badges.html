@@ -1,73 +1,82 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <link rel="icon" type="image/svg+xml" sizes="any" href="../static/images/fitnessai-mark.svg" th:href="@{/images/fitnessai-mark.svg}">
-<script defer th:src="@{/js/app-shell.js}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Quản lý huy hiệu - FitnessAI</title>
-    <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
-    <style>
-        .badge-admin-wrap{max-width:1100px;margin:32px auto;padding:0 18px}
-        .badge-panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;margin-bottom:22px}
-        .badge-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-        .badge-form label{display:flex;flex-direction:column;gap:6px;font-weight:600}
-        .badge-form input,.badge-form select,.badge-form textarea{padding:10px;border:1px solid #cbd5e1;border-radius:7px;font:inherit}
-        .badge-form textarea{min-height:75px}
-        .badge-table{width:100%;border-collapse:collapse}
-        .badge-table th,.badge-table td{padding:10px;border-bottom:1px solid #e2e8f0;text-align:left}
-        .notice{padding:10px;background:#eff6ff;border-radius:8px;margin-bottom:12px}
-        @media(max-width:650px){.badge-form{grid-template-columns:1fr}.badge-panel{overflow:auto}}
-    </style>
-  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
-<meta name="app-base" th:content="@{/}">
-<meta name="_csrf" th:content="${_csrf.token}"><meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <link rel="icon" type="image/svg+xml" sizes="any" th:href="@{/images/fitnessai-mark.svg}">
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <link rel="stylesheet" th:href="@{/css/app-ui.css}">
+    <link rel="stylesheet" th:href="@{/css/admin-badges.css}">
+    <script defer th:src="@{/js/app-shell.js}"></script>
+    <script defer th:src="@{/js/admin-badges.js}"></script>
+    <meta name="app-base" th:content="@{/}">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
 </head>
 <body class="fitness-app">
 <header th:replace="~{fragments/app :: header}"></header>
-<main class="badge-admin-wrap">
-    <h1>Quản lý huy hiệu</h1>
-    <div class="notice" th:if="${param.created}">Đã tạo huy hiệu. Hệ thống đã xét cấp bù cho người dùng đủ điều kiện.</div>
-    <div class="notice" th:if="${errorMessage}" th:text="${errorMessage}"></div>
-    <section class="badge-panel">
-        <h2>Tạo huy hiệu mới</h2>
-        <form class="badge-form" th:action="@{/admin/badges/page}" th:object="${badgeForm}" method="post">
-            <label>Tên huy hiệu
-                <input th:field="*{name}" required maxlength="100">
-            </label>
-            <label>Icon (emoji hoặc URL)
-                <input th:field="*{icon}" maxlength="500" placeholder="🏅">
-            </label>
-            <label>Ngưỡng
-                <input th:field="*{thresholdValue}" type="number" min="1" required>
-            </label>
-            <label style="grid-column:1/-1">Mô tả
-                <textarea th:field="*{description}" required maxlength="500"></textarea>
-            </label>
-            <label><span>Kích hoạt ngay</span>
-                <input th:field="*{active}" type="checkbox">
-            </label>
-            <div style="grid-column:1/-1"><button class="btn btn-primary" type="submit">Tạo huy hiệu và xét cấp bù</button></div>
-        </form>
+<main class="badge-admin-wrap" id="badge-admin">
+    <section class="badge-hero" aria-labelledby="badge-page-title">
+        <div><p class="badge-eyebrow">QUẢN TRỊ HỆ THỐNG</p><h1 id="badge-page-title">Quản lý huy hiệu</h1><p>Tạo dấu mốc, ghi nhận sự bền bỉ.</p></div>
+        <img th:src="@{/images/badge-medal.svg}" width="180" height="150" alt="" class="badge-hero-art">
     </section>
-    <section class="badge-panel">
-        <h2>Danh sách huy hiệu</h2>
-        <table class="badge-table">
-            <thead><tr><th>Tên</th><th>Streak yêu cầu</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-            <tbody>
-            <tr th:each="badge : ${badges}">
-                <td><span th:text="${badge.icon != null ? badge.icon : '🏅'}"></span> <strong th:text="${badge.name}"></strong><br><small th:text="${badge.description}"></small></td>
-                <td th:text="${badge.thresholdValue}"></td>
-                <td th:text="${badge.active ? 'Đang hoạt động' : 'Đã tắt'}"></td>
-                <td>
-                    <form th:action="@{/admin/badges/page/{id}/active(id=${badge.id})}" method="post">
-                        <input type="hidden" name="active" th:value="${!badge.active}">
-                        <button class="btn btn-primary btn-sm" type="submit" th:text="${badge.active ? 'Tắt' : 'Bật & cấp bù'}"></button>
-                    </form>
-                </td>
-            </tr>
-            </tbody>
-        </table>
+    <div class="badge-notice" role="status" th:if="${param.created}">Đã tạo huy hiệu. Huy hiệu được kích hoạt sẽ được xét cấp bù cho người dùng đủ điều kiện.</div>
+    <div class="badge-notice badge-notice-error" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></div>
+    <div class="badge-create-layout">
+        <section class="badge-admin-panel" aria-labelledby="badge-create-title">
+            <h2 id="badge-create-title">Tạo huy hiệu mới</h2>
+            <p class="badge-subtitle">Thiết lập điều kiện để ghi nhận nỗ lực của người dùng.</p>
+            <form id="badge-form" class="badge-form" th:action="@{/admin/badges/page}" th:object="${badgeForm}" method="post">
+                <label>Tên huy hiệu<input th:field="*{name}" required maxlength="100" placeholder="Nhập tên huy hiệu"></label>
+                <label>Biểu tượng (emoji hoặc URL)<input th:field="*{icon}" maxlength="500" placeholder="🏅" aria-describedby="badge-icon-help"><small id="badge-icon-help">Dùng emoji hoặc đường dẫn ảnh HTTP/HTTPS.</small></label>
+                <label>Streak yêu cầu<span class="badge-threshold-input"><input th:field="*{thresholdValue}" type="number" min="1" step="1" required aria-describedby="badge-threshold-help"><span>ngày</span></span><small id="badge-threshold-help">Tính theo chuỗi check-in cao nhất.</small></label>
+                <label class="badge-form-wide">Mô tả<textarea th:field="*{description}" required maxlength="500" placeholder="Mô tả dấu mốc người dùng cần đạt"></textarea></label>
+                <div class="badge-form-footer badge-form-wide">
+                    <div><label class="badge-toggle"><input th:field="*{active}" type="checkbox" role="switch"><span class="badge-toggle-track" aria-hidden="true"></span><span>Kích hoạt ngay</span></label><p class="badge-backfill-help">Hệ thống sẽ xét cấp bù cho người dùng đủ điều kiện khi kích hoạt.</p></div>
+                    <button class="badge-primary" type="submit">Tạo huy hiệu và xét cấp bù</button>
+                </div>
+            </form>
+        </section>
+        <aside class="badge-admin-panel badge-preview" aria-labelledby="badge-preview-title">
+            <h2 id="badge-preview-title">Xem trước huy hiệu</h2>
+            <div class="badge-preview-content">
+                <div class="badge-preview-medal"><span id="badge-preview-icon" class="badge-icon" aria-hidden="true">🏅</span></div>
+                <h3 id="badge-preview-name">Tên huy hiệu</h3>
+                <span class="badge-preview-threshold" id="badge-preview-threshold">Chưa đặt số ngày</span>
+                <p id="badge-preview-description">Mô tả huy hiệu sẽ hiển thị tại đây.</p>
+                <span class="badge-unsaved">Bản xem trước · Chưa được lưu</span>
+            </div>
+        </aside>
+    </div>
+    <section class="badge-admin-panel badge-list" aria-labelledby="badge-list-title">
+        <div class="badge-list-toolbar">
+            <div class="badge-list-heading"><h2 id="badge-list-title">Danh sách huy hiệu</h2><span class="badge-count" th:text="${#lists.size(badges) + ' huy hiệu'}">0 huy hiệu</span></div>
+            <div class="badge-list-controls" id="badge-list-controls" hidden>
+                <label class="badge-search"><span class="sr-only">Tìm huy hiệu theo tên hoặc mô tả</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg><input id="badge-search" type="search" placeholder="Tìm huy hiệu…" maxlength="500"></label>
+                <div class="badge-filters" role="group" aria-label="Lọc trạng thái huy hiệu">
+                    <button type="button" data-badge-filter="all" aria-pressed="true" th:text="${'Tất cả (' + #lists.size(badges) + ')'}">Tất cả</button>
+                    <button type="button" data-badge-filter="active" aria-pressed="false" th:text="${'Đang hoạt động (' + #lists.size(badges.?[active]) + ')'}">Đang hoạt động</button>
+                    <button type="button" data-badge-filter="inactive" aria-pressed="false" th:text="${'Đã tắt (' + #lists.size(badges.?[!active]) + ')'}">Đã tắt</button>
+                </div>
+            </div>
+        </div>
+        <div class="badge-table-scroll" role="region" aria-label="Bảng huy hiệu" tabindex="0">
+            <table class="badge-table">
+                <thead><tr><th scope="col">Huy hiệu</th><th scope="col">Streak yêu cầu</th><th scope="col">Trạng thái</th><th scope="col">Thao tác</th></tr></thead>
+                <tbody>
+                <tr th:each="badge : ${badges}" data-badge-row th:attr="data-active=${badge.active}">
+                    <td><div class="badge-identity"><span class="badge-icon badge-list-icon" th:text="${#strings.isEmpty(badge.icon) ? '🏅' : badge.icon}" aria-hidden="true"></span><div><strong class="badge-name" th:text="${badge.name}"></strong><small class="badge-description" th:text="${badge.description}"></small></div></div></td>
+                    <td class="badge-days" th:text="${badge.thresholdValue + ' ngày'}"></td>
+                    <td><span class="badge-status" th:classappend="${badge.active ? 'is-active' : 'is-inactive'}"><span aria-hidden="true"></span><span th:text="${badge.active ? 'Đang hoạt động' : 'Đã tắt'}"></span></span></td>
+                    <td><form th:action="@{/admin/badges/page/{id}/active(id=${badge.id})}" method="post"><input type="hidden" name="active" th:value="${!badge.active}"><button class="badge-action" type="submit" th:attr="aria-label=${(badge.active ? 'Tắt huy hiệu ' : 'Bật và xét cấp bù huy hiệu ') + badge.name}" th:text="${badge.active ? 'Tắt' : 'Bật & cấp bù'}"></button></form></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <p id="badge-empty" class="badge-empty" th:hidden="${!#lists.isEmpty(badges)}">Chưa có huy hiệu nào. Tạo huy hiệu đầu tiên ở phía trên.</p>
+        <p id="badge-results" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+        <p class="badge-list-note">Bật lại huy hiệu sẽ xét cấp bù cho người dùng đủ điều kiện.</p>
     </section>
 </main>
 </body>

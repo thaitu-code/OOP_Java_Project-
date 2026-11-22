@@ -18,4 +18,10 @@ html{scroll-behavior:smooth;scroll-padding-top:100px}body.fitness-app,body.fitne
 
 .fitness-auth .overlay-side{background:linear-gradient(135deg,#3b82f6,#2563eb 70%,#3159d9)}
 
+/* Explicit delete actions: shared across diary, exercise administration and chat. */
+.fitness-app button.ui-delete{background:#e56b75;border:1px solid #e56b75;color:#fff;font-weight:600}
+.fitness-app button.ui-delete:hover:not(:disabled){background:#d95565;border-color:#d95565;color:#fff;text-decoration:none}
+.fitness-app button.ui-delete:disabled{opacity:.55;cursor:not-allowed}
+.fitness-app .bubble small button.ui-delete{padding:4px 10px;border-radius:7px}
+
 @media(max-width:500px){.fitness-app .workout-hero h1,.fitness-app .n-hero h1{font-size:26px}.fitness-app .workout-hero,.fitness-app .n-hero{padding:24px}.app-brand{font-size:19px}.app-header{gap:12px}.app-header-actions{gap:10px}}

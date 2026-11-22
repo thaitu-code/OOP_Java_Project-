@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import vn.id.fitnessai.config.SecurityConfig;
 import vn.id.fitnessai.dto.UserProfileResponse;
 import vn.id.fitnessai.entity.User;
+import vn.id.fitnessai.entity.Badge;
 import vn.id.fitnessai.enums.*;
 import vn.id.fitnessai.repository.*;
 import vn.id.fitnessai.service.*;
@@ -72,10 +73,23 @@ class UiPageRenderingTest {
         assertThat(render("/home","guest",false)).doesNotContain("id=\"dashboard-app\"","id=\"app-account\"").contains("Tạo tài khoản");
     }
     @Test void adminPagesRetainTheirFormsAndSharedMenu()throws Exception{
+        var samples = new ArrayList<Badge>();
+        String[] names = {"Khởi đầu", "Kỷ luật", "Bền bỉ", "Chinh phục tháng", "Không thể ngăn cản", "Huyền thoại"};
+        String[] icons = {"🌱", "🔥", "💪", "🏆", "⚡", "👑"};
+        long[] days = {3, 7, 14, 30, 60, 100};
+        for (int i = 0; i < names.length; i++) {
+            Badge badge = new Badge(); badge.setId((long)i + 1); badge.setName(names[i]); badge.setIcon(icons[i]);
+            badge.setThresholdValue(days[i]); badge.setDescription("Check-in " + days[i] + " ngày liên tiếp");
+            badge.setActive(i != 5); samples.add(badge);
+        }
+        when(badgeRepository.findAll()).thenReturn(samples);
         for(String path:List.of("/admin/dashboard","/admin/badges/page")){
             String html=mvc.perform(get(path).with(user("preview-user").roles("ADMIN"))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
             Path dir=Path.of("target/ui-preview");Files.createDirectories(dir);Files.writeString(dir.resolve(path.endsWith("page")?"badges.html":"admin.html"),html);
             assertThat(html).contains("app-account", "Quản trị hệ thống", "/perform_logout");
+            if (path.endsWith("page")) assertThat(html).contains("/css/admin-badges.css", "/js/admin-badges.js",
+                    "name=\"_csrf\"", "6 huy hiệu", "Đang hoạt động (5)", "Đã tắt (1)", "Bật &amp; cấp bù",
+                    "action=\"/admin/badges/page/1/active\"", "badge-preview-name", "data-active=\"false\"");
             mvc.perform(get(path).with(user("preview-user"))).andExpect(status().isForbidden());
         }
     }

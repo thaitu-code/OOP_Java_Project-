@@ -43,9 +43,56 @@ class AiConversationServiceTest {
         when(gemini.generateJson(anyString(),anyList())).thenReturn("not-json");service.send("tester","session123","Xin chào",request);
         verify(store).fail(eq("tester"),eq(turn),anyString());verify(engine,never()).prepare(any(),any());verifyNoInteractions(decisions);
     }
+    @Test void invalidJsonHasASpecificRetryErrorWithoutLeakingProviderContent(){
+        when(gemini.generateJson(anyString(),anyList())).thenReturn("PRIVATE_PROVIDER_CONTENT");
+        service.send("tester","session123","Xin chào",request);
+        verify(store).fail(eq("tester"),eq(turn),argThat(error -> error.contains("sai định dạng JSON")
+                && error.contains(request.toString()) && !error.contains("PRIVATE_PROVIDER_CONTENT")));
+        verify(store,never()).finish(anyString(),any(),anyString(),anyList(),anyString());
+    }
+    @Test void failedDraftPreparationHasACorrelatedErrorAndDoesNotExecuteAnything(){
+        when(gemini.generateJson(anyString(),anyList())).thenReturn("{\"type\":\"PROPOSE\",\"reply\":\"Xem điều kiện tập luyện\",\"actions\":[{\"kind\":\"PROFILE_UPDATE\",\"payload\":{\"changes\":{\"trainingPreferences\":\"Mới, ở nhà, 3 ngày/tuần\"}}}]}");
+        when(engine.prepare(eq("tester"),any())).thenThrow(new NullPointerException("PRIVATE_PROFILE_DATA"));
+        service.send("tester","session123","1 Không có kinh nghiệm\n2 Tập ở nhà, không dụng cụ\n3 3 ngày/tuần\n4 không",request);
+        verify(store).fail(eq("tester"),eq(turn),argThat(error -> error.contains("bản xem trước")
+                && error.contains(request.toString()) && !error.contains("PRIVATE_PROFILE_DATA")));
+        verifyNoInteractions(decisions); verify(engine,never()).execute(any(),any());
+        verify(store,never()).finish(anyString(),any(),anyString(),anyList(),anyString());
+    }
     @Test void duplicateRequestDoesNotCallProviderAgain(){
         when(store.begin(eq("tester"),eq("session123"),anyString(),eq(request))).thenReturn(new AiConversationStore.Ticket(turn,false));
         service.send("tester","session123","Xin chào",request);verifyNoInteractions(gemini,engine,context,decisions);
+    }
+    @Test void mixedProfileAndPlansPrepareOnlyIndependentActionsInEitherOrder(){
+        var profileAction="{\"kind\":\"PROFILE_UPDATE\",\"payload\":{\"changes\":{\"trainingPreferences\":\"Mới bắt đầu, ở nhà không dụng cụ, 3 ngày/tuần, không chấn thương\"}}}";
+        // The deferred plan can itself be invalid: it must never reach the preview engine.
+        var workoutAction="{\"kind\":\"WORKOUT_PLAN\",\"payload\":{}}";
+        var mealAction="{\"kind\":\"MEAL_PLAN\",\"payload\":{}}";
+        var independent="{\"kind\":\"MEAL_LOG\",\"payload\":{\"items\":[]}}";
+        when(engine.prepare(eq("tester"),any())).thenAnswer(call -> {
+            String kind=((tools.jackson.databind.JsonNode)call.getArgument(1)).path("kind").asText();
+            assertFalse(kind.endsWith("PLAN"));
+            return new AiDraftEngine.Prepared(kind,"{}","Xem trước","hash");
+        });
+        for (String actions : List.of(profileAction+","+workoutAction+","+mealAction+","+independent,
+                mealAction+","+workoutAction+","+profileAction+","+independent)) {
+            clearInvocations(engine,store);
+            when(gemini.generateJson(anyString(),anyList())).thenReturn("{\"type\":\"PROPOSE\",\"reply\":\"Đã tạo lịch tập!\",\"actions\":["+actions+"]}");
+            service.send("tester","session123","tập ở nhà không dụng cụ\nmới bắt đầu\n3 ngày/tuần\nkhông",request);
+            verify(engine,times(2)).prepare(eq("tester"),any());
+            verify(store).finish(eq("tester"),eq(turn),argThat(reply -> reply.contains("Tiếp tục lập kế hoạch")
+                    && !reply.contains("Đã tạo lịch tập!") && !reply.contains("Hãy cập nhật hồ sơ trước")),
+                    argThat(drafts -> drafts.size()==2 && drafts.stream().noneMatch(d -> d.kind().endsWith("PLAN"))),eq("base"));
+            verify(store,never()).fail(anyString(),any(),anyString());verifyNoInteractions(decisions);
+        }
+    }
+    @Test void aPlanWithoutAProfileChangeStillUsesNormalPreviewValidation(){
+        when(gemini.generateJson(anyString(),anyList())).thenReturn("{\"type\":\"PROPOSE\",\"reply\":\"Xem lịch tập\",\"actions\":[{\"kind\":\"WORKOUT_PLAN\",\"payload\":{}}]}");
+        when(engine.prepare(eq("tester"),any())).thenThrow(new IllegalArgumentException("Ngày bắt đầu không hợp lệ"));
+        service.send("tester","session123","Tiếp tục lập kế hoạch",request);
+        verify(engine).prepare(eq("tester"),argThat(action -> action.path("kind").asText().equals("WORKOUT_PLAN")));
+        verify(store).fail(eq("tester"),eq(turn),contains("Ngày bắt đầu không hợp lệ"));
+        verify(store,never()).finish(anyString(),any(),anyString(),anyList(),anyString());
     }
     @Test void ambiguousConsentWithTwoProposalsAsksWhichOne(){
         var p=new AiConversationStore.Proposal(UUID.randomUUID(),"PROFILE_UPDATE","preview","PENDING",null,null,null);

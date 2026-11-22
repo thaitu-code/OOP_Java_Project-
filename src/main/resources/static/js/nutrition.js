@@ -154,7 +154,7 @@
     $("diary-meals").innerHTML = Object.entries(meals).map(([type, [label, symbol]]) => {
       const meal = day.meals.find(item => item.mealType === type);
       if (!meal) throw new Error("Nhật ký chưa trả đủ bốn bữa ăn.");
-      return `<section class="n-card"><div class="n-card-heading"><div class="n-meal-title"><span class="n-meal-symbol" aria-hidden="true">${symbol}</span><div><h3>${label}</h3><span class="n-note">${meal.items.length} món</span></div></div>${editable() ? button("add-meal", "＋ Thêm món", type, "secondary", 'data-today-only="true"') : ""}</div><div class="n-item-list">${meal.items.length ? meal.items.map(d => `<article class="n-item"><div class="n-item-top">${image(d.imageUrlSnapshot, d.foodNameSnapshot, true)}<div class="n-item-info"><strong>${esc(d.foodNameSnapshot)}</strong><p class="n-note">${esc(d.categoryNameSnapshot)} · ${fmt(d.weightGrams)} g</p></div><span class="n-item-calories">${fmt(d.calculatedCalories)} kcal</span></div><div class="n-nutrients"><span>Đạm ${fmt(d.calculatedProtein)} g</span><span>Tinh bột ${fmt(d.calculatedCarbs)} g</span><span>Chất béo ${fmt(d.calculatedFat)} g</span></div>${d.note ? `<p class="n-note n-item-note">${esc(d.note)}</p>` : ""}${editable() ? `<div class="n-buttons">${button("edit-entry", "Sửa món", d.detailId)}${button("delete-entry", "Xóa", d.detailId, "danger")}</div>` : ""}</article>`).join("") : '<p class="n-note">Chưa có món ăn trong bữa này.</p>'}</div><div class="n-meal-subtotal"><strong>${fmt(meal.totals.calories)} kcal</strong> · Đạm ${fmt(meal.totals.protein)} g · Tinh bột ${fmt(meal.totals.carbs)} g · Chất béo ${fmt(meal.totals.fat)} g</div></section>`;
+      return `<section class="n-card"><div class="n-card-heading"><div class="n-meal-title"><span class="n-meal-symbol" aria-hidden="true">${symbol}</span><div><h3>${label}</h3><span class="n-note">${meal.items.length} món</span></div></div>${editable() ? button("add-meal", "＋ Thêm món", type, "secondary", 'data-today-only="true"') : ""}</div><div class="n-item-list">${meal.items.length ? meal.items.map(d => `<article class="n-item"><div class="n-item-top">${image(d.imageUrlSnapshot, d.foodNameSnapshot, true)}<div class="n-item-info"><strong>${esc(d.foodNameSnapshot)}</strong><p class="n-note">${esc(d.categoryNameSnapshot)} · ${fmt(d.weightGrams)} g</p></div><span class="n-item-calories">${fmt(d.calculatedCalories)} kcal</span></div><div class="n-nutrients"><span>Đạm ${fmt(d.calculatedProtein)} g</span><span>Tinh bột ${fmt(d.calculatedCarbs)} g</span><span>Chất béo ${fmt(d.calculatedFat)} g</span></div>${d.note ? `<p class="n-note n-item-note">${esc(d.note)}</p>` : ""}${editable() ? `<div class="n-buttons">${button("edit-entry", "Sửa món", d.detailId)}${button("delete-entry", "Xóa", d.detailId, "danger ui-delete")}</div>` : ""}</article>`).join("") : '<p class="n-note">Chưa có món ăn trong bữa này.</p>'}</div><div class="n-meal-subtotal"><strong>${fmt(meal.totals.calories)} kcal</strong> · Đạm ${fmt(meal.totals.protein)} g · Tinh bột ${fmt(meal.totals.carbs)} g · Chất béo ${fmt(meal.totals.fat)} g</div></section>`;
     }).join("");
     syncControls();
   }
@@ -289,8 +289,8 @@
   }
   function closeDialog() { if (!state.busy) $("nutrition-dialog").close(); }
   function invalidateCatalog() { state.loaded.foods = false; state.loaded.manage = false; }
-  function confirmAction(title, message, callback) {
-    openDialog(title, `<p class="n-description">${esc(message)}</p><form class="n-form"><div class="n-buttons n-span-all"><button class="n-btn" type="submit">Xác nhận</button>${button("close-dialog", "Quay lại")}</div></form>`, callback);
+  function confirmAction(title, message, callback, destructive = false) {
+    openDialog(title, `<p class="n-description">${esc(message)}</p><form class="n-form"><div class="n-buttons n-span-all"><button class="n-btn${destructive ? " ui-delete" : ""}" type="submit">Xác nhận</button>${button("close-dialog", "Quay lại")}</div></form>`, callback);
   }
   async function mutate(write, success) {
     if (state.busy) return;
@@ -482,7 +482,7 @@
       confirmAction("Xóa món ăn?", `Xóa ${entry.foodNameSnapshot} (${fmt(entry.weightGrams)} g) khỏi nhật ký hôm nay? Tổng dinh dưỡng sẽ được cập nhật.`, async () => {
         requireToday();
         await mutate(() => api(`/nutrition-logs/today/details/${id}?expectedVersion=${entry.version}`, "DELETE"), day => acceptDiary(day, "Đã xóa món ăn và cập nhật tổng dinh dưỡng."));
-      });
+      }, true);
     },
     "change-food": () => { rememberDraft(); picker(); },
     "back-entry": () => entryForm(state.draft.food),

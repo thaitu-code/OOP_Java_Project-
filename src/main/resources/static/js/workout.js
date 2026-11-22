@@ -447,8 +447,8 @@
     state.modalSubmit = submit || null;
     if (!$("workout-dialog").open) $("workout-dialog").showModal();
   }
-  function confirmAction(title, message, label, callback) {
-    openDialog(title, `<p class="dialog-description">${esc(message)}</p><form id="modal-form"><div class="button-row"><button class="w-btn" type="submit">${esc(label)}</button><button class="w-btn secondary" data-action="close-dialog" type="button">Quay lại</button></div></form>`, callback);
+  function confirmAction(title, message, label, callback, destructive = false) {
+    openDialog(title, `<p class="dialog-description">${esc(message)}</p><form id="modal-form"><div class="button-row"><button class="w-btn${destructive ? " ui-delete" : ""}" type="submit">${esc(label)}</button><button class="w-btn secondary" data-action="close-dialog" type="button">Quay lại</button></div></form>`, callback);
   }
   async function refreshAll() {
     invalidateHistory();
@@ -473,7 +473,7 @@
     $("manage-categories").innerHTML = state.categories.length ? state.categories.map(c => `<article class="category-item"><strong>${esc(c.categoryName)}</strong> <span class="w-pill ${c.active ? "enabled" : "disabled"}">${c.active ? "Hoạt động" : "Đã ngừng"}</span><div class="button-row"><button class="w-btn small secondary" data-action="edit-category" data-id="${c.categoryId}" type="button">Đổi tên</button><button class="w-btn small secondary" data-action="toggle-category" data-id="${c.categoryId}" type="button">${c.active ? "Ngừng nhóm" : "Kích hoạt"}</button></div></article>`).join("") : '<p class="w-note">Chưa có nhóm bài tập. Tạo nhóm trước khi tạo bài.</p>';
     const keyword = $("manage-search").value.trim().toLocaleLowerCase("vi");
     const items = state.exercises.filter(e => `${e.exerciseName} ${e.categoryName}`.toLocaleLowerCase("vi").includes(keyword));
-    $("manage-exercises").innerHTML = items.length ? items.map(e => `<tr><td><strong>${esc(e.exerciseName)}</strong><span class="w-note">${esc(e.categoryName)}</span></td><td>${fmt(e.metValue)}</td><td>${fmt(e.minDurationMinutes)} phút</td><td><span class="w-pill ${e.active ? "enabled" : "disabled"}">${e.active ? "Hoạt động" : "Đã ngừng"}</span></td><td><div class="button-row"><button class="w-btn small secondary" data-action="edit-exercise" data-id="${e.exerciseId}" type="button">Sửa</button><button class="w-btn small secondary" data-action="manage-levels" data-id="${e.exerciseId}" type="button">Cấp độ</button><button class="w-btn small secondary" data-action="upload-media" data-id="${e.exerciseId}" type="button">GIF / Video</button><button class="w-btn small secondary" data-action="toggle-exercise" data-id="${e.exerciseId}" type="button">${e.active ? "Ngừng" : "Kích hoạt"}</button><button class="w-btn small danger-quiet" data-action="delete-exercise" data-id="${e.exerciseId}" type="button">Xóa hẳn</button></div></td></tr>`).join("") : '<tr><td colspan="5">Chưa có bài tập phù hợp.</td></tr>';
+    $("manage-exercises").innerHTML = items.length ? items.map(e => `<tr><td><strong>${esc(e.exerciseName)}</strong><span class="w-note">${esc(e.categoryName)}</span></td><td>${fmt(e.metValue)}</td><td>${fmt(e.minDurationMinutes)} phút</td><td><span class="w-pill ${e.active ? "enabled" : "disabled"}">${e.active ? "Hoạt động" : "Đã ngừng"}</span></td><td><div class="button-row"><button class="w-btn small secondary" data-action="edit-exercise" data-id="${e.exerciseId}" type="button">Sửa</button><button class="w-btn small secondary" data-action="manage-levels" data-id="${e.exerciseId}" type="button">Cấp độ</button><button class="w-btn small secondary" data-action="upload-media" data-id="${e.exerciseId}" type="button">GIF / Video</button><button class="w-btn small secondary" data-action="toggle-exercise" data-id="${e.exerciseId}" type="button">${e.active ? "Ngừng" : "Kích hoạt"}</button><button class="w-btn small danger-quiet ui-delete" data-action="delete-exercise" data-id="${e.exerciseId}" type="button">Xóa hẳn</button></div></td></tr>`).join("") : '<tr><td colspan="5">Chưa có bài tập phù hợp.</td></tr>';
   }
   function editCategory(id) {
     const c = state.categories.find(item => item.categoryId === id);
@@ -617,7 +617,7 @@
       state.exercises = state.exercises.filter(e => e.exerciseId !== id);
       state.catalogVersion++;
       $("workout-dialog").close(); renderCatalog(); notice("Đã xóa bài khỏi thư viện. Lịch sử được giữ nguyên.", "success");
-    }),
+    }, true),
     "close-dialog": () => $("workout-dialog").close()
   };
   document.addEventListener("click", event => {

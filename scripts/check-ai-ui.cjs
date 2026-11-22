@@ -52,7 +52,55 @@ let passed=0;async function test(name,work){await work();passed++;console.log('P
   await test('One send control; no execution mode',async()=>{const html=fs.readFileSync('src/main/resources/templates/ai.html','utf8');assert.ok(html.includes('id="send"'));assert.ok(!html.includes('ai-execute'));});
   await test('Sending prepares a preview without confirming or writing',async()=>{const e=environment(chatHandler());e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);assert.equal(e.calls.filter(c=>c.options.method==='POST').length,1);assert.equal(e.get('proposals').children.length,1);assert.ok(e.get('proposals').querySelectorAll('button').some(b=>b.textContent==='Xác nhận'));});
   await test('Loading history after a sent turn does not duplicate messages',async()=>{const e=environment(chatHandler());e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);await e.get('more').onclick();assert.equal(e.get('messages').children.length,2);});
-  await test('Editing stays in the same composer without confirming',async()=>{const e=environment(chatHandler());e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);await e.get('proposals').querySelectorAll('button').find(b=>b.textContent==='Chỉnh sửa').onclick();assert.ok(e.get('chat-text').value.includes(proposal.id));assert.equal(e.calls.filter(c=>c.path.endsWith('/confirm')).length,0);});
+  await test('Editing uses a plain composer and shows context without the proposal UUID',async()=>{
+    const e=environment(chatHandler({pending:[proposal]}));e.run('src/main/resources/static/js/ai.js');await settle();
+    e.get('proposals').querySelectorAll('button').find(b=>b.textContent==='Chỉnh sửa').onclick();
+    assert.equal(e.get('chat-text').value,'');assert.equal(e.get('chat-edit-context').hidden,false);
+    assert.ok(e.get('chat-edit-label').textContent.includes('Đang chỉnh sửa'));assert.ok(!e.get('chat-edit-label').textContent.includes(proposal.id));
+    assert.equal(e.calls.filter(c=>c.options.method==='POST').length,0);
+  });
+  await test('Editing the second of two proposals sends its exact ID but displays only the requested change',async()=>{
+    const second={...proposal,id:crypto.randomUUID(),kind:'WORKOUT_PLAN'};let wire;
+    const e=environment(chatHandler({pending:[proposal,second],handle:(path,options)=>{
+      if(path==='/api/ai/chat'&&options.method==='POST'){wire=JSON.parse(options.body);return {status:'COMPLETE',userMessage:{...pair[0],content:wire.content},aiMessage:pair[1],proposals:[]};}
+    }}));e.run('src/main/resources/static/js/ai.js');await settle();
+    e.get('proposals').querySelectorAll('button').filter(b=>b.textContent==='Chỉnh sửa')[1].onclick();
+    await submit(e,'Chuyển buổi thứ Hai sang thứ Ba');
+    assert.equal(wire.content,`Chỉnh đề xuất ${second.id}: Chuyển buổi thứ Hai sang thứ Ba`);
+    assert.equal(e.get('messages').children[0].children[0].textContent,'Chuyển buổi thứ Hai sang thứ Ba');
+    assert.equal(e.get('chat-edit-context').hidden,true);assert.equal(e.calls.filter(c=>c.path.endsWith('/confirm')).length,0);
+  });
+  await test('Leaving edit context keeps the proposal pending and sends an ordinary question',async()=>{
+    let wire;const e=environment(chatHandler({pending:[proposal],handle:(path,options)=>{
+      if(path==='/api/ai/chat'&&options.method==='POST')wire=JSON.parse(options.body);
+    }}));e.run('src/main/resources/static/js/ai.js');await settle();
+    e.get('proposals').querySelectorAll('button').find(b=>b.textContent==='Chỉnh sửa').onclick();
+    e.get('chat-edit-cancel').onclick();assert.equal(e.get('chat-edit-context').hidden,true);
+    await submit(e,'TDEE là gì?');assert.equal(wire.content,'TDEE là gì?');
+    assert.equal(e.calls.filter(c=>c.path.endsWith('/cancel')||c.path.endsWith('/confirm')).length,0);
+  });
+  await test('Failed edits restore plain text and retry with the same proposal and request IDs',async()=>{
+    const sent=[];const e=environment(chatHandler({pending:[proposal],handle:(path,options)=>{
+      if(path==='/api/ai/chat'&&options.method==='POST'){const wire=JSON.parse(options.body);sent.push(wire);return {status:'FAILED',userMessage:{...pair[0],content:wire.content,status:'FAILED'},proposals:[],error:'Timeout',retryable:true};}
+    }}));e.run('src/main/resources/static/js/ai.js');await settle();
+    e.get('proposals').querySelectorAll('button').find(b=>b.textContent==='Chỉnh sửa').onclick();
+    await submit(e,'Đổi sang 4 ngày');assert.equal(e.get('chat-text').value,'Đổi sang 4 ngày');assert.equal(e.get('chat-edit-context').hidden,false);
+    await submit(e,'Đổi sang 4 ngày');assert.equal(sent[0].requestId,sent[1].requestId);
+    assert.equal(sent[0].content,`Chỉnh đề xuất ${proposal.id}: Đổi sang 4 ngày`);assert.equal(sent[0].content,sent[1].content);
+    assert.equal(e.get('messages').children[0].children[0].textContent,'Đổi sang 4 ngày');
+  });
+  await test('Reload restores a failed edit without exposing its ID or automatically resending',async()=>{
+    const requestId=crypto.randomUUID(),content=`Chỉnh đề xuất ${proposal.id}: Đổi sang 4 ngày`,failed={...pair[0],content,status:'FAILED'};
+    const e=environment(chatHandler({pending:[proposal],handle:(path,options)=>{
+      if(path==='/api/ai/chat/session')return {sessionId:'session123',activeTurn:{requestId,status:'FAILED',userMessage:failed,proposals:[],error:'Timeout',retryable:true}};
+      if(path==='/api/ai/chat'&&!options.method)return {messages:[failed],nextCursor:null};
+    }}));e.run('src/main/resources/static/js/ai.js');await settle();
+    assert.equal(e.get('chat-text').value,'Đổi sang 4 ngày');assert.equal(e.get('chat-edit-context').hidden,false);
+    assert.equal(e.get('messages').children[0].children[0].textContent,'Đổi sang 4 ngày');
+    assert.equal(e.calls.filter(c=>c.options.method==='POST').length,0);
+    await submit(e,'Đổi sang 4 ngày');const sent=JSON.parse(e.calls.find(c=>c.options.method==='POST').options.body);
+    assert.equal(sent.requestId,requestId);assert.equal(sent.content,content);
+  });
   await test('Explicit confirmation uses the persisted proposal ID',async()=>{const e=environment(chatHandler());e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);await e.get('proposals').querySelectorAll('button').find(b=>b.textContent==='Xác nhận').onclick();assert.equal(e.calls.filter(c=>c.path===`/api/ai/proposals/${proposal.id}/confirm`).length,1);assert.equal(e.get('proposals').querySelectorAll('button').length,0);});
   await test('Unknown network outcome retries the same request ID',async()=>{let first=true;const ids=[];const e=environment(chatHandler({handle:(path,options)=>{if(path==='/api/ai/chat'&&options.method==='POST'){ids.push(JSON.parse(options.body).requestId);if(first){first=false;throw Error('offline');}}}}));e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);await submit(e,pair[0].content);assert.equal(ids.length,2);assert.equal(ids[0],ids[1]);});
   await test('Known provider failure preserves input for a same-turn retry',async()=>{const e=environment(chatHandler({handle:(path,options)=>path==='/api/ai/chat'&&options.method==='POST'?{status:'FAILED',error:'Timeout',userMessage:{...pair[0],status:'FAILED'},proposals:[],retryable:true}:undefined}));e.run('src/main/resources/static/js/ai.js');await settle();await submit(e,pair[0].content);assert.equal(e.get('chat-text').value,pair[0].content);assert.ok(e.storage.get('fitness-ai-pending').includes('requestId'));});

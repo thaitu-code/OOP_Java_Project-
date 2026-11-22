@@ -18,7 +18,9 @@ public class BadgeAdminPageController {
     @GetMapping
     public String page(Model model) {
         model.addAttribute("badges", badgeRepository.findAll());
-        model.addAttribute("badgeForm", new BadgeCreateRequest());
+        BadgeCreateRequest form = new BadgeCreateRequest();
+        form.setThresholdValue(1);
+        model.addAttribute("badgeForm", form);
         return "admin_badges";
     }
 
