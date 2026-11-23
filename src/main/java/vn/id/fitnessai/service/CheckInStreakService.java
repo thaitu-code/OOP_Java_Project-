@@ -22,6 +22,7 @@ public class CheckInStreakService {
     private final CongratulatedMilestoneRepository milestoneRepository;
     private final BadgeService badgeService;
     private final JavaMailSender mailSender;
+    private final MailSenderIdentity mailSenderIdentity;
     private final AiScheduleService schedule;
     private final AiNotificationService notifications;
     private final WorkoutRepository workouts;
@@ -86,6 +87,7 @@ public class CheckInStreakService {
             milestoneRepository.save(new CongratulatedMilestone(user, value));
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
+                mailSenderIdentity.applyTo(message);
                 message.setTo(user.getEmail());
                 message.setSubject("Chúc mừng streak " + value + " ngày!");
                 message.setText("Chúc mừng! Bạn vừa đạt streak " + value

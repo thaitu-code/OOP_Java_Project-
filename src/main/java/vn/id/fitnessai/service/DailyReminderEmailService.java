@@ -3,7 +3,6 @@ package vn.id.fitnessai.service;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -18,15 +17,14 @@ public class DailyReminderEmailService {
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine; // Thymeleaf TemplateEngine có sẵn trong Spring
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    private final MailSenderIdentity mailSenderIdentity;
 
     public void sendDailyWorkoutReminder(String toEmail, String fullName, int currentStreak) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setFrom(fromEmail, "FitnessAI Team");
+            mailSenderIdentity.applyTo(helper);
             helper.setTo(toEmail);
             helper.setSubject("🔥 [FitnessAI] Đừng để đứt chuỗi! Hãy hoàn thành mục tiêu hôm nay");
 

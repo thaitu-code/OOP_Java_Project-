@@ -48,6 +48,7 @@ class AiConversationIntegrationTest {
         @Bean Clock nutritionClock(){return Clock.system(NutritionLog.VN_ZONE);}
         @Bean GeminiAiClient gemini(){return mock(GeminiAiClient.class);}
         @Bean JavaMailSender mail(){return mock(JavaMailSender.class);}
+        @Bean MailSenderIdentity mailSenderIdentity(){return new MailSenderIdentity("sender@example.test", "FitnessAI Team");}
     }
     private static AnnotationConfigApplicationContext app;
     private static TransactionTemplate tx;
