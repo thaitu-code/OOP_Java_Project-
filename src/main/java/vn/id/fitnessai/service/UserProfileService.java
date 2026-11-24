@@ -24,8 +24,10 @@ public class UserProfileService {
 
     @Transactional
     public UserProfileResponse updateUserProfile(String username, ProfileUpdateRequest request) {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new UsernameNotFoundException("Không tìm thấy người dùng: " + username));
+
+        if (!user.isEnabled() || user.isLocked()) throw new SecurityException("Tài khoản không khả dụng");
 
         int age = bodyMetricsCalculator.calculateAge(request.getBirthDate());
         if (age < 15 || age > 65) {
@@ -42,6 +44,8 @@ public class UserProfileService {
         BigDecimal tdee = bodyMetricsCalculator.calculateTdee(bmr, request.getActivityLevel());
 
         UserProfile profile = user.getProfile();
+        if (profile != null && request.getExpectedVersion() != null && profile.getVersion() != request.getExpectedVersion())
+            throw new IllegalArgumentException("Hồ sơ đã thay đổi. Hãy tải lại trang trước khi lưu");
         if (profile == null) {
             profile = new UserProfile();
             profile.setUser(user);
@@ -86,6 +90,9 @@ public class UserProfileService {
 
     private UserProfileResponse mapToProfileResponse(String username, UserProfile profile, Integer age) {
         return UserProfileResponse.builder()
+                .version(profile.getVersion())
+                .targetWeightKg(profile.getTargetWeightKg())
+                .trainingPreferences(profile.getTrainingPreferences())
                 .username(username)
                 .displayName(profile.getDisplayName())
                 .gender(profile.getGender())

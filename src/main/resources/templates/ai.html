@@ -1,1 +1,44 @@
-<!DOCTYPE html><html lang="vi" xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FitnessAI - Chat & khuyến nghị</title><meta name="_csrf" th:content="${_csrf.token}"><meta name="_csrf_header" th:content="${_csrf.headerName}"><link rel="stylesheet" th:href="@{/css/style.css}"><link rel="stylesheet" th:href="@{/css/ai.css}"></head><body><main class="ai-wrap"><p><a th:href="@{/home}">← Trang chủ</a></p><h1>Trợ lý FitnessAI</h1><p>Chat thông thường để hỏi đáp. Chọn “Thực hiện yêu cầu bằng AI” để tạo lịch tập, lịch ăn hoặc sửa hồ sơ thật.</p><section class="ai-card"><h2>Chat AI</h2><button id="more" type="button">Xem 10 tin nhắn trước</button><div id="messages" aria-live="polite"></div><form id="chat-form"><textarea id="chat-text" maxlength="3000" required placeholder="Hỏi về tập luyện, dinh dưỡng..."></textarea><button id="send" type="submit">Chat hỏi đáp</button> <button id="ai-execute" type="button">Thực hiện yêu cầu bằng AI</button></form><p id="notice" role="status"></p><p><a href="/nutrition#meal-plan">Xem lịch ăn uống</a> · <a href="/workout">Xem lịch tập</a> · <a href="/profile">Xem hồ sơ</a></p></section><section class="ai-card"><h2>Khuyến nghị đã lưu</h2><p>Đây là các khuyến nghị riêng, chưa tự áp dụng thành buổi tập hoặc nhật ký ăn.</p><div id="recs"></div></section></main><script th:src="@{/js/ai.js}"></script></body></html>
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link rel="icon" type="image/svg+xml" sizes="any" href="../static/images/fitnessai-mark.svg" th:href="@{/images/fitnessai-mark.svg}">
+<script defer th:src="@{/js/app-shell.js}"></script>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Trợ lý FitnessAI</title>
+  <meta name="_csrf" th:content="${_csrf.token}"><meta name="_csrf_header" th:content="${_csrf.headerName}">
+  <meta name="app-base" th:content="@{/}">
+  <link rel="stylesheet" th:href="@{/css/style.css}"><link rel="stylesheet" th:href="@{/css/ai.css}">
+  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
+</head>
+<body class="fitness-app ai-page">
+<header th:replace="~{fragments/app :: header}"></header>
+<main class="chat-page">
+  <div class="chat-heading"><div><span class="eyebrow">YOUR PERSONAL AI COACH</span><h1>Trò chuyện cùng FitnessAI <span>✧</span></h1><p>Một cuộc trò chuyện. Từng bước khỏe hơn.</p></div><details class="chat-saved"><summary>Kế hoạch đã lưu ↗</summary><div id="recs"></div></details></div>
+  <section class="chat-surface" aria-label="Hội thoại với AI">
+    <div id="chat-welcome" class="chat-welcome">
+      <div class="chat-welcome-art" aria-hidden="true"><span>✧</span><i></i><i></i></div>
+      <span class="eyebrow">CÙNG BẠN TRÊN HÀNH TRÌNH MỖI NGÀY</span>
+      <h2>Xin chào <span th:text="${uiIdentity.displayName}"></span> <span aria-hidden="true">☀</span></h2>
+      <p>Bạn muốn bắt đầu từ đâu hôm nay?</p>
+      <div class="chat-suggestions">
+        <button type="button" data-prompt="Hãy giúp tôi lập lịch tập phù hợp với hồ sơ và thời gian của tôi."><span class="suggestion-icon blue">↗</span><strong>Tạo lịch tập</strong><small>Phù hợp với nhịp sống của bạn</small><b aria-hidden="true">↗</b></button>
+        <button type="button" data-prompt="Hãy gợi ý thực đơn phù hợp với mục tiêu của tôi."><span class="suggestion-icon green">◉</span><strong>Gợi ý thực đơn</strong><small>Ăn uống theo mục tiêu</small><b aria-hidden="true">↗</b></button>
+        <button type="button" data-prompt="Phân tích tiến độ dựa trên nhật ký ăn và kết quả tập của tôi."><span class="suggestion-icon orange">▥</span><strong>Phân tích tiến độ</strong><small>Nhìn lại từng bước tiến</small><b aria-hidden="true">↗</b></button>
+        <button type="button" data-prompt="Tôi muốn giảm mỡ. Hãy giải thích tôi nên bắt đầu thế nào dựa trên hồ sơ hiện có."><span class="suggestion-icon purple">✧</span><strong>Hiểu về giảm mỡ</strong><small>Cùng xây dựng thói quen tốt</small><b aria-hidden="true">↗</b></button>
+      </div>
+    </div>
+    <div class="chat-thread">
+      <button id="more" class="text-button history-more" type="button">Xem tin nhắn trước</button>
+      <div id="messages" aria-live="polite"></div>
+      <div id="proposals" aria-live="polite"></div>
+      <div id="chat-typing" class="chat-typing" role="status" hidden><span class="ai-avatar" aria-hidden="true">✧</span><span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span><small>FitnessAI đang nhập tin nhắn…</small></div>
+    </div>
+    <div class="chat-composer-wrap">
+      <form id="chat-form" class="chat-composer"><label for="chat-text" class="sr-only">Tin nhắn của bạn</label><textarea id="chat-text" rows="1" maxlength="3000" required placeholder="Hỏi AI hoặc chia sẻ điều bạn muốn thay đổi…"></textarea><button id="send" type="submit">Gửi <span aria-hidden="true">↑</span></button></form>
+      <p id="notice" class="chat-notice" role="status"></p>
+      <p class="composer-hint">AI có thể nhầm lẫn. Các thay đổi luôn được xem trước để bạn xác nhận.</p>
+    </div>
+  </section>
+  <noscript><p class="ui-error">Vui lòng bật JavaScript để sử dụng chat AI.</p></noscript>
+</main><script th:src="@{/js/ai.js}" defer></script>
+</body></html>

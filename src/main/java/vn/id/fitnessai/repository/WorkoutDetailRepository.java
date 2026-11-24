@@ -15,6 +15,9 @@ import java.util.*;
 public interface WorkoutDetailRepository
         extends JpaRepository<WorkoutDetail, Integer> {
 
+    boolean existsByWorkout_User_IdAndStartedAtGreaterThanEqualAndStartedAtLessThan(
+            Long userId, java.time.OffsetDateTime start, java.time.OffsetDateTime end);
+
     //Check ID cùa bài tập cần xóa có liên kết với trạng thái của WorkoutDetail không
     boolean existsByExercise_ExerciseIdAndWorkout_Status(Integer ExerciseId, WorkoutStatus status);
 
@@ -30,6 +33,15 @@ public interface WorkoutDetailRepository
          AND d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.COMPLETED
     """)
     BigDecimal sumCaloriesByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT COALESCE(SUM(d.caloriesBurned), 0) FROM WorkoutDetail d
+        WHERE d.workout.user.id = :userId
+          AND d.status = vn.id.fitnessai.enums.WorkoutDetailStatus.COMPLETED
+          AND d.completedAt >= :start AND d.completedAt < :end
+        """)
+    BigDecimal sumCaloriesForDay(@Param("userId") Long userId,
+            @Param("start") java.time.OffsetDateTime start, @Param("end") java.time.OffsetDateTime end);
 
     @Query("""
     SELECT MAX(d.weightKg)

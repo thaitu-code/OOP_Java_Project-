@@ -13,6 +13,8 @@ import java.time.LocalDate;
 @Getter
 @Setter
 public class ProfileUpdateRequest {
+    @PositiveOrZero
+    private Long expectedVersion;
 
     @NotBlank(message = "Tên hiển thị không được để trống")
     private String displayName;
@@ -22,6 +24,7 @@ public class ProfileUpdateRequest {
 
     @NotNull(message = "Vui lòng nhập ngày sinh")
     @Past(message = "Ngày sinh phải trước ngày hiện tại")
+    @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE)
     private LocalDate birthDate;
 
     @NotNull(message = "Chiều cao không được để trống")

@@ -29,6 +29,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final VerificationTokenRepository tokenRepository;
     private final JavaMailSender mailSender;
+    private final MailSenderIdentity mailSenderIdentity;
 
     public User registerUser(RegisterRequest registerRequest){
         if(userRepository.existsByUsername(registerRequest.getUsername())){
@@ -67,8 +68,9 @@ public class UserService {
 
     }
     private void sendVerificationEmail(String email, String token) {
-        String url = "http://localhost:8081/verify?token=" + token; // Cập nhật port 8081 giống cấu hình của bạn
+        String url = "https://fitnessai.id.vn/verify?token=" + token;
         SimpleMailMessage message = new SimpleMailMessage();
+        mailSenderIdentity.applyTo(message);
         message.setTo(email);
         message.setSubject("Xác thực tài khoản Fitness AI");
         message.setText("Vui lòng click vào link sau để xác minh tài khoản của bạn: " + url);
@@ -90,8 +92,9 @@ public class UserService {
         tokenRepository.save(resetToken);
 
         // Gửi email
-        String url = "http://localhost:8081/reset-password?token=" + token;
+        String url = "https://fitnessai.id.vn/reset-password?token=" + token;
         org.springframework.mail.SimpleMailMessage message = new org.springframework.mail.SimpleMailMessage();
+        mailSenderIdentity.applyTo(message);
         message.setTo(email);
         message.setSubject("Yêu cầu đặt lại mật khẩu Fitness AI");
         message.setText("Vui lòng click vào link sau để đặt lại mật khẩu của bạn: " + url);

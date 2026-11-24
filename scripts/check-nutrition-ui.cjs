@@ -77,7 +77,8 @@ function environment({ admin = false, csrf = true, prefix = "/fitness", hash = "
   };
   class TestFormData { constructor(form) { this.values = Object.entries(form.elements).map(([key, field]) => [key, field.value]); } [Symbol.iterator]() { return this.values[Symbol.iterator](); } }
   const sandbox = { document, Date: TestDate, Intl, URL, URLSearchParams, AbortController, TypeError, FormData: TestFormData,
-    location: { hash }, history: { replaceState() {} }, window: { addEventListener: (event, fn) => { listeners[`window:${event}`] = fn; } },
+    CustomEvent: function(type, init = {}) { this.type=type;this.detail=init.detail; },
+    location: { hash }, history: { replaceState() {} }, window: { addEventListener: (event, fn) => { listeners[`window:${event}`] = fn; }, dispatchEvent(event) { listeners[`window:${event.type}`]?.(event); } },
     setTimeout: (fn, ms) => { const timer = setTimeout(fn, ms); timer.unref(); return timer; }, clearTimeout,
     setInterval: fn => intervals.push(fn),
     fetch: async (url, options) => {

@@ -16,6 +16,16 @@ import java.time.LocalDateTime;
 @Getter
 public class UserProfile {
 
+    @Version
+    @org.hibernate.annotations.ColumnDefault("0")
+    private long version;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal targetWeightKg;
+
+    @Column(length = 2000)
+    private String trainingPreferences;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="id")

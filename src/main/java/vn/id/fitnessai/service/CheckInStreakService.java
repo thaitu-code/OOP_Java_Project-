@@ -22,6 +22,10 @@ public class CheckInStreakService {
     private final CongratulatedMilestoneRepository milestoneRepository;
     private final BadgeService badgeService;
     private final JavaMailSender mailSender;
+    private final MailSenderIdentity mailSenderIdentity;
+    private final AiScheduleService schedule;
+    private final AiNotificationService notifications;
+    private final WorkoutRepository workouts;
 
     /**
      * Call only after a valid workout detail has been persisted.
@@ -72,6 +76,7 @@ public class CheckInStreakService {
 
         evaluateMilestone(user, streak);
         badgeService.evaluateForUser(user);
+        notifications.refresh(username);
     }
 
     private void evaluateMilestone(User user, UserStreak streak) {
@@ -82,6 +87,7 @@ public class CheckInStreakService {
             milestoneRepository.save(new CongratulatedMilestone(user, value));
             try {
                 SimpleMailMessage message = new SimpleMailMessage();
+                mailSenderIdentity.applyTo(message);
                 message.setTo(user.getEmail());
                 message.setSubject("Chúc mừng streak " + value + " ngày!");
                 message.setText("Chúc mừng! Bạn vừa đạt streak " + value
@@ -91,25 +97,6 @@ public class CheckInStreakService {
                 // Keep the durable milestone mark even if email delivery fails.
             }
         }
-    }
-
-    /**
-     * The AI schedule integration should call this only after a rest day is accepted and effective.
-     * Do not expose this method as a user-controlled endpoint.
-     */
-    @Transactional
-    public void markValidRestDay(String username, LocalDate date) {
-        User user = userRepository.findByUsernameForUpdate(username)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
-        LocalDate today = LocalDate.now(VN_ZONE);
-        if (date == null || date.isBefore(today)) {
-            throw new IllegalArgumentException("Không được đổi ngày trong quá khứ thành ngày nghỉ");
-        }
-        DailyFitnessRecord record = dailyRecordRepository
-                .findByUser_IdAndActivityDate(user.getId(), date)
-                .orElseGet(() -> new DailyFitnessRecord(user, date));
-        record.setRestDayValid(true);
-        dailyRecordRepository.save(record);
     }
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Ho_Chi_Minh")
@@ -123,36 +110,9 @@ public class CheckInStreakService {
                     .orElseGet(() -> new UserStreak(lockedUser));
             reconcileUserUntil(lockedUser, streak, yesterday);
             userStreakRepository.save(streak);
-            sendMissedWorkoutReminderIfNeeded(lockedUser, streak, yesterday.plusDays(1));
         }
     }
 
-
-    private void sendMissedWorkoutReminderIfNeeded(User user, UserStreak streak, LocalDate targetDate) {
-        if (streak.getConsecutiveMissedDays() < 3 || user.isLocked() || !user.isEnabled()) return;
-
-        DailyFitnessRecord target = dailyRecordRepository
-                .findByUser_IdAndActivityDate(user.getId(), targetDate)
-                .orElseGet(() -> new DailyFitnessRecord(user, targetDate));
-
-        if (target.isRestDayValid() || target.isReminderSent()) return;
-
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setTo(user.getEmail());
-            message.setSubject("FitnessAI - Nhắc nhở luyện tập");
-            message.setText("Bạn đã bỏ lỡ " + streak.getConsecutiveMissedDays()
-                    + " ngày tập bắt buộc liên tiếp. Hãy hoàn thành một bài tập hợp lệ hôm nay để bắt đầu lại chuỗi nhé!");
-
-            mailSender.send(message);
-
-            target.setReminderSent(true);
-            dailyRecordRepository.save(target);
-
-        } catch (RuntimeException ignored) {
-            // Keep day-finalization idempotent if the mail provider is temporarily unavailable.
-        }
-    }
 
     @Transactional
     public StreakSummary getSummary(String username) {
@@ -189,6 +149,7 @@ public class CheckInStreakService {
                     .findByUser_IdAndActivityDate(user.getId(), processingDate)
                     .orElseGet(() -> new DailyFitnessRecord(user, processingDate));
             if (!record.isFinalized()) {
+                record.setRestDayValid(schedule.isRestDay(user.getId(), date));
                 if (record.isCheckedIn()) {
                     streak.setConsecutiveMissedDays(0);
                 } else if (!record.isRestDayValid()) {
@@ -204,10 +165,13 @@ public class CheckInStreakService {
     }
 
     private LocalDate findEarliestRelevantDate(User user, LocalDate endDate) {
-        return dailyRecordRepository.findByUser_IdAndActivityDateBetweenOrderByActivityDateAsc(
+        var dates = new java.util.ArrayList<LocalDate>();
+        schedule.firstDate(user.getId()).ifPresent(dates::add);
+        workouts.findFirstByUser_IdOrderByStartTimeAsc(user.getId()).ifPresent(w -> dates.add(w.getStartTime().atZoneSameInstant(VN_ZONE).toLocalDate()));
+        dailyRecordRepository.findByUser_IdAndActivityDateBetweenOrderByActivityDateAsc(
                         user.getId(), LocalDate.of(2000, 1, 1), endDate)
-                .stream().map(DailyFitnessRecord::getActivityDate).min(LocalDate::compareTo)
-                .orElse(null);
+                .stream().map(DailyFitnessRecord::getActivityDate).forEach(dates::add);
+        return dates.stream().filter(d -> !d.isAfter(endDate)).min(LocalDate::compareTo).orElse(null);
     }
 
     public record StreakSummary(int currentStreak, int highestStreak, int consecutiveMissedDays,

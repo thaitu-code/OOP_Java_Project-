@@ -25,11 +25,13 @@ class AiPlanApplyServiceTest {
     private final NutritionService nutrition = mock(NutritionService.class);
     private final LogDetailRepository loggedDetails = mock(LogDetailRepository.class);
     private final WorkoutService workout = mock(WorkoutService.class);
+    private final AiScheduleService schedule = mock(AiScheduleService.class);
     private final AiPlanApplyService service = new AiPlanApplyService(users, recommendations, meals, exercises,
-            nutrition, loggedDetails, workout);
+            nutrition, loggedDetails, workout, schedule);
 
     private AiRecommendation plan(long id, String type, LocalDate start) {
         User user = new User(); user.setId(15L); user.setUsername("tester");
+        user.setEnabled(true);
         UserProfile profile = new UserProfile(); profile.setUser(user);
         AiRecommendation rec = new AiRecommendation();
         rec.setId(id); rec.setType(type); rec.setProfile(profile); rec.setWorkoutStartDate(start);
@@ -54,7 +56,7 @@ class AiPlanApplyServiceTest {
         assertEquals(1, first.get("count"));
         assertEquals(0, second.get("count"));
         assertEquals(1, second.get("skipped"));
-        verify(nutrition, times(1)).addFoodFromAi(eq("tester"), any(LogDetailRequest.class), eq(77L));
+        verify(nutrition, times(1)).addFoodFromAi(eq("tester"), any(LogDetailRequest.class), eq(77L), any(LocalDate.class));
         verify(nutrition, never()).addFood(anyString(), any());
     }
 
@@ -71,20 +73,22 @@ class AiPlanApplyServiceTest {
 
         var result = service.logToday("tester", 44L);
         assertEquals(2, result.get("count"));
-        verify(nutrition).addFoodFromAi(eq("tester"), any(LogDetailRequest.class), eq(81L));
-        verify(nutrition).addFoodFromAi(eq("tester"), any(LogDetailRequest.class), eq(82L));
+        verify(nutrition).addFoodFromAi(eq("tester"), any(LogDetailRequest.class), eq(81L), any(LocalDate.class));
+        verify(nutrition).addFoodFromAi(eq("tester"), any(LogDetailRequest.class), eq(82L), any(LocalDate.class));
     }
 
     @Test void startTodayUsesWeekdayAndCopiesPlannedSetsAndReps() {
         LocalDate today = LocalDate.now(NutritionLog.VN_ZONE);
         AiRecommendation plan = plan(64L, "WORKOUT_PLAN", today);
         plan.setStatus("APPLIED");
+        when(schedule.effective(15L, today)).thenReturn(Optional.of(plan));
         var exercise = mock(Exercise.class); when(exercise.getExerciseId()).thenReturn(18);
         when(exercise.getLevels()).thenReturn(List.of());
         AiRecommendedExercise item = new AiRecommendedExercise();
         item.setExercise(exercise); item.setDayOfWeek(today.getDayOfWeek().getValue());
         item.setPlannedSets(4); item.setPlannedReps(12);
         when(exercises.findByRecommendation_IdOrderByDayOfWeekAscPositionAsc(64L)).thenReturn(List.of(item));
+        when(schedule.entries(15L, today)).thenReturn(List.of(item));
         when(workout.getCurrentWorkout("tester")).thenReturn(Optional.empty());
         var mockWorkout = new vn.id.fitnessai.dto.WorkoutResponse(133, 15L, OffsetDateTime.now(),
             null, vn.id.fitnessai.enums.WorkoutStatus.IN_PROGRESS, BigDecimal.ZERO, BigDecimal.ZERO);

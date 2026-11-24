@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 <head>
+    <link rel="icon" type="image/svg+xml" sizes="any" href="../static/images/fitnessai-mark.svg" th:href="@{/images/fitnessai-mark.svg}">
+<script defer th:src="@{/js/app-shell.js}"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="_csrf" th:content="${_csrf.token}" content="">
@@ -9,43 +11,18 @@
     <link rel="stylesheet" href="../static/css/style.css" th:href="@{/css/style.css}">
     <link rel="stylesheet" href="../static/css/nutrition.css" th:href="@{/css/nutrition.css}">
     <script defer src="../static/js/nutrition.js" th:src="@{/js/nutrition.js}"></script>
+    <meta name="app-base" th:content="@{/}">
+  <link rel="stylesheet" th:href="@{/css/app-ui.css}">
+<link rel="stylesheet" th:href="@{/css/meal-calendar.css}">
 </head>
-<body class="dash-body nutrition-body">
-<header class="topbar">
-    <a class="brand" href="home.html" th:href="@{/home}">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
-        <span>FitnessAI</span>
-    </a>
-    <nav class="topbar-right" aria-label="Điều hướng chính">
-        <a class="nav-link" href="home.html" th:href="@{/home}">Trang chủ</a>
-        <a class="nav-link" href="workout.html" th:href="@{/workout}">Tập luyện</a>
-        <a class="nav-link" href="profile.html" th:href="@{/profile}">Hồ sơ</a>
-        <a class="nav-link" th:if="${isNutritionAdmin}" th:href="@{/admin/dashboard}">Quản trị</a>
-        <form th:action="@{/perform_logout}" method="post">
-            <button class="btn btn-primary btn-sm" type="submit">Đăng xuất</button>
-        </form>
-    </nav>
-</header>
+<body class="fitness-app dash-body nutrition-body">
+<header th:replace="~{fragments/app :: header}"></header>
 
 <main id="nutrition-app" class="nutrition-wrap" data-base="/" data-admin="false" data-manage="false"
-      th:attr="data-base=@{/},data-admin=${isNutritionAdmin},data-manage=${manageNutritionLibrary}">
-    <section class="n-hero">
-        <div>
-            <span class="n-eyebrow">TỪNG BỮA ĂN, TỪNG BƯỚC TIẾN</span>
-            <h1>Ăn uống rõ ràng.<br>Theo dõi mỗi ngày.</h1>
-            <p>Ghi lại món ăn, theo dõi năng lượng và hiểu hơn về những lựa chọn của bạn.</p>
-            <button class="n-btn n-hero-button" type="button" data-action="add-today">＋ Ghi món ăn hôm nay</button>
-        </div>
-        <div class="n-hero-art" aria-hidden="true">
-            <svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="100" cy="100" r="88" stroke-width="1"/>
-                <circle cx="100" cy="103" r="49" stroke-width="5"/>
-                <circle cx="100" cy="103" r="35" stroke-width="2"/>
-                <path d="M29 65v31m9-31v31m9-31v31m-18-6q9 15 18 0m-9 13v45m120-83v82m0-82q-21 24 0 39" stroke-width="4"/>
-                <path d="M89 109q-9-35 24-41 5 34-24 41Zm0 0 19-25" stroke-width="3"/>
-            </svg>
-            <span>YOUR FOOD. YOUR BALANCE.</span>
-        </div>
+      th:attr="data-base=@{/},data-admin=${isNutritionAdmin},data-manage=${manageNutritionLibrary},data-owner=${uiIdentity.email}">
+    <section class="n-hero nutrition-banner">
+        <div><h1>Dinh dưỡng mỗi ngày</h1><p>Ăn uống có kế hoạch, theo dõi từng bữa.</p></div>
+        <span class="nutrition-banner-script" aria-hidden="true">Good<br>Nutrition<br>Better You</span>
     </section>
 
     <div id="nutrition-notice" class="n-notice" role="status" aria-live="polite" hidden></div>
@@ -70,19 +47,28 @@
         </div>
         <div id="diary-readonly" class="n-notice" hidden>Đây là nhật ký của ngày khác. Bạn có thể xem lại; thêm, sửa và xóa món chỉ áp dụng cho hôm nay.</div>
         <div class="n-stats" aria-label="Tổng dinh dưỡng của ngày đang xem">
-            <article class="n-stat"><span class="n-stat-icon energy" aria-hidden="true">ϟ</span><div><span>Năng lượng</span><strong id="total-calories">—</strong><small>kcal</small></div></article>
-            <article class="n-stat"><span class="n-stat-icon protein" aria-hidden="true">P</span><div><span>Đạm</span><strong id="total-protein">—</strong><small>g</small></div></article>
-            <article class="n-stat"><span class="n-stat-icon carbs" aria-hidden="true">C</span><div><span>Tinh bột</span><strong id="total-carbs">—</strong><small>g</small></div></article>
-            <article class="n-stat"><span class="n-stat-icon fat" aria-hidden="true">F</span><div><span>Chất béo</span><strong id="total-fat">—</strong><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon energy" aria-hidden="true">ϟ</span><div><span>Năng lượng</span><strong id="total-calories">—</strong><small id="target-calories" class="nutrient-target"></small><small>kcal</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon protein" aria-hidden="true">P</span><div><span>Đạm</span><strong id="total-protein">—</strong><small id="target-protein" class="nutrient-target"></small><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon carbs" aria-hidden="true">C</span><div><span>Tinh bột</span><strong id="total-carbs">—</strong><small id="target-carbs" class="nutrient-target"></small><small>g</small></div></article>
+            <article class="n-stat"><span class="n-stat-icon fat" aria-hidden="true">F</span><div><span>Chất béo</span><strong id="total-fat">—</strong><small id="target-fat" class="nutrient-target"></small><small>g</small></div></article>
         </div>
-        <div id="diary-meals" class="n-meals" aria-busy="true"><p class="n-loading">Đang tải các bữa ăn…</p></div>
+        <div class="diary-layout"><div id="diary-meals" class="n-meals" aria-busy="true"><p class="n-loading">Đang tải các bữa ăn…</p></div><aside class="nutrition-insights n-card"><span class="n-eyebrow">YOUR DAILY BALANCE</span><h3>Cân bằng dinh dưỡng</h3><div id="macro-chart" class="macro-chart" role="img" aria-label="Dinh dưỡng đã ghi nhận"><span id="macro-chart-value">—</span></div><div id="macro-legend"></div><p class="n-note">Tỷ trọng theo gram của đạm, tinh bột và chất béo đã ghi nhận.</p><hr><p id="nutrition-target-note" class="n-note">Mục tiêu lấy từ thực đơn đã xác nhận.</p><a class="n-btn secondary" th:href="@{/ai}">Trao đổi cùng AI ✧</a></aside></div>
         <p class="n-note n-bottom-note">Dinh dưỡng được ghi nhận theo khối lượng thực phẩm. Thông tin món đã lưu được giữ lại khi thư viện thay đổi.</p>
     </section>
 
-    <section id="n-panel-meal-plan" class="n-panel" hidden>
-        <div class="n-heading"><div><h2>Lịch ăn uống AI theo ngày</h2><p>Kế hoạch dự kiến, không đồng nghĩa với đã ăn. Tạo hoặc điều chỉnh bằng chat AI.</p></div><a class="n-btn" th:href="@{/ai}">Tạo / thay đổi bằng AI</a></div>
-        <div class="n-card" style="padding:18px;margin-bottom:16px"><label for="meal-ai-select">Chọn thực đơn đã lưu</label> <select id="meal-ai-select"></select> <button class="n-btn secondary" id="meal-ai-refresh" type="button">Làm mới</button> <button class="n-btn" id="meal-ai-log-today" type="button">Ghi món hôm nay vào nhật ký</button><p id="meal-ai-notice" role="status"></p></div>
-        <div id="meal-ai-calendar" class="n-meals"></div>
+    <section id="n-panel-meal-plan" class="n-panel meal-plan-page" aria-labelledby="meal-plan-heading" hidden>
+        <div class="mp-heading"><div><h2 id="meal-plan-heading">Lịch ăn uống AI</h2><p>Kế hoạch dự kiến — chỉ ghi nhận những món bạn đã ăn.</p></div><a class="mp-ai-link" th:href="@{/ai(prompt='Hãy giúp tôi xem lại và điều chỉnh thực đơn đang lưu cho phù hợp với mục tiêu của tôi.')}"><span aria-hidden="true">✧</span> Điều chỉnh với AI</a></div>
+        <div class="mp-toolbar"><label for="meal-ai-select">Thực đơn đã lưu</label><select id="meal-ai-select" aria-describedby="meal-ai-plan-status"><option value="">Đang tải thực đơn…</option></select><span id="meal-ai-plan-status" class="mp-status" role="status"></span><button id="meal-ai-refresh" class="mp-refresh" type="button"><span aria-hidden="true">↻</span> Làm mới</button></div>
+        <p id="meal-ai-notice" class="mp-notice" role="status" aria-live="polite"></p>
+        <div id="meal-ai-content">
+            <nav class="mp-week" aria-label="Chọn ngày trong thực đơn"><div class="mp-week-range"><button id="meal-week-prev" class="mp-arrow" type="button" aria-label="Tuần trước">‹</button><strong id="meal-week-label">—</strong><button id="meal-week-next" class="mp-arrow" type="button" aria-label="Tuần sau">›</button></div><div id="meal-week-days" class="mp-week-days"></div></nav>
+            <section class="mp-targets" aria-label="Mục tiêu dinh dưỡng mỗi ngày"><h3>Mục tiêu mỗi ngày</h3><div id="meal-ai-targets" class="mp-target-grid"></div></section>
+            <div class="mp-layout">
+                <div class="mp-day"><div class="mp-day-heading"><h3 id="meal-ai-date">—</h3><p id="meal-ai-date-note">Chọn món đã ăn và nhập lượng thực tế.</p></div><div id="meal-ai-calendar" class="mp-meal-grid" aria-busy="true"></div></div>
+                <aside class="mp-summary" aria-labelledby="meal-summary-heading"><div class="mp-summary-heading"><span aria-hidden="true">▤</span><div><h3 id="meal-summary-heading">Ghi vào nhật ký hôm nay</h3><p>Chỉ những món được chọn mới được lưu.</p></div></div><span id="meal-selected-count" class="mp-selected-count">0 món đã chọn</span><div id="meal-selected-list" class="mp-selected-list" aria-live="polite"><p>Chọn những món bạn đã ăn từ thực đơn bên cạnh.</p></div><div class="mp-selected-total"><span>Tổng năng lượng đã chọn</span><strong id="meal-selected-calories">0 kcal</strong><small>Ước tính theo gram · Số liệu được chốt khi ghi</small></div><button id="meal-ai-log-today" class="mp-log-button" type="button" disabled>Ghi các món đã ăn</button><p id="meal-summary-note" class="mp-summary-note">Bạn có thể sửa gram trước khi ghi.</p><div class="mp-info"><span aria-hidden="true">ⓘ</span><p>Thực đơn là kế hoạch dự kiến. Ghi món ăn sẽ cập nhật nhật ký hôm nay.</p></div></aside>
+            </div>
+        </div>
+        <div id="meal-ai-empty" class="mp-empty" hidden><span aria-hidden="true">✧</span><h3>Chưa có thực đơn</h3><p>Trao đổi cùng AI để chuẩn bị thực đơn phù hợp và xem trước trước khi xác nhận.</p><a class="ui-button" th:href="@{/ai(prompt='Hãy giúp tôi tạo thực đơn phù hợp với hồ sơ và mục tiêu hiện tại.')}">Tạo thực đơn với AI</a></div>
     </section>
 
     <section id="n-panel-foods" class="n-panel" aria-labelledby="foods-heading" hidden>
@@ -136,5 +122,7 @@
     <div id="nutrition-dialog-content"></div>
 </dialog>
 <script defer th:src="@{/js/meal-calendar.js}" src="../static/js/meal-calendar.js"></script>
+
+<script defer th:src="@{/js/nutrition-insights.js}"></script>
 </body>
 </html>

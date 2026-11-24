@@ -9,6 +9,21 @@ import java.time.*;
 @Getter
 @Setter
 public class AiRecommendation {
+    @Version
+    @org.hibernate.annotations.ColumnDefault("0")
+    private long version;
+
+    private Long parentRecommendationId;
+    private java.util.UUID sourceTurnId;
+    private java.util.UUID sourceDraftId;
+    private LocalDate effectiveUntil;
+    private LocalDate workoutOverrideDate;
+    // Explicit weekdays, e.g. "2,4,7". Empty legacy data is not a valid rest day.
+    private String restDays;
+    private java.math.BigDecimal targetCalories;
+    private java.math.BigDecimal targetProtein;
+    private java.math.BigDecimal targetCarbs;
+    private java.math.BigDecimal targetFat;
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;

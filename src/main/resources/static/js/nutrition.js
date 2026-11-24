@@ -109,6 +109,10 @@
     state.epochs[key] = (state.epochs[key] || 0) + 1;
     return state.epochs[key];
   }
+  window.addEventListener("fitnessai:nutrition-updated", () => {
+    state.loaded.history = false;
+    loadDiary(today()).catch(report);
+  });
   function pageData(data) {
     if (!Array.isArray(data?.content) || !data.page || !Number.isInteger(data.page.number) || !Number.isInteger(data.page.totalPages)) throw new Error("Dữ liệu phân trang không hợp lệ.");
     return data;
@@ -141,6 +145,7 @@
   }
   function renderDiary() {
     const day = state.day;
+    window.dispatchEvent(new CustomEvent('fitnessai:diary-rendered',{detail:{day,date:state.date}}));
     $("diary-date").value = state.date;
     $("diary-readonly").hidden = state.date === today();
     for (const key of nutrients) $(`total-${key}`).textContent = day ? fmt(day.totals[key]) : "—";
@@ -149,7 +154,7 @@
     $("diary-meals").innerHTML = Object.entries(meals).map(([type, [label, symbol]]) => {
       const meal = day.meals.find(item => item.mealType === type);
       if (!meal) throw new Error("Nhật ký chưa trả đủ bốn bữa ăn.");
-      return `<section class="n-card"><div class="n-card-heading"><div class="n-meal-title"><span class="n-meal-symbol" aria-hidden="true">${symbol}</span><div><h3>${label}</h3><span class="n-note">${meal.items.length} món</span></div></div>${editable() ? button("add-meal", "＋ Thêm món", type, "secondary", 'data-today-only="true"') : ""}</div><div class="n-item-list">${meal.items.length ? meal.items.map(d => `<article class="n-item"><div class="n-item-top">${image(d.imageUrlSnapshot, d.foodNameSnapshot, true)}<div class="n-item-info"><strong>${esc(d.foodNameSnapshot)}</strong><p class="n-note">${esc(d.categoryNameSnapshot)} · ${fmt(d.weightGrams)} g</p></div><span class="n-item-calories">${fmt(d.calculatedCalories)} kcal</span></div><div class="n-nutrients"><span>Đạm ${fmt(d.calculatedProtein)} g</span><span>Tinh bột ${fmt(d.calculatedCarbs)} g</span><span>Chất béo ${fmt(d.calculatedFat)} g</span></div>${d.note ? `<p class="n-note n-item-note">${esc(d.note)}</p>` : ""}${editable() ? `<div class="n-buttons">${button("edit-entry", "Sửa món", d.detailId)}${button("delete-entry", "Xóa", d.detailId, "danger")}</div>` : ""}</article>`).join("") : '<p class="n-note">Chưa có món ăn trong bữa này.</p>'}</div><div class="n-meal-subtotal"><strong>${fmt(meal.totals.calories)} kcal</strong> · Đạm ${fmt(meal.totals.protein)} g · Tinh bột ${fmt(meal.totals.carbs)} g · Chất béo ${fmt(meal.totals.fat)} g</div></section>`;
+      return `<section class="n-card"><div class="n-card-heading"><div class="n-meal-title"><span class="n-meal-symbol" aria-hidden="true">${symbol}</span><div><h3>${label}</h3><span class="n-note">${meal.items.length} món</span></div></div>${editable() ? button("add-meal", "＋ Thêm món", type, "secondary", 'data-today-only="true"') : ""}</div><div class="n-item-list">${meal.items.length ? meal.items.map(d => `<article class="n-item"><div class="n-item-top">${image(d.imageUrlSnapshot, d.foodNameSnapshot, true)}<div class="n-item-info"><strong>${esc(d.foodNameSnapshot)}</strong><p class="n-note">${esc(d.categoryNameSnapshot)} · ${fmt(d.weightGrams)} g</p></div><span class="n-item-calories">${fmt(d.calculatedCalories)} kcal</span></div><div class="n-nutrients"><span>Đạm ${fmt(d.calculatedProtein)} g</span><span>Tinh bột ${fmt(d.calculatedCarbs)} g</span><span>Chất béo ${fmt(d.calculatedFat)} g</span></div>${d.note ? `<p class="n-note n-item-note">${esc(d.note)}</p>` : ""}${editable() ? `<div class="n-buttons">${button("edit-entry", "Sửa món", d.detailId)}${button("delete-entry", "Xóa", d.detailId, "danger ui-delete")}</div>` : ""}</article>`).join("") : '<p class="n-note">Chưa có món ăn trong bữa này.</p>'}</div><div class="n-meal-subtotal"><strong>${fmt(meal.totals.calories)} kcal</strong> · Đạm ${fmt(meal.totals.protein)} g · Tinh bột ${fmt(meal.totals.carbs)} g · Chất béo ${fmt(meal.totals.fat)} g</div></section>`;
     }).join("");
     syncControls();
   }
@@ -284,8 +289,8 @@
   }
   function closeDialog() { if (!state.busy) $("nutrition-dialog").close(); }
   function invalidateCatalog() { state.loaded.foods = false; state.loaded.manage = false; }
-  function confirmAction(title, message, callback) {
-    openDialog(title, `<p class="n-description">${esc(message)}</p><form class="n-form"><div class="n-buttons n-span-all"><button class="n-btn" type="submit">Xác nhận</button>${button("close-dialog", "Quay lại")}</div></form>`, callback);
+  function confirmAction(title, message, callback, destructive = false) {
+    openDialog(title, `<p class="n-description">${esc(message)}</p><form class="n-form"><div class="n-buttons n-span-all"><button class="n-btn${destructive ? " ui-delete" : ""}" type="submit">Xác nhận</button>${button("close-dialog", "Quay lại")}</div></form>`, callback);
   }
   async function mutate(write, success) {
     if (state.busy) return;
@@ -345,7 +350,7 @@
     const name = sameFood ? existing.foodNameSnapshot : food.foodName;
     const category = sameFood ? existing.categoryNameSnapshot : food.categoryName;
     const calories = sameFood ? existing.caloriesPer100gSnapshot : food.caloriesPer100g;
-    openDialog(existing ? "Sửa món ăn" : "Ghi món ăn hôm nay", `<div class="n-summary"><strong>${esc(name)}</strong><p>${esc(category)} · ${fmt(calories)} kcal / 100 g</p>${nutri(sameFood ? existing : food, sameFood)}<p class="n-note">${sameFood ? "Giữ thông tin dinh dưỡng đã lưu khi sửa khối lượng. Đổi thực phẩm sẽ dùng thông tin của món mới." : "Dinh dưỡng sẽ được tính theo khối lượng khi bạn lưu món."}</p>${button("change-food", "Đổi thực phẩm")}</div><form id="entry-form" class="n-form"><label>Bữa ăn<select name="mealType" required>${Object.entries(meals).map(([key, [label]]) => `<option value="${key}" ${key === d.mealType ? "selected" : ""}>${label}</option>`).join("")}</select></label><label>Khối lượng (g)<input name="weightGrams" type="number" required min="0.01" max="99999.99" step="0.01" value="${esc(d.weightGrams)}"></label><label class="n-span-all">Ghi chú<textarea name="note" maxlength="500" placeholder="Ví dụ: bữa ăn sau buổi tập…">${esc(d.note)}</textarea></label><p class="n-note n-span-all">Ghi vào nhật ký ngày ${dateLabel(today())} theo giờ Việt Nam.</p><div class="n-buttons n-span-all"><button class="n-btn" type="submit">${existing ? "Lưu thay đổi" : "Ghi món ăn"}</button>${button("close-dialog", "Hủy")}</div></form>`, async form => {
+    openDialog(existing ? "Sửa món ăn" : "Ghi món ăn hôm nay", `<div class="n-summary"><strong>${esc(name)}</strong><p>${esc(category)} · ${fmt(calories)} kcal / 100 g</p>${nutri(sameFood ? existing : food, sameFood)}<p class="n-note">${sameFood ? "Giữ thông tin dinh dưỡng đã lưu khi sửa khối lượng. Đổi thực phẩm sẽ dùng thông tin của món mới." : "Xem lượng dinh dưỡng theo khối lượng trước khi lưu món."}</p>${button("change-food", "Đổi thực phẩm")}</div><form id="entry-form" class="n-form"><label>Bữa ăn<select name="mealType" required>${Object.entries(meals).map(([key, [label]]) => `<option value="${key}" ${key === d.mealType ? "selected" : ""}>${label}</option>`).join("")}</select></label><label>Khối lượng (g)<input name="weightGrams" type="number" required min="0.01" max="99999.99" step="0.01" value="${esc(d.weightGrams)}"></label><div id="entry-preview" class="n-live-preview n-span-all" role="status" aria-live="polite"></div><label class="n-span-all">Ghi chú<textarea name="note" maxlength="500" placeholder="Ví dụ: bữa ăn sau buổi tập…">${esc(d.note)}</textarea></label><p class="n-note n-span-all">Ghi vào nhật ký ngày ${dateLabel(today())} theo giờ Việt Nam.</p><div class="n-buttons n-span-all"><button class="n-btn" type="submit">${existing ? "Lưu thay đổi" : "Ghi món ăn"}</button>${button("close-dialog", "Hủy")}</div></form>`, async form => {
       requireToday();
       const body = { foodId: food.foodId, mealType: form.elements.mealType.value, weightGrams: Number(form.elements.weightGrams.value), note: form.elements.note.value.trim() || null };
       if (existing) {
@@ -354,6 +359,19 @@
       }
       await mutate(() => api(`/nutrition-logs/today/details${existing ? "/" + existing.detailId : ""}`, existing ? "PUT" : "POST", body), day => acceptDiary(day, existing ? "Đã cập nhật món ăn và tổng dinh dưỡng." : "Đã ghi món ăn vào nhật ký hôm nay."));
     });
+    const form = $("nutrition-dialog-content").querySelector("#entry-form");
+    const preview = () => {
+      const box = $("entry-preview"); if (!box) return;
+      const grams = Number(form.elements.weightGrams.value);
+      if (!Number.isFinite(grams) || grams < 0.01 || grams > 99999.99) { box.textContent = "Nhập khối lượng hợp lệ để xem trước dinh dưỡng."; return; }
+      const data = sameFood ? existing : food;
+      const amount = key => {
+        const cents = BigInt(Math.round(Number(data[sameFood ? key + "Per100gSnapshot" : key + "Per100g"]) * 100));
+        return Number((cents * BigInt(Math.round(grams * 100)) + 5000n) / 10000n) / 100;
+      };
+      box.textContent = `Xem trước ${fmt(grams)} g: ${fmt(amount("calories"))} kcal · Đạm ${fmt(amount("protein"))} g · Tinh bột ${fmt(amount("carbs"))} g · Chất béo ${fmt(amount("fat"))} g. Máy chủ xác nhận số liệu khi lưu.`;
+    };
+    form.elements.weightGrams.addEventListener("input", preview); preview();
   }
   function picker() {
     openDialog("Chọn thực phẩm", `<div class="n-filters"><label class="n-search">Tìm theo tên<input id="picker-search" type="search" maxlength="150" placeholder="Nhập tên thực phẩm…"></label><label>Nhóm thực phẩm<select id="picker-category"><option value="">Tất cả nhóm</option></select></label></div><div id="picker-list" class="n-picker-list"></div><nav class="n-pagination" aria-label="Phân trang chọn thực phẩm">${button("picker-prev", "← Trước") }<span id="picker-page">—</span>${button("picker-next", "Sau →")}</nav>${state.draft?.food ? button("back-entry", "← Trở lại món đang nhập") : ""}`);
@@ -464,7 +482,7 @@
       confirmAction("Xóa món ăn?", `Xóa ${entry.foodNameSnapshot} (${fmt(entry.weightGrams)} g) khỏi nhật ký hôm nay? Tổng dinh dưỡng sẽ được cập nhật.`, async () => {
         requireToday();
         await mutate(() => api(`/nutrition-logs/today/details/${id}?expectedVersion=${entry.version}`, "DELETE"), day => acceptDiary(day, "Đã xóa món ăn và cập nhật tổng dinh dưỡng."));
-      });
+      }, true);
     },
     "change-food": () => { rememberDraft(); picker(); },
     "back-entry": () => entryForm(state.draft.food),

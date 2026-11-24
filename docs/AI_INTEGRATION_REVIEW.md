@@ -1,5 +1,7 @@
 # Khả năng mở rộng trợ lý AI và ranh giới quyền truy cập
 
+> Cập nhật 12/11/2026: nội dung dưới đây là snapshot rà soát cũ. Nguồn hiện đã có hội thoại hợp nhất và xác nhận đề xuất; xem [AI_CHAT.md](AI_CHAT.md) cho kiến trúc, API và giới hạn kiểm chứng hiện tại.
+
 Ngày rà soát: 04/11/2026. Phạm vi: đọc mã hiện tại, đối chiếu PLAN và yêu cầu mới; chưa triển khai chatbot, provider API hoặc quyền thực thi của AI.
 
 ## 1. Kết luận từ mã nguồn
