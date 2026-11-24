@@ -170,9 +170,7 @@ public class AiDraftEngine {
                 throw new IllegalArgumentException("Trường hồ sơ không được phép hoặc thiếu giá trị");
             if (Set.of("weightKg", "heightCm", "targetWeightKg").contains(field.getKey()) && new BigDecimal(field.getValue().asText()).stripTrailingZeros().scale() > 2)
                 throw new IllegalArgumentException("Số đo chỉ hỗ trợ tối đa hai chữ số thập phân");
-            Object oldValue = before.get(field.getKey());
-            String oldText = oldValue == null || oldValue.toString().isBlank() ? "Chưa thiết lập" : oldValue.toString();
-            out.append("\n").append(label(field.getKey())).append(": ").append(oldText).append(" → ").append(field.getValue().asText());
+            out.append("\n").append(label(field.getKey())).append(": ").append(before.get(field.getKey())).append(" → ").append(field.getValue().asText());
         }
         validate(profileRequest(p, changes));
         int age = java.time.Period.between(profileRequest(p, changes).getBirthDate(), LocalDate.now(NutritionLog.VN_ZONE)).getYears();

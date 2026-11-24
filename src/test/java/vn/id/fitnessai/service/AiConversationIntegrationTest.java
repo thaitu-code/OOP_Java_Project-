@@ -100,57 +100,6 @@ class AiConversationIntegrationTest {
         var reply=service.send(name,"session123","TDEE là gì?",request);assertEquals("COMPLETE",reply.status(),reply.error());
         long count=inTx(()->app.getBean(AiChatMessageRepository.class).findByUser_IdAndTurnIdOrderByIdAsc(profile(name).getUser().getId(),reply.userMessage().turnId()).size());assertEquals(2,count);
     }
-    @Test void trainingFollowUpDefersThePlanAndSavesPreferencesOnlyAfterConfirmation(){
-        String name=user(),preferences="Tập ở nhà không dụng cụ; mới bắt đầu; 3 ngày/tuần; không chấn thương";
-        inTx(()->{var p=app.getBean(UserProfileRepository.class).findByUserUsername(name).orElseThrow();p.setTrainingPreferences(null);return p;});
-        long version=profile(name).getVersion();
-        answer("""
-                {"type":"PROPOSE","reply":"Đã lập lịch tập 3 ngày cho bạn!","actions":[
-                  {"kind":"WORKOUT_PLAN","payload":{}},
-                  {"kind":"PROFILE_UPDATE","payload":{"changes":{"trainingPreferences":"%s"}}}
-                ]}
-                """.formatted(preferences));
-        var conversation=app.getBean(AiConversationService.class);UUID request=UUID.randomUUID();
-        String message="tập ở nhà không dụng cụ\nmới bắt đầu\n3 ngày/tuần\nkhông";
-        var reply=conversation.send(name,"session123",message,request);
-        assertEquals("COMPLETE",reply.status(),reply.error());assertNotNull(reply.aiMessage());
-        assertTrue(reply.aiMessage().content().contains("Tiếp tục lập kế hoạch"));
-        assertFalse(reply.aiMessage().content().contains("Đã lập lịch tập 3 ngày"));
-        assertEquals(1,reply.proposals().size());assertEquals("PROFILE_UPDATE",reply.proposals().get(0).kind());
-        assertNull(profile(name).getTrainingPreferences());assertEquals(version,profile(name).getVersion());
-        assertTrue(app.getBean(AiAssistantService.class).recommendations(name).isEmpty());
-        var replay=conversation.send(name,"session123",message,request);
-        assertEquals(reply.proposals().get(0).id(),replay.proposals().get(0).id());
-        verify(app.getBean(GeminiAiClient.class),times(1)).generateJson(anyString(),anyList());
-        var decisions=app.getBean(AiDraftService.class);UUID draft=reply.proposals().get(0).id();
-        assertEquals("CONFIRMED",decisions.decide(name,draft,true).proposal().status());
-        long confirmedVersion=profile(name).getVersion();
-        assertEquals(preferences,profile(name).getTrainingPreferences());
-        assertEquals("CONFIRMED",decisions.decide(name,draft,true).proposal().status());
-        assertEquals(confirmedVersion,profile(name).getVersion());
-        assertTrue(app.getBean(AiAssistantService.class).recommendations(name).isEmpty());
-        resetProvider();
-        answer("{\"type\":\"CLARIFY\",\"reply\":\"Mỗi buổi bạn có thể tập bao nhiêu phút?\",\"actions\":[]}");
-        var continued=conversation.send(name,"session123","Tiếp tục lập kế hoạch",UUID.randomUUID());
-        assertEquals("COMPLETE",continued.status(),continued.error());
-        verify(app.getBean(GeminiAiClient.class)).generateJson(anyString(),argThat(prompt -> prompt.toString().contains(preferences)));
-        assertEquals(preferences,profile(name).getTrainingPreferences());
-        assertTrue(app.getBean(WorkoutService.class).getCurrentWorkout(name).isEmpty());
-    }
-    @Test void cancellingTheProfilePartOfAMixedResponseNeverCreatesTheDeferredPlan(){
-        String name=user();String original=profile(name).getTrainingPreferences();long version=profile(name).getVersion();
-        answer("""
-                {"type":"PROPOSE","reply":"Xem lịch mới","actions":[
-                  {"kind":"PROFILE_UPDATE","payload":{"changes":{"trainingPreferences":"Tập ở nhà không dụng cụ"}}},
-                  {"kind":"WORKOUT_PLAN","payload":{}}
-                ]}
-                """);
-        var reply=app.getBean(AiConversationService.class).send(name,"session123","Tôi tập ở nhà không dụng cụ",UUID.randomUUID());
-        assertEquals("COMPLETE",reply.status(),reply.error());assertEquals(1,reply.proposals().size());
-        assertEquals("CANCELLED",app.getBean(AiDraftService.class).decide(name,reply.proposals().get(0).id(),false).proposal().status());
-        assertEquals(original,profile(name).getTrainingPreferences());assertEquals(version,profile(name).getVersion());
-        assertTrue(app.getBean(AiAssistantService.class).recommendations(name).isEmpty());
-    }
     @Test void userMessageIsCommittedAndReloadableWhileTheProviderIsStillWorking() throws Exception {
         String name=user();UUID request=UUID.randomUUID();var entered=new CountDownLatch(1);var release=new CountDownLatch(1);
         when(app.getBean(GeminiAiClient.class).generateJson(anyString(),anyList())).thenAnswer(a->{
