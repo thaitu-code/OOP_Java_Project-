@@ -14,10 +14,6 @@ Trang `/ai` có một ô nhập và nút **Gửi**. Người dùng không chọn
 
 Đề xuất hiện chi tiết do backend dựng, có **Xác nhận / Chỉnh sửa / Hủy**. Trước xác nhận chỉ lưu tin nhắn và bản nháp, chưa ghi thay đổi nghiệp vụ. Chỉnh sửa đưa người dùng trở lại cùng ô nhập. Một câu “Đồng ý” chỉ xác nhận khi có đúng một đề xuất còn chờ trong phiên; nhiều đề xuất phải chọn đúng thẻ. Câu trả lời ngắn tiếp tục ngữ cảnh hiện tại.
 
-Khi provider gửi cả `PROFILE_UPDATE` và kế hoạch trong một lượt, backend chỉ chuẩn bị phần cập nhật và các hành động độc lập; bỏ kế hoạch phụ thuộc trước bước dựng bản xem trước. Hội thoại trả lời bình thường, giải thích xác nhận thông tin trước rồi nhắn “Tiếp tục lập kế hoạch”. Không lưu, xác nhận tự động hoặc tái sử dụng kế hoạch đã bỏ. Hồ sơ cơ thể đầy đủ không đồng nghĩa đã lưu điều kiện tập luyện; không báo thiếu hồ sơ chỉ vì cần bổ sung `trainingPreferences`. Nếu mới biết số ngày mỗi tuần nhưng chưa biết thời lượng mỗi buổi, AI cần hỏi thêm.
-
-Nút **Chỉnh sửa** đặt ngữ cảnh đề xuất bên cạnh ô nhập, không chèn UUID vào nội dung người dùng phải gõ. **Thoát chỉnh sửa** chỉ bỏ ngữ cảnh nhập, không hủy đề xuất. Giao thức gửi hiện tại vẫn kèm định danh ở phần chỉ dẫn nội bộ; giao diện ẩn phần đó trong tin USER, sao chép, khôi phục lỗi và reload. Thử lại giữ nguyên định danh đề xuất và requestId.
-
 Lịch tập có thể bắt đầu được chuẩn bị từ biểu mẫu tại `/workout`; biểu mẫu chuyển lựa chọn sang hội thoại để bổ sung thông tin và xem trước. Chấp nhận lịch không thêm bài hoặc chạy timer. Người dùng bấm **Thêm các bài hôm nay** riêng.
 
 Thực đơn cho chọn từng món hôm nay, nhập gram thực ăn rồi xác nhận. Món đã ghi hiện trạng thái riêng; bản sửa thực đơn giữ liên kết nguồn để tránh ghi lặp cùng một mục kế hoạch. Sửa/xóa món đã ghi vẫn đi qua nghiệp vụ nhật ký và version hiện có.
@@ -61,7 +57,6 @@ Phản hồi gửi tin gồm `requestId`, `status` (`PENDING/COMPLETE/FAILED`), 
 - Bấm Gửi hoặc Enter: hiển thị ngay một tin tạm phía người dùng, xóa ô nhập, hiện bong bóng ba chấm và “FitnessAI đang nhập tin nhắn…”. Tin tạm được thay bằng bản ghi cùng lượt khi nhận ID từ máy chủ. Backend lưu tin USER trong transaction ngắn trước khi gọi provider; trạng thái “Đã lưu” chỉ xuất hiện với bản ghi server.
 - Tải lại trang: tự tải toàn bộ các trang lịch sử hiện tại, gộp theo ID và cuộn đến cuối. Nếu có `activeTurn`, tự đọc kết quả qua GET; không tự POST hoặc gọi model lần nữa. Dữ liệu pending trong sessionStorage chỉ hỗ trợ yêu cầu chưa rõ kết quả mạng; lịch sử đã lưu lấy từ database. Lỗi tải một trang cho phép tiếp tục từ cursor đang chờ.
 - Gemini lỗi hoặc mất phản hồi: giữ tin đã gửi và requestId để thử lại, không chèn thêm một tin USER trùng. Tin lỗi có thể khôi phục từ server dù bộ nhớ trình duyệt trống. Thao tác xóa mềm vẫn được tôn trọng khi khôi phục lượt lỗi.
-- Khi Gemini trả HTTP 502/503/504, client chờ khoảng 1–1,5 giây rồi tự thử lại đúng một lần trong cùng lượt chat. Mỗi lần gọi provider có tổng thời gian chờ tối đa 30 giây, gồm cả lần thử lại; không giữ transaction khi chờ. HTTP 429 và lỗi cấu hình/quyền truy cập có thông báo riêng, không tự lặp. Nếu vẫn thất bại, người dùng thử lại cùng requestId như trên; không tự đổi model hoặc API key.
 - Ngữ cảnh provider lấy các cặp USER/AI đã hoàn tất, chưa xóa của cùng phiên: xét tối đa 200 tin gần nhất, giữ nguyên cặp với ngân sách 100.000 ký tự lịch sử. Bỏ giới hạn cũ 10 lượt; loại tin đang xử lý/lỗi và dữ liệu từ phiên khác. Lịch sử trên giao diện không bị cắt theo ngân sách provider này.
 - Khởi tạo trang, tải lịch sử và xác nhận đề xuất không hiển thị trạng thái model đang nhập. Các quy tắc xem trước/xác nhận trước khi ghi dữ liệu nghiệp vụ được giữ nguyên.
 
@@ -105,3 +100,12 @@ Phiên công cụ hiện tại không có biến môi trường `GEMINI_API_KEY`
 - `node scripts/check-ai-ui.cjs`: 22 tình huống đạt, gồm tin tạm/ba chấm trước phản hồi, tải đủ trang, khôi phục pending/failed, mất phản hồi rồi reload, thử lại không trùng, cache hỏng, phiên mới, lỗi trang lịch sử và phản hồi đã đến trong khi phần kế hoạch còn tải chậm. Kiểm tra hồi quy dinh dưỡng 15 và wizard 8 tình huống đạt; cú pháp JS và diff whitespace đạt.
 - Chrome desktop/mobile: gửi bằng nút và Enter, reload khi AI giả đang chờ, nhận phản hồi và reload tiếp vẫn giữ đủ sáu tin; trạng thái nhập dừng khi hoàn tất. Server `scripts/preview-ui.cjs` dùng RAM độc lập; tùy chọn `AI_UI_PREVIEW_DELAY_MS=15000` mô phỏng provider chậm. Không gọi Gemini thật hoặc ghi PostgreSQL hiện hữu.
 - Ảnh: `target/ui-preview/chat-session-typing.jpg`, `chat-session-mobile-typing.jpg`, `chat-session-restored.jpg`. Khởi động lại backend và Ctrl+F5 để nạp đồng thời thay đổi API/JS; không có thay đổi schema trong đợt này.
+
+### Khôi phục riêng AI — 24/11/2026
+
+- Khôi phục xử lý hội thoại, bản xem trước, client Gemini và giao diện chat theo commit `d5d1a96`. Các module khác, cấu hình model/API key, tên miền và tên người gửi email giữ nguyên. Không thay schema hoặc xóa dữ liệu.
+- Giữ nguyên hành vi của mốc đích: nút Xóa trong chat không dùng `ui-delete`; chỉnh đề xuất hiển thị mã ID trong ô nhập; giá trị hồ sơ chưa có có thể hiển thị `null`. Client cũ không có cơ chế tự thử lại HTTP 503 của phiên bản sau.
+- Bản sao lưu trước khôi phục: `outputs/ai-backup-2026-11-24T01-24-30-153Z/`, gồm source trước sửa, patch và manifest hash để đối chiếu các file ngoài phạm vi.
+- 61 kiểm thử Java đạt (AI, controller, Thymeleaf, khởi động H2 và email giả); 22 kiểm tra giao diện chat đạt với DOM/HTTP giả. Các kiểm tra giao diện tập luyện, wizard, dinh dưỡng và thực đơn cũng đạt. Không ghi vào PostgreSQL thật hoặc gửi email thật.
+- Build riêng qua `target/ai-d5d1a96-build/pom.xml`; JAR: `target/ai-d5d1a96-build/target/fitnessai-ai-d5d1a96.jar`. Không thay output `target/classes` mà IntelliJ có thể đang chạy.
+- Thử một yêu cầu HTTP lập lịch bằng dữ liệu giả, prompt đã khôi phục và cấu hình Gemini hiện tại trả HTTP 401 `UNAUTHENTICATED`. Đây là kiểm tra provider từ máy phát triển, không phải nghiệm thu ứng dụng trên server; chưa xác nhận tạo lịch thành công với Gemini thật. Chưa deploy JAR.

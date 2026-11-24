@@ -7,22 +7,6 @@
   const csrfHeader = document.querySelector('meta[name="_csrf_header"]')?.content || 'X-CSRF-TOKEN';
   const messages = new Map(), proposals = new Map(), sentRequests = new Map();
   let session = null, cursor = null, loaded = false, busy = false, uncertain = null, historyLoading = false;
-  let editingId = null;
-  // Keep the existing server edit instruction in transport/history, never in the composer.
-  const editPrefix = /^Chỉnh đề xuất ([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):\s*/i;
-  const editParts = content => { const match=(content||'').match(editPrefix);return {id:match?.[1]||null,text:match?content.slice(match[0].length):content}; };
-  const instruction = (id,text) => id ? `Chỉnh đề xuất ${id}: ${text}` : text;
-  function setEditing(id) {
-    editingId=id;
-    $('chat-edit-context').hidden=!id;
-    const proposal=proposals.get(id);
-    const kind={WORKOUT_PLAN:'lịch tập',MEAL_PLAN:'thực đơn',PROFILE_UPDATE:'thông tin hồ sơ'}[proposal?.kind]||'đề xuất';
-    $('chat-edit-label').textContent=id?`Đang chỉnh sửa ${kind}${proposal?.preview?' · '+proposal.preview.split('\n')[0].slice(0,90):''}`:'';
-    $('chat-text').placeholder=id?'Nhập phần bạn muốn thay đổi, ví dụ: chuyển buổi thứ Hai sang thứ Ba…':'Hỏi AI hoặc chia sẻ điều bạn muốn thay đổi…';
-    $('chat-text').maxLength=3000-instruction(id,'').length;
-    $('chat-edit-cancel').disabled=busy||!!uncertain;
-  }
-  function restoreComposer(content) { const edit=editParts(content||'');setEditing(edit.id);$('chat-text').value=edit.text; }
   const statusText = {PENDING:'Đang chờ xác nhận',CONFIRMED:'Đã thực hiện',CANCELLED:'Đã hủy',STALE:'Dữ liệu đã thay đổi',EXPIRED:'Đã hết hạn',SUPERSEDED:'Đã có bản thay thế'};
   const node = (tag, text, className) => { const el = document.createElement(tag); if (text != null) el.textContent = text; if (className) el.className = className; return el; };
   async function api(path, options = {}) {
@@ -36,7 +20,7 @@
     if (body === null && response.status !== 204) throw Error('Phản hồi máy chủ không hợp lệ.');
     return body;
   }
-  function setBusy(value) { busy = value; $('send').disabled = value || !session; $('chat-text').disabled = value; $('chat-edit-cancel').disabled=value||!!uncertain; $('proposals').querySelectorAll('button').forEach(b => { b.disabled = value || b.dataset.closed === 'true'; }); }
+  function setBusy(value) { busy = value; $('send').disabled = value || !session; $('chat-text').disabled = value; $('proposals').querySelectorAll('button').forEach(b => { b.disabled = value || b.dataset.closed === 'true'; }); }
   function scrollThread() { const thread=$('messages').parentElement;thread?.scrollTo?.({top:thread.scrollHeight,behavior:'smooth'}); }
   function setTyping(value) { $('chat-typing').hidden=!value;if(value)scrollThread(); }
   function optimistic(status='SENDING') {
@@ -51,13 +35,12 @@
     $('messages').replaceChildren();
     for (const m of [...messages.values()].sort((a,b) => a.local ? (b.local?0:1) : b.local ? -1 : a.id-b.id)) {
       const bubble = node('article', null, 'bubble '+(m.sender==='USER'?'user':''));
-      const visible=m.sender==='USER'?editParts(m.content).text:m.content;
-      const content=node('div',visible);formatText(content,visible);bubble.append(content);
+      const content=node('div',m.content);formatText(content,m.content);bubble.append(content);
       const state=m.local?(m.status==='FAILED'?'Chưa xác nhận gửi — hãy thử lại':'Đang gửi…'):m.status==='FAILED'?'AI chưa phản hồi':m.status==='PENDING'?'Đã gửi · Chờ AI':'Đã lưu';
       const footer = node('small',`${m.sender==='USER'?'Bạn':'AI'} · ${new Date(m.createdAt).toLocaleString('vi-VN')} · ${state}`);
-      const copy=node('button','Sao chép');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText(visible);copy.textContent='Đã sao chép';}catch{$('notice').textContent='Trình duyệt chưa cho phép sao chép. Bạn có thể chọn nội dung để sao chép.';}};footer.append(copy);
-      const del = node('button','Xóa','ui-delete'); del.type='button';
-      del.onclick=async()=>{try{await api('/api/ai/chat/'+m.id,{method:'DELETE'});if(uncertain&&sentRequests.get(uncertain.requestId)===m.id){uncertain=null;remember();restoreComposer('');}messages.delete(m.id);renderMessages();await loadPending();}catch(e){$('notice').textContent=e.message;}};
+      const copy=node('button','Sao chép');copy.type='button';copy.onclick=async()=>{try{await navigator.clipboard.writeText(m.content);copy.textContent='Đã sao chép';}catch{$('notice').textContent='Trình duyệt chưa cho phép sao chép. Bạn có thể chọn nội dung để sao chép.';}};footer.append(copy);
+      const del = node('button','Xóa'); del.type='button';
+      del.onclick=async()=>{try{await api('/api/ai/chat/'+m.id,{method:'DELETE'});if(uncertain&&sentRequests.get(uncertain.requestId)===m.id){uncertain=null;remember();$('chat-text').value='';}messages.delete(m.id);renderMessages();await loadPending();}catch(e){$('notice').textContent=e.message;}};
       if(!m.local&&m.status!=='PENDING')footer.append(del);bubble.append(footer);$('messages').append(bubble);
     }
     if($('chat-welcome'))$('chat-welcome').hidden=messages.size>0;
@@ -92,12 +75,7 @@
       $('proposals').append(card);
     }
   }
-  function edit(p) {
-    if(busy||uncertain){$('notice').textContent='Hãy chờ hoặc thử lại tin đang gửi trước khi chỉnh đề xuất khác.';return;}
-    setEditing(p.id);$('chat-text').value='';$('chat-text').focus();
-    $('notice').textContent='Nói phần bạn muốn sửa rồi bấm Gửi. Bản hiện tại chưa được áp dụng.';
-  }
-  $('chat-edit-cancel').onclick=()=>{if(busy||uncertain)return;setEditing(null);$('notice').textContent='Đã thoát chỉnh sửa. Đề xuất vẫn chờ xác nhận.';$('chat-text').focus();};
+  function edit(p) { $('chat-text').value=`Chỉnh đề xuất ${p.id}: `;$('chat-text').focus();$('notice').textContent='Nói phần bạn muốn sửa rồi bấm Gửi. Bản hiện tại chưa được áp dụng.'; }
   async function loadPending() {
     const pending=await api('/api/ai/proposals?sessionId='+encodeURIComponent(session));
     const ids=new Set(pending.map(p=>p.id));
@@ -110,7 +88,6 @@
       const result=await api(`/api/ai/proposals/${p.id}/${action}`,{method:'POST'});
       proposals.set(result.proposal.id,result.proposal);
       for(const m of result.messages||[])messages.set(m.id,m);
-      if(editingId===p.id)restoreComposer('');
       renderMessages();renderProposals();$('notice').textContent=result.proposal.result;
       await refreshSaved();await loadNotifications();
       window.dispatchEvent(new CustomEvent('fitnessai:data-updated'));
@@ -155,26 +132,24 @@
     setTyping(false);
     if(result.status==='FAILED'){
       $('notice').textContent=result.error||'AI chưa trả được phản hồi. Bấm Gửi để thử lại cùng lượt.';
-      restoreComposer(uncertain?.content||'');
+      $('chat-text').value=uncertain?.content||'';
       if(result.retryable===false){uncertain=null;remember();}
     }else{
-      uncertain=null;remember();setEditing(null);$('notice').textContent='';
+      uncertain=null;remember();$('notice').textContent='';
       const updates=await Promise.allSettled([loadPending(),refreshSaved()]);
       if(updates.some(r=>r.status==='rejected'))$('notice').textContent='Hội thoại đã được lưu. Chưa tải lại được một số kế hoạch; bạn có thể tải lại trang để xem.';
     }
     scrollThread();
   }
   $('chat-form').onsubmit=async event=>{
-    event.preventDefault();const text=$('chat-text').value.trim();if(!text||busy||!session)return;
-    const content=instruction(editingId,text);
-    if(content.length>3000){$('notice').textContent='Nội dung chỉnh sửa quá dài. Hãy rút ngắn tin nhắn rồi gửi lại.';return;}
-    if(uncertain&&uncertain.content!==content){$('notice').textContent='Tin trước chưa có kết quả chắc chắn. Gửi lại nội dung cũ để kiểm tra trước khi gửi tin khác.';restoreComposer(uncertain.content);return;}
+    event.preventDefault();const content=$('chat-text').value.trim();if(!content||busy||!session)return;
+    if(uncertain&&uncertain.content!==content){$('notice').textContent='Tin trước chưa có kết quả chắc chắn. Gửi lại nội dung cũ để kiểm tra trước khi gửi tin khác.';$('chat-text').value=uncertain.content;return;}
     uncertain=uncertain||{sessionId:session,content,requestId:crypto.randomUUID()};remember();
     setBusy(true);$('chat-text').value='';$('notice').textContent='';optimistic();setTyping(true);
     try {
       let result=await api('/api/ai/chat',{method:'POST',body:JSON.stringify(uncertain)});accept(result);
       result=await pollTurn(result);await finishReply(result);
-    }catch(e){if(uncertain){if(messages.has('outbox:'+uncertain.requestId))optimistic('FAILED');restoreComposer(uncertain.content);}$('notice').textContent=e.message;}
+    }catch(e){if(uncertain){if(messages.has('outbox:'+uncertain.requestId))optimistic('FAILED');$('chat-text').value=uncertain.content;}$('notice').textContent=e.message;}
     finally{setTyping(false);setBusy(false);}
   };
   async function refreshSaved() {
@@ -210,10 +185,10 @@
       }else{const prefill=new URLSearchParams(location.search).get('prompt');if(prefill)$('chat-text').value=prefill.slice(0,3000);}
       await Promise.allSettled([loadPending(),refreshSaved(),loadNotifications()]);scrollThread();
     }catch(e){if(uncertain&&!sentRequests.has(uncertain.requestId))optimistic('FAILED');$('notice').textContent=e.message;}
-    finally{if(uncertain){restoreComposer(uncertain.content);if(messages.has('outbox:'+uncertain.requestId))optimistic('FAILED');}setTyping(false);setBusy(false);}
+    finally{if(uncertain){$('chat-text').value=uncertain.content;if(messages.has('outbox:'+uncertain.requestId))optimistic('FAILED');}setTyping(false);setBusy(false);}
   }
   initialize();
-  document.querySelectorAll?.('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{if(busy||uncertain)return;setEditing(null);$('chat-text').value=b.dataset.prompt;$('chat-text').focus();}));
+  document.querySelectorAll?.('[data-prompt]').forEach(b=>b.addEventListener('click',()=>{if(busy)return;$('chat-text').value=b.dataset.prompt;$('chat-text').focus();}));
   $('chat-text').addEventListener?.('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();$('chat-form').requestSubmit();}});
   setInterval(()=>{if(!document.hidden&&!busy&&session)loadNotifications().catch(()=>{});},60000);
 })();
